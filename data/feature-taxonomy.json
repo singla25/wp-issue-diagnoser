@@ -1,0 +1,1128 @@
+{
+  "_about": "Hand-written map from words a reporter uses to what the code of a WordPress site can show for that feature (hooks, shortcodes, blocks, REST namespaces, AJAX actions, post types, script handles, well-known plugin slugs). Used to find WHICH components provide the feature. Every entry names the page it should be checked against. verified=false means the signals were written from the author's knowledge and have NOT been checked against that source; last_checked is null until someone does. A signal is a search term, not a proof. Hook signals must be specific to the feature: hooks nearly every plugin uses (init, wp_head, wp_footer, template_redirect, wp_enqueue_scripts, ...) are not signals, and a test enforces that.",
+  "schema": 1,
+  "entries": [
+    {
+      "id": "checkout",
+      "label": "Checkout",
+      "phrases": [
+        "checkout",
+        "check out",
+        "place order",
+        "order button",
+        "pay now"
+      ],
+      "signals": {
+        "plugins": [
+          "woocommerce"
+        ],
+        "shortcodes": [
+          "woocommerce_checkout"
+        ],
+        "blocks": [
+          "woocommerce/checkout"
+        ],
+        "hooks": [
+          "woocommerce_checkout_process",
+          "woocommerce_before_checkout_form",
+          "woocommerce_checkout_order_review",
+          "woocommerce_review_order_before_payment",
+          "woocommerce_checkout_update_order_review"
+        ],
+        "ajax": [
+          "update_order_review",
+          "checkout"
+        ],
+        "rest": [
+          "wc/store/v1/checkout"
+        ],
+        "handles": [
+          "wc-checkout"
+        ],
+        "templates": [
+          "woocommerce/checkout/"
+        ],
+        "cpts": [
+          "shop_order"
+        ]
+      },
+      "sources": [
+        {
+          "url": "https://woocommerce.github.io/code-reference/hooks/hooks.html",
+          "last_checked": "2026-10-28"
+        },
+        {
+          "url": "https://woocommerce.com/document/woocommerce-shortcodes/",
+          "last_checked": "2026-10-28"
+        },
+        {
+          "url": "https://developer.woocommerce.com/docs/apis/store-api/resources-endpoints/checkout/",
+          "last_checked": "2026-10-28"
+        },
+        {
+          "url": "https://woocommerce.com/document/using-the-new-block-based-checkout/",
+          "last_checked": "2026-10-28"
+        }
+      ],
+      "verified": false,
+      "verified_signals": {
+        "plugins": [
+          "woocommerce"
+        ],
+        "shortcodes": [
+          "woocommerce_checkout"
+        ],
+        "hooks": [
+          "woocommerce_checkout_process",
+          "woocommerce_before_checkout_form",
+          "woocommerce_checkout_order_review",
+          "woocommerce_review_order_before_payment",
+          "woocommerce_checkout_update_order_review"
+        ],
+        "rest": [
+          "wc/store/v1/checkout"
+        ]
+      },
+      "unverified_signals": {
+        "blocks": [
+          "woocommerce/checkout"
+        ],
+        "ajax": [
+          "update_order_review",
+          "checkout"
+        ],
+        "handles": [
+          "wc-checkout"
+        ],
+        "templates": [
+          "woocommerce/checkout/"
+        ],
+        "cpts": [
+          "shop_order"
+        ]
+      },
+      "existence_only_signals": {},
+      "last_checked": "2026-10-28",
+      "reviewed": {
+        "date": "2026-10-28",
+        "by": "excerpts read by the assistant in the session that ran this command"
+      }
+    },
+    {
+      "id": "cart",
+      "label": "Cart",
+      "phrases": [
+        "cart",
+        "basket",
+        "add to cart",
+        "mini cart",
+        "shopping cart"
+      ],
+      "signals": {
+        "plugins": [
+          "woocommerce"
+        ],
+        "shortcodes": [
+          "woocommerce_cart"
+        ],
+        "blocks": [
+          "woocommerce/cart",
+          "woocommerce/mini-cart"
+        ],
+        "hooks": [
+          "woocommerce_add_to_cart",
+          "woocommerce_cart_updated",
+          "woocommerce_before_cart",
+          "woocommerce_add_to_cart_fragments"
+        ],
+        "ajax": [
+          "add_to_cart",
+          "get_refreshed_fragments",
+          "remove_from_cart"
+        ],
+        "rest": [
+          "wc/store/v1/cart"
+        ],
+        "handles": [
+          "wc-cart",
+          "wc-add-to-cart",
+          "wc-cart-fragments"
+        ],
+        "templates": [
+          "woocommerce/cart/"
+        ]
+      },
+      "sources": [
+        {
+          "url": "https://woocommerce.github.io/code-reference/hooks/hooks.html",
+          "last_checked": "2026-10-28"
+        },
+        {
+          "url": "https://woocommerce.com/document/woocommerce-shortcodes/",
+          "last_checked": "2026-10-28"
+        },
+        {
+          "url": "https://developer.woocommerce.com/docs/apis/store-api/resources-endpoints/cart/",
+          "last_checked": "2026-10-28"
+        }
+      ],
+      "verified": false,
+      "verified_signals": {
+        "plugins": [
+          "woocommerce"
+        ],
+        "shortcodes": [
+          "woocommerce_cart"
+        ],
+        "hooks": [
+          "woocommerce_add_to_cart",
+          "woocommerce_cart_updated",
+          "woocommerce_before_cart",
+          "woocommerce_add_to_cart_fragments"
+        ],
+        "rest": [
+          "wc/store/v1/cart"
+        ]
+      },
+      "unverified_signals": {
+        "blocks": [
+          "woocommerce/cart",
+          "woocommerce/mini-cart"
+        ],
+        "ajax": [
+          "add_to_cart",
+          "get_refreshed_fragments",
+          "remove_from_cart"
+        ],
+        "handles": [
+          "wc-cart",
+          "wc-add-to-cart",
+          "wc-cart-fragments"
+        ],
+        "templates": [
+          "woocommerce/cart/"
+        ]
+      },
+      "existence_only_signals": {},
+      "last_checked": "2026-10-28",
+      "reviewed": {
+        "date": "2026-10-28",
+        "by": "excerpts read by the assistant in the session that ran this command"
+      }
+    },
+    {
+      "id": "payment",
+      "label": "Payment gateway",
+      "phrases": [
+        "payment",
+        "pay",
+        "gateway",
+        "credit card",
+        "stripe",
+        "paypal",
+        "card"
+      ],
+      "signals": {
+        "plugins": [
+          "woocommerce",
+          "woocommerce-gateway-stripe",
+          "woocommerce-paypal-payments"
+        ],
+        "hooks": [
+          "woocommerce_payment_gateways",
+          "woocommerce_available_payment_gateways",
+          "woocommerce_payment_complete"
+        ],
+        "handles": [
+          "wc-credit-card-form"
+        ],
+        "templates": [
+          "woocommerce/checkout/payment"
+        ]
+      },
+      "sources": [
+        {
+          "url": "https://woocommerce.github.io/code-reference/hooks/hooks.html",
+          "last_checked": "2026-10-28"
+        },
+        {
+          "url": "https://developer.woocommerce.com/docs/apis/store-api/resources-endpoints/checkout/",
+          "last_checked": "2026-10-28"
+        }
+      ],
+      "verified": false,
+      "verified_signals": {
+        "plugins": [
+          "woocommerce"
+        ],
+        "hooks": [
+          "woocommerce_payment_gateways",
+          "woocommerce_available_payment_gateways",
+          "woocommerce_payment_complete"
+        ]
+      },
+      "unverified_signals": {
+        "handles": [
+          "wc-credit-card-form"
+        ],
+        "templates": [
+          "woocommerce/checkout/payment"
+        ]
+      },
+      "existence_only_signals": {
+        "plugins": [
+          "woocommerce-gateway-stripe",
+          "woocommerce-paypal-payments"
+        ]
+      },
+      "last_checked": "2026-10-28",
+      "reviewed": {
+        "date": "2026-10-28",
+        "by": "excerpts read by the assistant in the session that ran this command"
+      }
+    },
+    {
+      "id": "slider",
+      "label": "Slider / carousel",
+      "phrases": [
+        "slider",
+        "slideshow",
+        "carousel",
+        "hero slider",
+        "banner slider"
+      ],
+      "signals": {
+        "plugins": [
+          "revslider",
+          "smart-slider-3",
+          "ml-slider",
+          "elementor"
+        ],
+        "shortcodes": [
+          "rev_slider",
+          "smartslider3",
+          "metaslider"
+        ],
+        "blocks": [],
+        "handles": [
+          "swiper",
+          "slick",
+          "owl-carousel",
+          "flexslider",
+          "jquery"
+        ],
+        "hooks": []
+      },
+      "sources": [
+        {
+          "url": "https://developer.wordpress.org/plugins/shortcodes/",
+          "last_checked": "2026-10-28"
+        }
+      ],
+      "verified": false,
+      "verified_signals": {},
+      "unverified_signals": {
+        "shortcodes": [
+          "rev_slider",
+          "smartslider3",
+          "metaslider"
+        ],
+        "handles": [
+          "swiper",
+          "slick",
+          "owl-carousel",
+          "flexslider",
+          "jquery"
+        ]
+      },
+      "existence_only_signals": {
+        "plugins": [
+          "revslider",
+          "smart-slider-3",
+          "ml-slider",
+          "elementor"
+        ]
+      },
+      "last_checked": "2026-10-28",
+      "reviewed": {
+        "date": "2026-10-28",
+        "by": "excerpts read by the assistant in the session that ran this command"
+      }
+    },
+    {
+      "id": "popup",
+      "label": "Popup / modal",
+      "phrases": [
+        "popup",
+        "pop up",
+        "modal",
+        "lightbox",
+        "overlay"
+      ],
+      "signals": {
+        "plugins": [
+          "popup-maker",
+          "elementor-pro",
+          "optinmonster"
+        ],
+        "shortcodes": [
+          "popup"
+        ],
+        "handles": [
+          "magnific-popup",
+          "fancybox",
+          "photoswipe"
+        ],
+        "hooks": [],
+        "cpts": [
+          "popup"
+        ]
+      },
+      "sources": [
+        {
+          "url": "https://developer.wordpress.org/plugins/hooks/",
+          "last_checked": "2026-10-28"
+        }
+      ],
+      "verified": false,
+      "verified_signals": {},
+      "unverified_signals": {
+        "shortcodes": [
+          "popup"
+        ],
+        "handles": [
+          "magnific-popup",
+          "fancybox",
+          "photoswipe"
+        ],
+        "cpts": [
+          "popup"
+        ]
+      },
+      "existence_only_signals": {
+        "plugins": [
+          "popup-maker",
+          "elementor-pro",
+          "optinmonster"
+        ]
+      },
+      "last_checked": "2026-10-28",
+      "reviewed": {
+        "date": "2026-10-28",
+        "by": "excerpts read by the assistant in the session that ran this command"
+      }
+    },
+    {
+      "id": "mega-menu",
+      "label": "Menu / mega menu",
+      "phrases": [
+        "mega menu",
+        "menu",
+        "navigation",
+        "nav menu",
+        "dropdown"
+      ],
+      "signals": {
+        "plugins": [
+          "megamenu",
+          "max-mega-menu",
+          "ubermenu"
+        ],
+        "hooks": [
+          "wp_nav_menu_args",
+          "walker_nav_menu_start_el",
+          "wp_nav_menu_items",
+          "nav_menu_css_class"
+        ],
+        "handles": [
+          "hoverintent"
+        ],
+        "cpts": [
+          "nav_menu_item"
+        ]
+      },
+      "sources": [
+        {
+          "url": "https://developer.wordpress.org/reference/functions/wp_nav_menu/",
+          "last_checked": "2026-10-28"
+        }
+      ],
+      "verified": false,
+      "verified_signals": {
+        "hooks": [
+          "wp_nav_menu_args",
+          "walker_nav_menu_start_el",
+          "wp_nav_menu_items",
+          "nav_menu_css_class"
+        ]
+      },
+      "unverified_signals": {
+        "handles": [
+          "hoverintent"
+        ],
+        "cpts": [
+          "nav_menu_item"
+        ]
+      },
+      "existence_only_signals": {
+        "plugins": [
+          "megamenu",
+          "max-mega-menu",
+          "ubermenu"
+        ]
+      },
+      "last_checked": "2026-10-28",
+      "reviewed": {
+        "date": "2026-10-28",
+        "by": "excerpts read by the assistant in the session that ran this command"
+      }
+    },
+    {
+      "id": "contact-form",
+      "label": "Contact / form plugin",
+      "phrases": [
+        "contact form",
+        "form",
+        "submit",
+        "enquiry",
+        "newsletter",
+        "sign up form"
+      ],
+      "signals": {
+        "plugins": [
+          "contact-form-7",
+          "wpforms-lite",
+          "gravityforms",
+          "ninja-forms",
+          "fluentform"
+        ],
+        "shortcodes": [
+          "contact-form-7",
+          "wpforms",
+          "gravityform",
+          "ninja_form",
+          "fluentform"
+        ],
+        "rest": [
+          "contact-form-7/v1"
+        ],
+        "ajax": [
+          "wpforms_submit"
+        ],
+        "hooks": [
+          "wpcf7_before_send_mail",
+          "wpforms_process"
+        ],
+        "handles": [
+          "contact-form-7",
+          "wpforms"
+        ]
+      },
+      "sources": [
+        {
+          "url": "https://wordpress.org/plugins/contact-form-7/",
+          "last_checked": "2026-10-28"
+        }
+      ],
+      "verified": false,
+      "verified_signals": {
+        "plugins": [
+          "contact-form-7"
+        ]
+      },
+      "unverified_signals": {
+        "shortcodes": [
+          "contact-form-7",
+          "wpforms",
+          "gravityform",
+          "ninja_form",
+          "fluentform"
+        ],
+        "rest": [
+          "contact-form-7/v1"
+        ],
+        "ajax": [
+          "wpforms_submit"
+        ],
+        "hooks": [
+          "wpcf7_before_send_mail",
+          "wpforms_process"
+        ],
+        "handles": [
+          "contact-form-7",
+          "wpforms"
+        ]
+      },
+      "existence_only_signals": {
+        "plugins": [
+          "wpforms-lite",
+          "gravityforms",
+          "ninja-forms",
+          "fluentform"
+        ]
+      },
+      "last_checked": "2026-10-28",
+      "reviewed": {
+        "date": "2026-10-28",
+        "by": "excerpts read by the assistant in the session that ran this command"
+      }
+    },
+    {
+      "id": "login",
+      "label": "Login / accounts",
+      "phrases": [
+        "login",
+        "log in",
+        "sign in",
+        "my account",
+        "password",
+        "register",
+        "locked out"
+      ],
+      "signals": {
+        "plugins": [
+          "woocommerce",
+          "wordfence",
+          "wps-hide-login",
+          "two-factor",
+          "loginizer"
+        ],
+        "shortcodes": [
+          "woocommerce_my_account"
+        ],
+        "hooks": [
+          "wp_login",
+          "login_form",
+          "authenticate",
+          "login_redirect",
+          "wp_authenticate_user",
+          "rest_authentication_errors"
+        ],
+        "ajax": []
+      },
+      "sources": [
+        {
+          "url": "https://developer.wordpress.org/reference/hooks/authenticate/",
+          "last_checked": "2026-10-28"
+        },
+        {
+          "url": "https://woocommerce.com/document/woocommerce-shortcodes/",
+          "last_checked": "2026-10-28"
+        }
+      ],
+      "verified": false,
+      "verified_signals": {
+        "plugins": [
+          "woocommerce"
+        ],
+        "shortcodes": [
+          "woocommerce_my_account"
+        ],
+        "hooks": [
+          "wp_login",
+          "login_form",
+          "authenticate",
+          "login_redirect",
+          "wp_authenticate_user",
+          "rest_authentication_errors"
+        ]
+      },
+      "unverified_signals": {},
+      "existence_only_signals": {
+        "plugins": [
+          "wordfence",
+          "wps-hide-login",
+          "two-factor",
+          "loginizer"
+        ]
+      },
+      "last_checked": "2026-10-28",
+      "reviewed": {
+        "date": "2026-10-28",
+        "by": "excerpts read by the assistant in the session that ran this command"
+      }
+    },
+    {
+      "id": "search",
+      "label": "Search",
+      "phrases": [
+        "search",
+        "search bar",
+        "find products",
+        "live search"
+      ],
+      "signals": {
+        "plugins": [
+          "relevanssi",
+          "searchwp",
+          "elasticpress"
+        ],
+        "hooks": [
+          "posts_search",
+          "get_search_form"
+        ],
+        "rest": [
+          "wp/v2/search"
+        ],
+        "handles": []
+      },
+      "sources": [
+        {
+          "url": "https://developer.wordpress.org/reference/hooks/pre_get_posts/",
+          "last_checked": "2026-10-28"
+        }
+      ],
+      "verified": false,
+      "verified_signals": {
+        "hooks": [
+          "posts_search",
+          "get_search_form"
+        ]
+      },
+      "unverified_signals": {
+        "rest": [
+          "wp/v2/search"
+        ]
+      },
+      "existence_only_signals": {
+        "plugins": [
+          "relevanssi",
+          "searchwp",
+          "elasticpress"
+        ]
+      },
+      "last_checked": "2026-10-28",
+      "reviewed": {
+        "date": "2026-10-28",
+        "by": "excerpts read by the assistant in the session that ran this command"
+      }
+    },
+    {
+      "id": "gallery",
+      "label": "Gallery / images",
+      "phrases": [
+        "gallery",
+        "image gallery",
+        "photos",
+        "lightbox",
+        "lazy load",
+        "images missing"
+      ],
+      "signals": {
+        "plugins": [
+          "nextgen-gallery",
+          "envira-gallery-lite",
+          "foogallery",
+          "modula-best-grid-gallery"
+        ],
+        "shortcodes": [
+          "gallery",
+          "envira-gallery",
+          "foogallery",
+          "nggallery"
+        ],
+        "blocks": [
+          "core/gallery"
+        ],
+        "hooks": [
+          "post_gallery",
+          "wp_get_attachment_image_attributes"
+        ],
+        "handles": [
+          "lightbox",
+          "photoswipe",
+          "fancybox"
+        ]
+      },
+      "sources": [
+        {
+          "url": "https://developer.wordpress.org/reference/hooks/post_gallery/",
+          "last_checked": "2026-10-28"
+        }
+      ],
+      "verified": false,
+      "verified_signals": {
+        "hooks": [
+          "post_gallery",
+          "wp_get_attachment_image_attributes"
+        ]
+      },
+      "unverified_signals": {
+        "shortcodes": [
+          "gallery",
+          "envira-gallery",
+          "foogallery",
+          "nggallery"
+        ],
+        "blocks": [
+          "core/gallery"
+        ],
+        "handles": [
+          "lightbox",
+          "photoswipe",
+          "fancybox"
+        ]
+      },
+      "existence_only_signals": {
+        "plugins": [
+          "nextgen-gallery",
+          "envira-gallery-lite",
+          "foogallery",
+          "modula-best-grid-gallery"
+        ]
+      },
+      "last_checked": "2026-10-28",
+      "reviewed": {
+        "date": "2026-10-28",
+        "by": "excerpts read by the assistant in the session that ran this command"
+      }
+    },
+    {
+      "id": "cache",
+      "label": "Caching",
+      "phrases": [
+        "cache",
+        "cached",
+        "caching",
+        "stale",
+        "old content",
+        "purge"
+      ],
+      "signals": {
+        "plugins": [
+          "wp-rocket",
+          "w3-total-cache",
+          "litespeed-cache",
+          "autoptimize",
+          "wp-super-cache",
+          "wp-fastest-cache",
+          "sg-cachepress"
+        ],
+        "dropins": [
+          "advanced-cache.php",
+          "object-cache.php"
+        ],
+        "hooks": []
+      },
+      "sources": [
+        {
+          "url": "https://docs.wp-rocket.me/",
+          "last_checked": "2026-10-28"
+        }
+      ],
+      "verified": false,
+      "verified_signals": {
+        "plugins": [
+          "wp-rocket"
+        ]
+      },
+      "unverified_signals": {
+        "dropins": [
+          "advanced-cache.php",
+          "object-cache.php"
+        ]
+      },
+      "existence_only_signals": {
+        "plugins": [
+          "w3-total-cache",
+          "litespeed-cache",
+          "autoptimize",
+          "wp-super-cache",
+          "wp-fastest-cache",
+          "sg-cachepress"
+        ]
+      },
+      "last_checked": "2026-10-28",
+      "reviewed": {
+        "date": "2026-10-28",
+        "by": "excerpts read by the assistant in the session that ran this command"
+      }
+    },
+    {
+      "id": "optimisation",
+      "label": "Minify / combine / delay JavaScript",
+      "phrases": [
+        "minify",
+        "combine",
+        "defer",
+        "delay javascript",
+        "optimize",
+        "optimise",
+        "page speed",
+        "unused css"
+      ],
+      "signals": {
+        "plugins": [
+          "wp-rocket",
+          "autoptimize",
+          "w3-total-cache",
+          "litespeed-cache"
+        ],
+        "hooks": [
+          "script_loader_tag",
+          "style_loader_tag"
+        ],
+        "handles": [
+          "jquery",
+          "jquery-core"
+        ]
+      },
+      "sources": [
+        {
+          "url": "https://docs.wp-rocket.me/",
+          "last_checked": "2026-10-28"
+        },
+        {
+          "url": "https://developer.wordpress.org/reference/hooks/script_loader_tag/",
+          "last_checked": "2026-10-28"
+        }
+      ],
+      "verified": false,
+      "verified_signals": {
+        "plugins": [
+          "wp-rocket"
+        ],
+        "hooks": [
+          "script_loader_tag",
+          "style_loader_tag"
+        ],
+        "handles": [
+          "jquery",
+          "jquery-core"
+        ]
+      },
+      "unverified_signals": {},
+      "existence_only_signals": {
+        "plugins": [
+          "autoptimize",
+          "w3-total-cache",
+          "litespeed-cache"
+        ]
+      },
+      "last_checked": "2026-10-28",
+      "reviewed": {
+        "date": "2026-10-28",
+        "by": "excerpts read by the assistant in the session that ran this command"
+      }
+    },
+    {
+      "id": "translation",
+      "label": "Translation / languages",
+      "phrases": [
+        "translation",
+        "translate",
+        "language",
+        "multilingual",
+        "wrong language"
+      ],
+      "signals": {
+        "plugins": [
+          "sitepress-multilingual-cms",
+          "polylang",
+          "translatepress-multilingual",
+          "weglot",
+          "loco-translate"
+        ],
+        "hooks": [
+          "locale",
+          "load_textdomain",
+          "gettext",
+          "pre_determine_locale"
+        ]
+      },
+      "sources": [
+        {
+          "url": "https://wpml.org/documentation/",
+          "last_checked": "2026-10-28"
+        }
+      ],
+      "verified": false,
+      "verified_signals": {
+        "hooks": [
+          "locale",
+          "load_textdomain",
+          "gettext",
+          "pre_determine_locale"
+        ]
+      },
+      "unverified_signals": {},
+      "existence_only_signals": {
+        "plugins": [
+          "sitepress-multilingual-cms",
+          "polylang",
+          "translatepress-multilingual",
+          "weglot",
+          "loco-translate"
+        ]
+      },
+      "last_checked": "2026-10-28",
+      "reviewed": {
+        "date": "2026-10-28",
+        "by": "excerpts read by the assistant in the session that ran this command"
+      }
+    },
+    {
+      "id": "page-builder",
+      "label": "Page builder (Elementor)",
+      "phrases": [
+        "elementor",
+        "page builder",
+        "widget",
+        "section",
+        "template"
+      ],
+      "signals": {
+        "plugins": [
+          "elementor",
+          "elementor-pro"
+        ],
+        "shortcodes": [
+          "elementor-template"
+        ],
+        "hooks": [
+          "elementor/frontend/after_enqueue_scripts",
+          "elementor/widgets/register"
+        ],
+        "handles": [
+          "elementor-frontend",
+          "elementor-webpack-runtime"
+        ],
+        "cpts": [
+          "elementor_library"
+        ]
+      },
+      "sources": [
+        {
+          "url": "https://developers.elementor.com/docs/",
+          "last_checked": "2026-10-28"
+        }
+      ],
+      "verified": false,
+      "verified_signals": {
+        "plugins": [
+          "elementor"
+        ]
+      },
+      "unverified_signals": {
+        "shortcodes": [
+          "elementor-template"
+        ],
+        "hooks": [
+          "elementor/frontend/after_enqueue_scripts",
+          "elementor/widgets/register"
+        ],
+        "handles": [
+          "elementor-frontend",
+          "elementor-webpack-runtime"
+        ],
+        "cpts": [
+          "elementor_library"
+        ]
+      },
+      "existence_only_signals": {
+        "plugins": [
+          "elementor-pro"
+        ]
+      },
+      "last_checked": "2026-10-28",
+      "reviewed": {
+        "date": "2026-10-28",
+        "by": "excerpts read by the assistant in the session that ran this command"
+      }
+    },
+    {
+      "id": "email",
+      "label": "Email sending",
+      "phrases": [
+        "email",
+        "e-mail",
+        "mail",
+        "notification",
+        "not receiving",
+        "spam folder"
+      ],
+      "signals": {
+        "plugins": [
+          "wp-mail-smtp",
+          "post-smtp"
+        ],
+        "hooks": [
+          "wp_mail",
+          "phpmailer_init",
+          "wp_mail_from",
+          "wp_mail_failed"
+        ]
+      },
+      "sources": [
+        {
+          "url": "https://developer.wordpress.org/reference/functions/wp_mail/",
+          "last_checked": "2026-10-28"
+        }
+      ],
+      "verified": false,
+      "verified_signals": {
+        "hooks": [
+          "wp_mail",
+          "phpmailer_init",
+          "wp_mail_from",
+          "wp_mail_failed"
+        ]
+      },
+      "unverified_signals": {},
+      "existence_only_signals": {
+        "plugins": [
+          "wp-mail-smtp",
+          "post-smtp"
+        ]
+      },
+      "last_checked": "2026-10-28",
+      "reviewed": {
+        "date": "2026-10-28",
+        "by": "excerpts read by the assistant in the session that ran this command"
+      }
+    },
+    {
+      "id": "white-screen",
+      "label": "White screen / fatal error",
+      "phrases": [
+        "white screen",
+        "blank page",
+        "critical error",
+        "500 error",
+        "wsod",
+        "fatal error"
+      ],
+      "signals": {
+        "hooks": [
+          "wp_fatal_error_handler_enabled"
+        ],
+        "dropins": [
+          "fatal-error-handler.php"
+        ]
+      },
+      "sources": [
+        {
+          "url": "https://developer.wordpress.org/advanced-administration/wordpress/debug/",
+          "last_checked": "2026-10-28"
+        }
+      ],
+      "verified": false,
+      "verified_signals": {
+        "hooks": [
+          "wp_fatal_error_handler_enabled"
+        ]
+      },
+      "unverified_signals": {
+        "dropins": [
+          "fatal-error-handler.php"
+        ]
+      },
+      "existence_only_signals": {},
+      "last_checked": "2026-10-28",
+      "reviewed": {
+        "date": "2026-10-28",
+        "by": "excerpts read by the assistant in the session that ran this command"
+      }
+    }
+  ]
+}

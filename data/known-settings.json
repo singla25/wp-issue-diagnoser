@@ -1,0 +1,1080 @@
+{
+ "_about": "Exact settings for the plugins the knowledge base covers: the label as the admin screen shows it, where it is, the stored key (only when a primary source shows it), the plugin versions it was read in, and the official page(s) that say so. Every evidence claim is a phrase that scripts/verify-knowledge.js must find on the cited page (documentation, or the plugin source at a version tag on plugins.svn.wordpress.org). verified=true only after the tool found every claim AND the excerpts were read. A setting is a suggestion to try in the sandbox, not proof; its version range is where it was READ, not a promise for other versions. stored_key is null when no primary source publishes it (WP Rocket is premium and its documentation names labels only).",
+ "schema": 1,
+ "entries": [
+  {
+   "id": "wp-rocket-never-cache-urls",
+   "plugin": {
+    "name": "WP Rocket",
+    "slug": "wp-rocket"
+   },
+   "label": "Never cache URL(s)",
+   "admin_path": "WP Rocket > Advanced Rules tab > \"Never cache URL(s)\" box",
+   "stored_key": null,
+   "stored_key_note": "WP Rocket is a premium plugin and its official documentation does not publish the stored option key, so none is claimed here. Use the label above.",
+   "versions": {
+    "verified_against": "documentation as fetched on the check date (no version stated by the page)",
+    "range": null
+   },
+   "effect": "URLs listed here (one per line, full address or the path after the domain; regular expressions allowed) are not cached and are excluded from the optimisations.",
+   "change": "Add the cart, checkout and my-account paths if they are still being cached (WP Rocket already skips them for WooCommerce by default).",
+   "applies_to": {
+    "symptoms": [
+     "form-checkout",
+     "wrong-content",
+     "login-admin",
+     "other"
+    ],
+    "plugins_involved": [
+     "wp-rocket"
+    ]
+   },
+   "evidence": [
+    {
+     "role": "label",
+     "url": "https://docs.wp-rocket.me/article/54-exclude-pages-from-the-cache",
+     "claim": "Advanced Rules"
+    },
+    {
+     "role": "label",
+     "url": "https://docs.wp-rocket.me/article/54-exclude-pages-from-the-cache",
+     "claim": "Never cache URL"
+    },
+    {
+     "role": "behaviour",
+     "url": "https://docs.wp-rocket.me/article/27-using-wp-rocket-on-your-ecommerce-site",
+     "claim": "compatible with e-commerce plugins"
+    }
+   ],
+   "verified": true,
+   "last_checked": "2026-10-28",
+   "reviewed": {
+    "date": "2026-10-28",
+    "by": "excerpts read by the assistant in the session that ran this command"
+   },
+   "claims_missing": []
+  },
+  {
+   "id": "wp-rocket-never-cache-cookies",
+   "plugin": {
+    "name": "WP Rocket",
+    "slug": "wp-rocket"
+   },
+   "label": "Never Cache Cookies",
+   "admin_path": "WP Rocket > Advanced Rules tab > \"Never Cache Cookies\" box",
+   "stored_key": null,
+   "stored_key_note": "Not published in the official documentation; not claimed.",
+   "versions": {
+    "verified_against": "documentation as fetched on the check date",
+    "range": null
+   },
+   "effect": "A page is not served from the cache when a cookie named here is present, for example a PHP-driven WooCommerce cart widget.",
+   "change": "Add the cookie name woocommerce_items_in_cart when a cart widget shows stale contents.",
+   "applies_to": {
+    "symptoms": [
+     "form-checkout",
+     "wrong-content",
+     "login-admin",
+     "other"
+    ],
+    "plugins_involved": [
+     "wp-rocket"
+    ]
+   },
+   "evidence": [
+    {
+     "role": "label",
+     "url": "https://docs.wp-rocket.me/article/27-using-wp-rocket-on-your-ecommerce-site",
+     "claim": "Never Cache Cookies"
+    },
+    {
+     "role": "value",
+     "url": "https://docs.wp-rocket.me/article/27-using-wp-rocket-on-your-ecommerce-site",
+     "claim": "woocommerce_items_in_cart"
+    }
+   ],
+   "verified": true,
+   "last_checked": "2026-10-28",
+   "reviewed": {
+    "date": "2026-10-28",
+    "by": "excerpts read by the assistant in the session that ran this command"
+   },
+   "claims_missing": []
+  },
+  {
+   "id": "autoptimize-js-aggregate",
+   "plugin": {
+    "name": "Autoptimize",
+    "slug": "autoptimize"
+   },
+   "label": "Aggregate JS-files",
+   "admin_path": "Settings > Autoptimize > JS, CSS & HTML",
+   "stored_key": "autoptimize_js_aggregate",
+   "stored_key_note": "a wp_options row of that name; registered with register_setting() in the plugin",
+   "versions": {
+    "verified_against": "Autoptimize 3.1.17 (source at that tag)",
+    "range": {
+     "min": "3.1.17",
+     "max": "3.1.17",
+     "meaning": "the key and label were read in this version only; older or newer versions were not checked"
+    }
+   },
+   "effect": "Combines the page's scripts into one file. Combining can change the order scripts run in and break a script that depends on another.",
+   "change": "Untick it (the FAQ says to untick \"aggregate JS-files\" when it is not wanted), then re-run the oracle.",
+   "applies_to": {
+    "symptoms": [
+     "js-error",
+     "layout",
+     "form-checkout",
+     "slow",
+     "other"
+    ],
+    "plugins_involved": [
+     "autoptimize"
+    ]
+   },
+   "evidence": [
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/autoptimize/tags/3.1.17/classes/autoptimizeConfig.php",
+     "claim": "register_setting( 'autoptimize', 'autoptimize_js_aggregate' )"
+    },
+    {
+     "role": "label",
+     "url": "https://plugins.svn.wordpress.org/autoptimize/tags/3.1.17/classes/autoptimizeConfig.php",
+     "claim": "Aggregate JS-files"
+    },
+    {
+     "role": "doc",
+     "url": "https://wordpress.org/plugins/autoptimize/",
+     "claim": "aggregate JS-files"
+    }
+   ],
+   "verified": true,
+   "last_checked": "2026-10-28",
+   "reviewed": {
+    "date": "2026-10-28",
+    "by": "excerpts read by the assistant in the session that ran this command"
+   },
+   "claims_missing": []
+  },
+  {
+   "id": "autoptimize-js-exclude",
+   "plugin": {
+    "name": "Autoptimize",
+    "slug": "autoptimize"
+   },
+   "label": "Exclude scripts from Autoptimize",
+   "admin_path": "Settings > Autoptimize > JS, CSS & HTML",
+   "stored_key": "autoptimize_js_exclude",
+   "stored_key_note": "a wp_options row of that name; registered with register_setting() in the plugin",
+   "versions": {
+    "verified_against": "Autoptimize 3.1.17 (source at that tag)",
+    "range": {
+     "min": "3.1.17",
+     "max": "3.1.17",
+     "meaning": "the key and label were read in this version only; older or newer versions were not checked"
+    }
+   },
+   "effect": "Scripts or folders listed here (comma-separated) are left out of aggregation.",
+   "change": "Add the failing script's file name or folder.",
+   "applies_to": {
+    "symptoms": [
+     "js-error",
+     "layout",
+     "form-checkout",
+     "slow",
+     "other"
+    ],
+    "plugins_involved": [
+     "autoptimize"
+    ]
+   },
+   "evidence": [
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/autoptimize/tags/3.1.17/classes/autoptimizeConfig.php",
+     "claim": "register_setting( 'autoptimize', 'autoptimize_js_exclude' )"
+    },
+    {
+     "role": "label",
+     "url": "https://plugins.svn.wordpress.org/autoptimize/tags/3.1.17/classes/autoptimizeConfig.php",
+     "claim": "Exclude scripts from Autoptimize"
+    }
+   ],
+   "verified": true,
+   "last_checked": "2026-10-28",
+   "reviewed": {
+    "date": "2026-10-28",
+    "by": "excerpts read by the assistant in the session that ran this command"
+   },
+   "claims_missing": []
+  },
+  {
+   "id": "autoptimize-css-aggregate",
+   "plugin": {
+    "name": "Autoptimize",
+    "slug": "autoptimize"
+   },
+   "label": "Aggregate CSS-files",
+   "admin_path": "Settings > Autoptimize > JS, CSS & HTML",
+   "stored_key": "autoptimize_css_aggregate",
+   "stored_key_note": "a wp_options row of that name; registered with register_setting() in the plugin",
+   "versions": {
+    "verified_against": "Autoptimize 3.1.17 (source at that tag)",
+    "range": {
+     "min": "3.1.17",
+     "max": "3.1.17",
+     "meaning": "the key and label were read in this version only; older or newer versions were not checked"
+    }
+   },
+   "effect": "Combines stylesheets into one file; can change the cascade order.",
+   "change": "Untick it and re-run the oracle.",
+   "applies_to": {
+    "symptoms": [
+     "layout",
+     "other"
+    ],
+    "plugins_involved": [
+     "autoptimize"
+    ]
+   },
+   "evidence": [
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/autoptimize/tags/3.1.17/classes/autoptimizeConfig.php",
+     "claim": "register_setting( 'autoptimize', 'autoptimize_css_aggregate' )"
+    },
+    {
+     "role": "label",
+     "url": "https://plugins.svn.wordpress.org/autoptimize/tags/3.1.17/classes/autoptimizeConfig.php",
+     "claim": "Aggregate CSS-files"
+    },
+    {
+     "role": "doc",
+     "url": "https://wordpress.org/plugins/autoptimize/",
+     "claim": "aggregate CSS-files"
+    }
+   ],
+   "verified": true,
+   "last_checked": "2026-10-28",
+   "reviewed": {
+    "date": "2026-10-28",
+    "by": "excerpts read by the assistant in the session that ran this command"
+   },
+   "claims_missing": []
+  },
+  {
+   "id": "autoptimize-css-exclude",
+   "plugin": {
+    "name": "Autoptimize",
+    "slug": "autoptimize"
+   },
+   "label": "Exclude CSS from Autoptimize",
+   "admin_path": "Settings > Autoptimize > JS, CSS & HTML",
+   "stored_key": "autoptimize_css_exclude",
+   "stored_key_note": "a wp_options row of that name; registered with register_setting() in the plugin",
+   "versions": {
+    "verified_against": "Autoptimize 3.1.17 (source at that tag)",
+    "range": {
+     "min": "3.1.17",
+     "max": "3.1.17",
+     "meaning": "the key and label were read in this version only; older or newer versions were not checked"
+    }
+   },
+   "effect": "Stylesheets or folders listed here (comma-separated) are left out of aggregation.",
+   "change": "Add the stylesheet that looks wrong.",
+   "applies_to": {
+    "symptoms": [
+     "layout",
+     "other"
+    ],
+    "plugins_involved": [
+     "autoptimize"
+    ]
+   },
+   "evidence": [
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/autoptimize/tags/3.1.17/classes/autoptimizeConfig.php",
+     "claim": "register_setting( 'autoptimize', 'autoptimize_css_exclude' )"
+    },
+    {
+     "role": "label",
+     "url": "https://plugins.svn.wordpress.org/autoptimize/tags/3.1.17/classes/autoptimizeConfig.php",
+     "claim": "Exclude CSS from Autoptimize"
+    }
+   ],
+   "verified": true,
+   "last_checked": "2026-10-28",
+   "reviewed": {
+    "date": "2026-10-28",
+    "by": "excerpts read by the assistant in the session that ran this command"
+   },
+   "claims_missing": []
+  },
+  {
+   "id": "autoptimize-optimize-checkout",
+   "plugin": {
+    "name": "Autoptimize",
+    "slug": "autoptimize"
+   },
+   "label": "Also optimize shop cart/ checkout?",
+   "admin_path": "Settings > Autoptimize > JS, CSS & HTML",
+   "stored_key": "autoptimize_optimize_checkout",
+   "stored_key_note": "a wp_options row of that name; registered with register_setting() in the plugin",
+   "versions": {
+    "verified_against": "Autoptimize 3.1.17 (source at that tag)",
+    "range": {
+     "min": "3.1.17",
+     "max": "3.1.17",
+     "meaning": "the key and label were read in this version only; older or newer versions were not checked"
+    }
+   },
+   "effect": "When ticked, Autoptimize also optimises the cart and checkout pages of shop plugins; unticked, it skips them.",
+   "change": "Untick it while cart or checkout scripts misbehave.",
+   "applies_to": {
+    "symptoms": [
+     "form-checkout",
+     "wrong-content",
+     "login-admin",
+     "other",
+     "js-error"
+    ],
+    "plugins_involved": [
+     "autoptimize"
+    ]
+   },
+   "evidence": [
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/autoptimize/tags/3.1.17/classes/autoptimizeConfig.php",
+     "claim": "register_setting( 'autoptimize', 'autoptimize_optimize_checkout' )"
+    },
+    {
+     "role": "label",
+     "url": "https://plugins.svn.wordpress.org/autoptimize/tags/3.1.17/classes/autoptimizeConfig.php",
+     "claim": "Also optimize shop cart/ checkout"
+    }
+   ],
+   "verified": true,
+   "last_checked": "2026-10-28",
+   "reviewed": {
+    "date": "2026-10-28",
+    "by": "excerpts read by the assistant in the session that ran this command"
+   },
+   "claims_missing": []
+  },
+  {
+   "id": "autoptimize-optimize-logged",
+   "plugin": {
+    "name": "Autoptimize",
+    "slug": "autoptimize"
+   },
+   "label": "Also optimize for logged in editors/ administrators?",
+   "admin_path": "Settings > Autoptimize > JS, CSS & HTML",
+   "stored_key": "autoptimize_optimize_logged",
+   "stored_key_note": "a wp_options row of that name; registered with register_setting() in the plugin",
+   "versions": {
+    "verified_against": "Autoptimize 3.1.17 (source at that tag)",
+    "range": {
+     "min": "3.1.17",
+     "max": "3.1.17",
+     "meaning": "the key and label were read in this version only; older or newer versions were not checked"
+    }
+   },
+   "effect": "When unticked, Autoptimize does not optimise pages for logged-in editors and administrators (useful with page builders).",
+   "change": "Untick it for page-builder editing problems.",
+   "applies_to": {
+    "symptoms": [
+     "login-admin",
+     "layout",
+     "other"
+    ],
+    "plugins_involved": [
+     "autoptimize"
+    ]
+   },
+   "evidence": [
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/autoptimize/tags/3.1.17/classes/autoptimizeConfig.php",
+     "claim": "register_setting( 'autoptimize', 'autoptimize_optimize_logged' )"
+    },
+    {
+     "role": "label",
+     "url": "https://plugins.svn.wordpress.org/autoptimize/tags/3.1.17/classes/autoptimizeConfig.php",
+     "claim": "Also optimize for logged in editors/ administrators"
+    }
+   ],
+   "verified": true,
+   "last_checked": "2026-10-28",
+   "reviewed": {
+    "date": "2026-10-28",
+    "by": "excerpts read by the assistant in the session that ran this command"
+   },
+   "claims_missing": []
+  },
+  {
+   "id": "litespeed-do-not-cache-uris",
+   "plugin": {
+    "name": "LiteSpeed Cache",
+    "slug": "litespeed-cache"
+   },
+   "label": "Do Not Cache URIs",
+   "admin_path": "LiteSpeed Cache > Cache > Excludes tab > \"Do Not Cache URIs\"",
+   "stored_key": "cache-exc",
+   "stored_key_note": "the plugin's own setting id (O_… constant); how and where it is stored is not claimed",
+   "versions": {
+    "verified_against": "LiteSpeed Cache 7.9.2 (source at that tag)",
+    "range": {
+     "min": "7.9.2",
+     "max": "7.9.2",
+     "meaning": "the id was read in this version only"
+    }
+   },
+   "effect": "URIs listed here (one per line; partial match unless anchored with ^) are never cached.",
+   "change": "Add /cart/, /checkout/ and /my-account/ (the real paths of the shop pages).",
+   "applies_to": {
+    "symptoms": [
+     "form-checkout",
+     "wrong-content",
+     "login-admin",
+     "other"
+    ],
+    "plugins_involved": [
+     "litespeed-cache"
+    ]
+   },
+   "evidence": [
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/litespeed-cache/tags/7.9.2/src/base.cls.php",
+     "claim": "= 'cache-exc'"
+    },
+    {
+     "role": "label",
+     "url": "https://docs.litespeedtech.com/lscache/lscwp/cache/",
+     "claim": "Do Not Cache URIs"
+    }
+   ],
+   "verified": true,
+   "last_checked": "2026-10-28",
+   "reviewed": {
+    "date": "2026-10-28",
+    "by": "excerpts read by the assistant in the session that ran this command"
+   },
+   "claims_missing": []
+  },
+  {
+   "id": "litespeed-do-not-cache-cookies",
+   "plugin": {
+    "name": "LiteSpeed Cache",
+    "slug": "litespeed-cache"
+   },
+   "label": "Do Not Cache Cookies",
+   "admin_path": "LiteSpeed Cache > Cache > Excludes tab > \"Do Not Cache Cookies\"",
+   "stored_key": "cache-exc_cookies",
+   "stored_key_note": "the plugin's own setting id (O_… constant); how and where it is stored is not claimed",
+   "versions": {
+    "verified_against": "LiteSpeed Cache 7.9.2 (source at that tag)",
+    "range": {
+     "min": "7.9.2",
+     "max": "7.9.2",
+     "meaning": "the id was read in this version only"
+    }
+   },
+   "effect": "A page is not cached when a request carries a cookie from this list.",
+   "change": "Add woocommerce_items_in_cart for a cart that shows stale contents.",
+   "applies_to": {
+    "symptoms": [
+     "form-checkout",
+     "wrong-content",
+     "login-admin",
+     "other"
+    ],
+    "plugins_involved": [
+     "litespeed-cache"
+    ]
+   },
+   "evidence": [
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/litespeed-cache/tags/7.9.2/src/base.cls.php",
+     "claim": "= 'cache-exc_cookies'"
+    },
+    {
+     "role": "label",
+     "url": "https://docs.litespeedtech.com/lscache/lscwp/cache/",
+     "claim": "Do Not Cache Cookies"
+    }
+   ],
+   "verified": true,
+   "last_checked": "2026-10-28",
+   "reviewed": {
+    "date": "2026-10-28",
+    "by": "excerpts read by the assistant in the session that ran this command"
+   },
+   "claims_missing": []
+  },
+  {
+   "id": "litespeed-do-not-cache-query-strings",
+   "plugin": {
+    "name": "LiteSpeed Cache",
+    "slug": "litespeed-cache"
+   },
+   "label": "Do Not Cache Query Strings",
+   "admin_path": "LiteSpeed Cache > Cache > Excludes tab > \"Do Not Cache Query Strings\"",
+   "stored_key": "cache-exc_qs",
+   "stored_key_note": "the plugin's own setting id (O_… constant); how and where it is stored is not claimed",
+   "versions": {
+    "verified_against": "LiteSpeed Cache 7.9.2 (source at that tag)",
+    "range": {
+     "min": "7.9.2",
+     "max": "7.9.2",
+     "meaning": "the id was read in this version only"
+    }
+   },
+   "effect": "URLs with these query strings are not cached.",
+   "change": "Add the query string that selects the wrong cached copy.",
+   "applies_to": {
+    "symptoms": [
+     "form-checkout",
+     "wrong-content",
+     "login-admin",
+     "other"
+    ],
+    "plugins_involved": [
+     "litespeed-cache"
+    ]
+   },
+   "evidence": [
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/litespeed-cache/tags/7.9.2/src/base.cls.php",
+     "claim": "= 'cache-exc_qs'"
+    },
+    {
+     "role": "label",
+     "url": "https://docs.litespeedtech.com/lscache/lscwp/cache/",
+     "claim": "Do Not Cache Query Strings"
+    }
+   ],
+   "verified": true,
+   "last_checked": "2026-10-28",
+   "reviewed": {
+    "date": "2026-10-28",
+    "by": "excerpts read by the assistant in the session that ran this command"
+   },
+   "claims_missing": []
+  },
+  {
+   "id": "litespeed-js-combine",
+   "plugin": {
+    "name": "LiteSpeed Cache",
+    "slug": "litespeed-cache"
+   },
+   "label": "JS Combine",
+   "admin_path": "LiteSpeed Cache > Page Optimization",
+   "stored_key": "optm-js_comb",
+   "stored_key_note": "the plugin's own setting id (O_… constant); how and where it is stored is not claimed",
+   "versions": {
+    "verified_against": "LiteSpeed Cache 7.9.2 (source at that tag)",
+    "range": {
+     "min": "7.9.2",
+     "max": "7.9.2",
+     "meaning": "the id was read in this version only"
+    }
+   },
+   "effect": "Combines scripts into one file; can change execution order.",
+   "change": "Switch it off and re-run the oracle.",
+   "applies_to": {
+    "symptoms": [
+     "js-error",
+     "layout",
+     "form-checkout",
+     "slow",
+     "other"
+    ],
+    "plugins_involved": [
+     "litespeed-cache"
+    ]
+   },
+   "evidence": [
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/litespeed-cache/tags/7.9.2/src/base.cls.php",
+     "claim": "= 'optm-js_comb'"
+    },
+    {
+     "role": "label",
+     "url": "https://docs.litespeedtech.com/lscache/lscwp/pageopt/",
+     "claim": "JS Combine"
+    }
+   ],
+   "verified": true,
+   "last_checked": "2026-10-28",
+   "reviewed": {
+    "date": "2026-10-28",
+    "by": "excerpts read by the assistant in the session that ran this command"
+   },
+   "claims_missing": []
+  },
+  {
+   "id": "litespeed-css-combine",
+   "plugin": {
+    "name": "LiteSpeed Cache",
+    "slug": "litespeed-cache"
+   },
+   "label": "CSS Combine",
+   "admin_path": "LiteSpeed Cache > Page Optimization",
+   "stored_key": "optm-css_comb",
+   "stored_key_note": "the plugin's own setting id (O_… constant); how and where it is stored is not claimed",
+   "versions": {
+    "verified_against": "LiteSpeed Cache 7.9.2 (source at that tag)",
+    "range": {
+     "min": "7.9.2",
+     "max": "7.9.2",
+     "meaning": "the id was read in this version only"
+    }
+   },
+   "effect": "Combines stylesheets into one file; can change the cascade.",
+   "change": "Switch it off and re-run the oracle.",
+   "applies_to": {
+    "symptoms": [
+     "layout",
+     "other"
+    ],
+    "plugins_involved": [
+     "litespeed-cache"
+    ]
+   },
+   "evidence": [
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/litespeed-cache/tags/7.9.2/src/base.cls.php",
+     "claim": "= 'optm-css_comb'"
+    },
+    {
+     "role": "label",
+     "url": "https://docs.litespeedtech.com/lscache/lscwp/pageopt/",
+     "claim": "CSS Combine"
+    }
+   ],
+   "verified": true,
+   "last_checked": "2026-10-28",
+   "reviewed": {
+    "date": "2026-10-28",
+    "by": "excerpts read by the assistant in the session that ran this command"
+   },
+   "claims_missing": []
+  },
+  {
+   "id": "woocommerce-cache-exclude-pages",
+   "plugin": {
+    "name": "WooCommerce",
+    "slug": "woocommerce"
+   },
+   "label": "Cart, Checkout and My Account pages must not be cached",
+   "admin_path": "WooCommerce > Settings > Advanced > Page setup (Cart page, Checkout page, My account page)",
+   "stored_key": "woocommerce_cart_page_id, woocommerce_checkout_page_id, woocommerce_myaccount_page_id",
+   "stored_key_note": "three wp_options rows holding the page IDs; the page URLs to exclude from a cache are the permalinks of those pages",
+   "versions": {
+    "verified_against": "WooCommerce 11.2.1 (source at that tag) and the documentation page as fetched",
+    "range": {
+     "min": "11.2.1",
+     "max": "11.2.1",
+     "meaning": "read in this version only"
+    }
+   },
+   "effect": "The documentation says these pages need to stay dynamic because they show information specific to the current customer.",
+   "change": "In the caching plugin, exclude the permalinks of those three pages (see the plugin-specific entries).",
+   "applies_to": {
+    "symptoms": [
+     "form-checkout",
+     "wrong-content",
+     "login-admin",
+     "other"
+    ],
+    "plugins_involved": [
+     "woocommerce"
+    ]
+   },
+   "evidence": [
+    {
+     "role": "doc",
+     "url": "https://woocommerce.com/document/configuring-caching-plugins/",
+     "claim": "Cart My Account Checkout These pages need to stay dynamic"
+    },
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/woocommerce/tags/11.2.1/includes/admin/settings/class-wc-settings-advanced.php",
+     "claim": "woocommerce_cart_page_id"
+    },
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/woocommerce/tags/11.2.1/includes/admin/settings/class-wc-settings-advanced.php",
+     "claim": "woocommerce_checkout_page_id"
+    },
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/woocommerce/tags/11.2.1/includes/admin/settings/class-wc-settings-advanced.php",
+     "claim": "woocommerce_myaccount_page_id"
+    }
+   ],
+   "verified": true,
+   "last_checked": "2026-10-28",
+   "reviewed": {
+    "date": "2026-10-28",
+    "by": "excerpts read by the assistant in the session that ran this command"
+   },
+   "claims_missing": []
+  },
+  {
+   "id": "woocommerce-cache-exclude-cookies",
+   "plugin": {
+    "name": "WooCommerce",
+    "slug": "woocommerce"
+   },
+   "label": "WooCommerce cookies that mark a cart or session",
+   "admin_path": "(a cookie list in the caching plugin, not a WooCommerce setting)",
+   "stored_key": null,
+   "stored_key_note": "these are cookie names, not options",
+   "versions": {
+    "verified_against": "the documentation page as fetched",
+    "range": null
+   },
+   "effect": "woocommerce_cart_hash, woocommerce_items_in_cart and wp_woocommerce_session_ identify a visitor with a cart or session; a cache should not serve them a shared copy.",
+   "change": "Add the cookie names to the caching plugin's \"do not cache cookies\" list.",
+   "applies_to": {
+    "symptoms": [
+     "form-checkout",
+     "wrong-content",
+     "login-admin",
+     "other"
+    ],
+    "plugins_involved": [
+     "woocommerce"
+    ]
+   },
+   "evidence": [
+    {
+     "role": "doc",
+     "url": "https://woocommerce.com/document/configuring-caching-plugins/",
+     "claim": "woocommerce_cart_hash"
+    },
+    {
+     "role": "doc",
+     "url": "https://woocommerce.com/document/configuring-caching-plugins/",
+     "claim": "woocommerce_items_in_cart"
+    },
+    {
+     "role": "doc",
+     "url": "https://woocommerce.com/document/configuring-caching-plugins/",
+     "claim": "wp_woocommerce_session_"
+    }
+   ],
+   "verified": true,
+   "last_checked": "2026-10-28",
+   "reviewed": {
+    "date": "2026-10-28",
+    "by": "excerpts read by the assistant in the session that ran this command"
+   },
+   "claims_missing": []
+  },
+  {
+   "id": "elementor-css-print-method",
+   "plugin": {
+    "name": "Elementor",
+    "slug": "elementor"
+   },
+   "label": "CSS Print Method",
+   "admin_path": "Elementor > Settings > Advanced > CSS Print Method (External File | Internal Embedding)",
+   "stored_key": "elementor_css_print_method",
+   "stored_key_note": "a wp_options row; values \"external\" (default) and \"internal\"",
+   "versions": {
+    "verified_against": "Elementor 4.3.5 (source at that tag)",
+    "range": {
+     "min": "4.3.5",
+     "max": "4.3.5",
+     "meaning": "read in this version only"
+    }
+   },
+   "effect": "External File writes each page's CSS to a file (cacheable, but a stale file can show old styles); Internal Embedding prints it in the page.",
+   "change": "Switch to Internal Embedding when a cache or CDN keeps serving an old Elementor stylesheet, then regenerate CSS.",
+   "applies_to": {
+    "symptoms": [
+     "layout",
+     "wrong-content",
+     "other"
+    ],
+    "plugins_involved": [
+     "elementor"
+    ]
+   },
+   "evidence": [
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/elementor/tags/4.3.5/includes/settings/settings.php",
+     "claim": "get_option( 'elementor_css_print_method', 'external' )"
+    },
+    {
+     "role": "label",
+     "url": "https://plugins.svn.wordpress.org/elementor/tags/4.3.5/includes/settings/settings.php",
+     "claim": "CSS Print Method"
+    },
+    {
+     "role": "label",
+     "url": "https://plugins.svn.wordpress.org/elementor/tags/4.3.5/includes/settings/settings.php",
+     "claim": "Internal Embedding"
+    }
+   ],
+   "verified": true,
+   "last_checked": "2026-10-28",
+   "reviewed": {
+    "date": "2026-10-28",
+    "by": "excerpts read by the assistant in the session that ran this command"
+   },
+   "claims_missing": []
+  },
+  {
+   "id": "elementor-optimized-gutenberg-loading",
+   "plugin": {
+    "name": "Elementor",
+    "slug": "elementor"
+   },
+   "label": "Optimized Gutenberg Loading",
+   "admin_path": "Elementor > Settings > Advanced > Optimized Gutenberg Loading",
+   "stored_key": "elementor_optimized_gutenberg_loading",
+   "stored_key_note": "a wp_options row: Elementor prefixes every settings field id with \"elementor_\" (shown in the evidence); default \"1\" (on)",
+   "versions": {
+    "verified_against": "Elementor 4.3.5 (source at that tag)",
+    "range": {
+     "min": "4.3.5",
+     "max": "4.3.5",
+     "meaning": "read in this version only"
+    }
+   },
+   "effect": "Dequeues unused Gutenberg block-editor scripts and styles on Elementor pages.",
+   "change": "Switch it off if a block's style or script disappears on a page that also uses blocks.",
+   "applies_to": {
+    "symptoms": [
+     "layout",
+     "js-error",
+     "other"
+    ],
+    "plugins_involved": [
+     "elementor"
+    ]
+   },
+   "evidence": [
+    {
+     "role": "label",
+     "url": "https://plugins.svn.wordpress.org/elementor/tags/4.3.5/includes/settings/settings.php",
+     "claim": "Optimized Gutenberg Loading"
+    },
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/elementor/tags/4.3.5/includes/settings/settings.php",
+     "claim": "optimized_gutenberg_loading"
+    },
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/elementor/tags/4.3.5/includes/settings/settings-page.php",
+     "claim": "'elementor_' . $field_id"
+    }
+   ],
+   "verified": true,
+   "last_checked": "2026-10-28",
+   "reviewed": {
+    "date": "2026-10-28",
+    "by": "excerpts read by the assistant in the session that ran this command"
+   },
+   "claims_missing": [],
+   "stored_key_parts": [
+    "elementor_",
+    "optimized_gutenberg_loading"
+   ]
+  },
+  {
+   "id": "elementor-experiment-improved-asset-loading",
+   "plugin": {
+    "name": "Elementor",
+    "slug": "elementor"
+   },
+   "label": "Improved Asset Loading (experiment e_optimized_assets_loading)",
+   "admin_path": "Elementor > Settings > Features (experiments) in versions that still list it",
+   "stored_key": "elementor_experiment-e_optimized_assets_loading",
+   "stored_key_note": "experiment options are stored as the prefix elementor_experiment- plus the experiment name",
+   "versions": {
+    "verified_against": "Elementor 3.20.0 (present) ; checked and NOT listed in 3.30.0, 4.0.0, 4.3.5",
+    "range": {
+     "min": "3.20.0",
+     "max": null,
+     "meaning": "present in 3.20.0; not listed in 3.30.0 or later, so it does not exist on current Elementor. The release in between was not identified."
+    }
+   },
+   "effect": "Loads only the JavaScript each page needs. The help article warns that third-party add-ons may conflict if they have not been updated.",
+   "change": "On a site still running a version that lists it, switch the experiment off and re-run the oracle. On current Elementor this setting no longer exists.",
+   "applies_to": {
+    "symptoms": [
+     "js-error",
+     "layout",
+     "other"
+    ],
+    "plugins_involved": [
+     "elementor"
+    ]
+   },
+   "evidence": [
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/elementor/tags/3.20.0/core/experiments/manager.php",
+     "claim": "'name' => 'e_optimized_assets_loading'"
+    },
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/elementor/tags/4.3.5/core/experiments/manager.php",
+     "claim": "OPTION_PREFIX = 'elementor_experiment-'"
+    },
+    {
+     "role": "doc",
+     "url": "https://elementor.com/help/optimized-assets-loading",
+     "claim": "Improved Asset Loading"
+    },
+    {
+     "role": "doc",
+     "url": "https://elementor.com/help/optimized-assets-loading",
+     "claim": "may cause potential conflicts"
+    }
+   ],
+   "verified": true,
+   "last_checked": "2026-10-28",
+   "reviewed": {
+    "date": "2026-10-28",
+    "by": "excerpts read by the assistant in the session that ran this command"
+   },
+   "claims_missing": [],
+   "stored_key_parts": [
+    "elementor_experiment-",
+    "e_optimized_assets_loading"
+   ]
+  },
+  {
+   "id": "elementor-experiment-improved-css-loading",
+   "plugin": {
+    "name": "Elementor",
+    "slug": "elementor"
+   },
+   "label": "Improved CSS Loading (experiment e_optimized_css_loading)",
+   "admin_path": "Elementor > Settings > Features (experiments) in versions that still list it",
+   "stored_key": "elementor_experiment-e_optimized_css_loading",
+   "stored_key_note": "experiment option: prefix elementor_experiment- plus the name",
+   "versions": {
+    "verified_against": "Elementor 3.20.0 and 3.24.0 (present); checked and NOT listed in 3.30.0, 4.0.0, 4.3.5",
+    "range": {
+     "min": "3.20.0",
+     "max": "3.24.0",
+     "meaning": "present in 3.20.0 and 3.24.0; not listed in 3.30.0 or later"
+    }
+   },
+   "effect": "Reduces the CSS loaded on each page; a page-specific stylesheet can be missing if a cache serves an old one.",
+   "change": "Switch the experiment off and regenerate CSS if styles are missing after enabling it.",
+   "applies_to": {
+    "symptoms": [
+     "layout",
+     "other"
+    ],
+    "plugins_involved": [
+     "elementor"
+    ]
+   },
+   "evidence": [
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/elementor/tags/3.20.0/core/experiments/manager.php",
+     "claim": "'name' => 'e_optimized_css_loading'"
+    },
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/elementor/tags/3.24.0/core/experiments/manager.php",
+     "claim": "'name' => 'e_optimized_css_loading'"
+    },
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/elementor/tags/4.3.5/core/experiments/manager.php",
+     "claim": "OPTION_PREFIX = 'elementor_experiment-'"
+    }
+   ],
+   "verified": true,
+   "last_checked": "2026-10-28",
+   "reviewed": {
+    "date": "2026-10-28",
+    "by": "excerpts read by the assistant in the session that ran this command"
+   },
+   "claims_missing": [],
+   "stored_key_parts": [
+    "elementor_experiment-",
+    "e_optimized_css_loading"
+   ]
+  },
+  {
+   "id": "elementor-experiment-optimized-css-files",
+   "plugin": {
+    "name": "Elementor",
+    "slug": "elementor"
+   },
+   "label": "Optimized CSS Files (experiment e_optimized_css_files)",
+   "admin_path": "Elementor > Settings > Features (experiments)",
+   "stored_key": "elementor_experiment-e_optimized_css_files",
+   "stored_key_note": "experiment option: prefix elementor_experiment- plus the name; release status \"alpha\" in 4.3.5",
+   "versions": {
+    "verified_against": "Elementor 4.3.5 (source at that tag)",
+    "range": {
+     "min": "4.3.5",
+     "max": "4.3.5",
+     "meaning": "read in this version only"
+    }
+   },
+   "effect": "Keeps external CSS files available and consistent for sites behind page caching or a CDN.",
+   "change": "Try it when styles are missing behind a cache or CDN; it is an alpha experiment.",
+   "applies_to": {
+    "symptoms": [
+     "layout",
+     "other"
+    ],
+    "plugins_involved": [
+     "elementor"
+    ]
+   },
+   "evidence": [
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/elementor/tags/4.3.5/core/experiments/manager.php",
+     "claim": "'name' => 'e_optimized_css_files'"
+    },
+    {
+     "role": "label",
+     "url": "https://plugins.svn.wordpress.org/elementor/tags/4.3.5/core/experiments/manager.php",
+     "claim": "Keeps external CSS files available and consistent for sites behind page caching or a CDN"
+    },
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/elementor/tags/4.3.5/core/experiments/manager.php",
+     "claim": "OPTION_PREFIX = 'elementor_experiment-'"
+    }
+   ],
+   "verified": true,
+   "last_checked": "2026-10-28",
+   "reviewed": {
+    "date": "2026-10-28",
+    "by": "excerpts read by the assistant in the session that ran this command"
+   },
+   "claims_missing": [],
+   "stored_key_parts": [
+    "elementor_experiment-",
+    "e_optimized_css_files"
+   ]
+  }
+ ]
+}

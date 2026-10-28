@@ -1,0 +1,425 @@
+{
+  "_about": "Known interaction patterns between WordPress components. A hit is a HYPOTHESIS to test, never a proof. Each entry names the code that detects it (issue/kb.js, `detector`), what it can cause, what to change, and the official page that says so (`sources`, with the phrases each page must contain in `claims`). verified=true only after scripts/verify-knowledge.js fetched every source and found every claim phrase AND the excerpts were read; until then the entry is used with lower weight and labelled unverified. Scope of this first version: WooCommerce, Elementor, and cache / optimisation plugins, plus core-handle problems. `symptoms` limits an entry to the reported symptom types it can explain (\"other\" always matches); `requires_clue_types` needs at least one such clue in the evidence. An entry that fires on nearly every site would only add noise.",
+  "schema": 1,
+  "entries": [
+    {
+      "id": "wp-rocket-with-incompatible-plugin",
+      "title": "WP Rocket is active together with a plugin its documentation lists as not compatible",
+      "detector": "pair-installed",
+      "params": {
+        "a": [
+          "wp-rocket"
+        ],
+        "b": [
+          "w3-total-cache",
+          "litespeed-cache",
+          "wp-fastest-cache",
+          "wp-super-cache",
+          "wp-optimize",
+          "breeze",
+          "fast-velocity-minify",
+          "autoptimize",
+          "perfmatters"
+        ]
+      },
+      "causes": "WP Rocket's own documentation lists these plugins as not compatible with it: other page-cache and optimisation plugins, and plugins whose minify / aggregate / unused-CSS features overlap with WP Rocket's (for Autoptimize and Perfmatters the overlap is specific features, not the whole plugin).",
+      "change": "Deactivate the other plugin, or switch off the overlapping feature in one of the two; the WP Rocket page says which features cannot be used at the same time.",
+      "sources": [
+        {
+          "url": "https://docs.wp-rocket.me/article/1763-optimization-plugins-not-compatible-with-wp-rocket",
+          "title": "Optimization plugins not compatible with WP Rocket",
+          "last_checked": "2026-10-28"
+        }
+      ],
+      "claims": [
+        "W3 Total Cache",
+        "WP Fastest Cache",
+        "LiteSpeed Cache",
+        "WP Super Cache",
+        "WP-Optimize",
+        "Breeze",
+        "Fast Velocity Minify",
+        "Autoptimize",
+        "Perfmatters",
+        "can't be used at the same time"
+      ],
+      "verified": true,
+      "claims_missing": [],
+      "last_checked": "2026-10-28",
+      "reviewed": {
+        "date": "2026-10-28",
+        "by": "excerpts read by the assistant in the session that ran this command"
+      },
+      "beyond_sources": "That the two plugins 'break' each other is not stated; the page only says they are not compatible / cannot be used at the same time.",
+      "family": "cache"
+    },
+    {
+      "id": "page-cache-with-woocommerce",
+      "title": "A page cache is active on a WooCommerce site",
+      "detector": "woocommerce-with-cache",
+      "params": {
+        "cache_slugs": [
+          "wp-rocket",
+          "w3-total-cache",
+          "litespeed-cache",
+          "wp-fastest-cache",
+          "wp-super-cache",
+          "sg-cachepress",
+          "breeze"
+        ],
+        "dropins": [
+          "advanced-cache.php"
+        ]
+      },
+      "causes": "Cart, Checkout and My Account pages show customer-specific data. If a cache serves them to other visitors, carts look empty or wrong, checkout fails, and logins loop.",
+      "change": "Make sure the Cart, Checkout and My Account pages (and the WooCommerce session cookies) are excluded from the page cache, then clear the cache. This tool cannot read the cache plugin's settings from files, so this is something to check, not something it found.",
+      "sources": [
+        {
+          "url": "https://developer.woocommerce.com/docs/best-practices/performance/configuring-caching-plugins",
+          "title": "How to configure caching plugins for WooCommerce",
+          "last_checked": "2026-10-28"
+        },
+        {
+          "url": "https://woocommerce.com/document/configuring-caching-plugins/",
+          "title": "Configuring caching plugins",
+          "last_checked": "2026-10-28"
+        }
+      ],
+      "claims": [
+        "woocommerce_cart_hash",
+        "woocommerce_items_in_cart",
+        "wp_woocommerce_session_",
+        "Cart My Account Checkout",
+        "need to stay dynamic"
+      ],
+      "verified": true,
+      "claims_missing": [],
+      "last_checked": "2026-10-28",
+      "reviewed": {
+        "date": "2026-10-28",
+        "by": "excerpts read by the assistant in the session that ran this command"
+      },
+      "beyond_sources": "The symptoms (empty carts, failing checkout, login loops) are the consequence the page implies by saying these pages must stay dynamic; they are not listed there.",
+      "family": "cache",
+      "symptoms": [
+        "form-checkout",
+        "wrong-content",
+        "login-admin",
+        "slow",
+        "other"
+      ]
+    },
+    {
+      "id": "cache-plugin-with-elementor",
+      "title": "A caching plugin is active alongside Elementor",
+      "detector": "pair-installed",
+      "params": {
+        "a": [
+          "elementor"
+        ],
+        "b": [
+          "litespeed-cache",
+          "w3-total-cache",
+          "wp-rocket",
+          "autoptimize",
+          "wp-fastest-cache"
+        ]
+      },
+      "causes": "Elementor's own troubleshooting page names these plugins as a common reason Elementor changes do not appear online (stale cached or combined / minified files), and advises against running several full-page cache plugins at once.",
+      "change": "Temporarily disable combine / minify to rule out stale assets, purge every cache plugin and the host / CDN cache, and keep only one full-page cache plugin.",
+      "sources": [
+        {
+          "url": "https://elementor.com/help/changes-dont-appear-online/",
+          "title": "My changes do not appear online",
+          "last_checked": "2026-10-28"
+        }
+      ],
+      "claims": [
+        "combine/minify",
+        "caching/performance plugins",
+        "multiple full-page cache plugins",
+        "LiteSpeed Cache",
+        "WP Rocket"
+      ],
+      "verified": true,
+      "claims_missing": [],
+      "last_checked": "2026-10-28",
+      "reviewed": {
+        "date": "2026-10-28",
+        "by": "excerpts read by the assistant in the session that ran this command"
+      },
+      "family": "cache",
+      "symptoms": [
+        "layout",
+        "wrong-content",
+        "js-error",
+        "slow",
+        "other"
+      ]
+    },
+    {
+      "id": "woocommerce-outdated-template-override",
+      "title": "The theme overrides a WooCommerce template that is older than WooCommerce's own",
+      "detector": "observation",
+      "params": {
+        "type": "template-override-outdated"
+      },
+      "causes": "An override frozen at an older @version misses fixes and markup changes in the plugin's template, which can break checkout or cart pages after a WooCommerce update.",
+      "change": "Copy the current template from WooCommerce into the child theme and re-apply the customisations (or replace the override with a hook).",
+      "sources": [
+        {
+          "url": "https://developer.woocommerce.com/docs/theming/theme-development/fixing-outdated-woocommerce-templates/",
+          "title": "How to fix outdated WooCommerce templates",
+          "last_checked": "2026-10-28"
+        },
+        {
+          "url": "https://developer.woocommerce.com/docs/theming/theme-development/template-structure/",
+          "title": "Template structure & Overriding templates via a theme",
+          "last_checked": "2026-10-28"
+        }
+      ],
+      "claims": [
+        "templates overridden by your theme",
+        "need to be updated",
+        "System Status"
+      ],
+      "verified": true,
+      "claims_missing": [],
+      "last_checked": "2026-10-28",
+      "reviewed": {
+        "date": "2026-10-28",
+        "by": "excerpts read by the assistant in the session that ran this command"
+      },
+      "family": "template"
+    },
+    {
+      "id": "core-jquery-replaced",
+      "title": "WordPress's own jQuery is deregistered and replaced",
+      "detector": "observation",
+      "params": {
+        "type": "handle-replaced",
+        "handle": "jquery"
+      },
+      "causes": "WordPress ships its own jQuery and updated it in stages, keeping jQuery Migrate for backwards compatibility. Code written for the jQuery that core ships can misbehave on a different version, and every script that depends on the \"jquery\" handle receives whatever is registered under it. (WordPress documents safeguards against unregistering jQuery core in the admin; this tool looks at the front end, where themes commonly do it.)",
+      "change": "Stop replacing the core handle; load an extra library under its own handle if one is really needed.",
+      "sources": [
+        {
+          "url": "https://make.wordpress.org/core/2020/06/29/updating-jquery-version-shipped-with-wordpress/",
+          "title": "Updating jQuery version shipped with WordPress",
+          "last_checked": "2026-10-28"
+        },
+        {
+          "url": "https://developer.wordpress.org/reference/functions/wp_deregister_script/",
+          "title": "wp_deregister_script()",
+          "last_checked": "2026-10-28"
+        }
+      ],
+      "claims": [
+        "jQuery Migrate",
+        "backwards compatibility",
+        "there are intentional safeguards in place to prevent critical admin scripts, such as jQuery core, from being unregistered"
+      ],
+      "verified": true,
+      "claims_missing": [],
+      "last_checked": "2026-10-28",
+      "reviewed": {
+        "date": "2026-10-28",
+        "by": "excerpts read by the assistant in the session that ran this command"
+      },
+      "beyond_sources": "That every script depending on the \"jquery\" handle receives the replacement is WordPress's dependency behaviour as this tool understands it; the cited pages do not state it.",
+      "family": "js"
+    },
+    {
+      "id": "rest-authentication-errors-contention",
+      "title": "More than one component filters rest_authentication_errors",
+      "detector": "hook-contention",
+      "params": {
+        "hook": "rest_authentication_errors",
+        "min": 2
+      },
+      "causes": "The filter passes a WP_Error, null or true between authentication methods. A callback that does not first check whether its own method is in use, or that returns a different result, can turn a request another method accepted into an error, which breaks anything that calls the REST API (including the block editor and checkout blocks).",
+      "change": "Check each callback's conditions and priority; deactivate the one that is not needed.",
+      "sources": [
+        {
+          "url": "https://developer.wordpress.org/reference/hooks/rest_authentication_errors/",
+          "title": "rest_authentication_errors",
+          "last_checked": "2026-10-28"
+        }
+      ],
+      "claims": [
+        "Filters REST API authentication errors",
+        "pass a WP_Error from an authentication method back to the API",
+        "Authentication methods should check first if they"
+      ],
+      "verified": true,
+      "claims_missing": [],
+      "last_checked": "2026-10-28",
+      "reviewed": {
+        "date": "2026-10-28",
+        "by": "excerpts read by the assistant in the session that ran this command"
+      },
+      "beyond_sources": "That a wrong result 'breaks anything that calls the REST API' is this tool's inference; the page documents only how the filter passes WP_Error / null / true.",
+      "family": "hook",
+      "symptoms": [
+        "login-admin",
+        "form-checkout",
+        "js-error",
+        "other"
+      ],
+      "requires_clue_types": [
+        "rest-route",
+        "http-request-failed",
+        "http-status"
+      ]
+    },
+    {
+      "id": "jquery-api-version-mismatch",
+      "title": "Code calls a jQuery API that the jQuery which will load does not have",
+      "detector": "collision",
+      "params": {
+        "type": "jquery-api-version-mismatch"
+      },
+      "causes": "The call fails with \"is not a function\" and everything that runs after it in that script stops.",
+      "change": "Load the jQuery version the code needs, or change the code to an API the loaded version has.",
+      "sources": [
+        {
+          "url": "https://api.jquery.com/jQuery.escapeSelector/",
+          "title": "jQuery.escapeSelector()",
+          "last_checked": "2026-10-28"
+        },
+        {
+          "url": "https://api.jquery.com/andSelf/",
+          "title": ".andSelf()",
+          "last_checked": "2026-10-28"
+        },
+        {
+          "url": "https://api.jquery.com/size/",
+          "title": ".size()",
+          "last_checked": "2026-10-28"
+        },
+        {
+          "url": "https://api.jquery.com/even/",
+          "title": ".even()",
+          "last_checked": "2026-10-28"
+        },
+        {
+          "url": "https://api.jquery.com/odd/",
+          "title": ".odd()",
+          "last_checked": "2026-10-28"
+        }
+      ],
+      "claims": [
+        "version added: 3.0",
+        "removed: 3.0",
+        "version added: 3.5"
+      ],
+      "verified": true,
+      "claims_missing": [],
+      "last_checked": "2026-10-28",
+      "reviewed": {
+        "date": "2026-10-28",
+        "by": "excerpts read by the assistant in the session that ran this command"
+      },
+      "beyond_sources": "That the call fails with 'is not a function' is general JavaScript behaviour, not stated by the jQuery pages, which document the version each API was added or removed in.",
+      "family": "js"
+    },
+    {
+      "id": "script-missing-dependency",
+      "title": "A script uses jQuery without depending on it",
+      "detector": "collision",
+      "params": {
+        "type": "script-missing-dependency"
+      },
+      "causes": "WordPress prints scripts in dependency order; a script that does not declare its dependency can run before the library exists.",
+      "change": "Add the library's handle to the script's dependency array.",
+      "sources": [
+        {
+          "url": "https://developer.wordpress.org/reference/functions/wp_enqueue_script/",
+          "title": "wp_enqueue_script()",
+          "last_checked": "2026-10-28"
+        }
+      ],
+      "claims": [
+        "An array of registered script handles this script depends on"
+      ],
+      "verified": true,
+      "claims_missing": [],
+      "last_checked": "2026-10-28",
+      "reviewed": {
+        "date": "2026-10-28",
+        "by": "excerpts read by the assistant in the session that ran this command"
+      },
+      "beyond_sources": "That a script without the declared dependency 'can run before the library exists' is this tool's inference from how dependencies are declared; the page documents the $deps parameter.",
+      "family": "js"
+    },
+    {
+      "id": "library-loaded-twice",
+      "title": "The same JavaScript library is loaded more than once or in different versions",
+      "detector": "collision",
+      "params": {
+        "types": [
+          "duplicate-library",
+          "library-version-conflict"
+        ]
+      },
+      "causes": "For jQuery the documentation says that with several versions on one page most plug-ins rely on the jQuery variable and may not operate correctly. The same risk applies to other libraries that attach plugins to a global, but that part is this tool's reasoning, not something the source states.",
+      "change": "Load the library once under one handle and make the other scripts depend on it.",
+      "sources": [
+        {
+          "url": "https://api.jquery.com/jQuery.noConflict/",
+          "title": "jQuery.noConflict()",
+          "last_checked": "2026-10-28"
+        }
+      ],
+      "claims": [
+        "multiple versions of the jQuery library on the same page",
+        "may not operate correctly"
+      ],
+      "verified": true,
+      "claims_missing": [],
+      "last_checked": "2026-10-28",
+      "reviewed": {
+        "date": "2026-10-28",
+        "by": "excerpts read by the assistant in the session that ran this command"
+      },
+      "family": "js"
+    },
+    {
+      "id": "multiple-full-page-cache-plugins",
+      "title": "More than one full-page cache plugin is active",
+      "detector": "installed-set",
+      "params": {
+        "slugs": [
+          "wp-rocket",
+          "w3-total-cache",
+          "litespeed-cache",
+          "wp-fastest-cache"
+        ],
+        "min": 2
+      },
+      "causes": "Elementor's documentation advises against running multiple full-page cache plugins at once: each keeps its own cache and purges only that one, so visitors can be served stale pages.",
+      "change": "Keep one full-page cache plugin, deactivate the others, and purge the cache, the host cache and the CDN.",
+      "sources": [
+        {
+          "url": "https://elementor.com/help/changes-dont-appear-online/",
+          "title": "My changes do not appear online",
+          "last_checked": "2026-10-28"
+        }
+      ],
+      "claims": [
+        "multiple full-page cache plugins",
+        "W3 Total Cache",
+        "LiteSpeed Cache",
+        "WP Fastest Cache"
+      ],
+      "verified": true,
+      "claims_missing": [],
+      "last_checked": "2026-10-28",
+      "reviewed": {
+        "date": "2026-10-28",
+        "by": "excerpts read by the assistant in the session that ran this command"
+      },
+      "family": "cache"
+    }
+  ]
+}

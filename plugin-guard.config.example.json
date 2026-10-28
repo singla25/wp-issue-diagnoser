@@ -1,0 +1,15 @@
+{
+  "customPaths": [
+    "wp-content/plugins/my-custom-plugin",
+    "wp-content/themes/my-custom-theme"
+  ],
+  "protectedPaths": [
+    "wp-content/plugins/my-custom-plugin/includes/generated"
+  ],
+  "url": "https://staging.example.com/",
+  "environment": "staging",
+  "frontendMode": "smoke",
+  "timeoutMinutes": 20,
+  "maxAgeHours": 24,
+  "runProjectTests": false
+}

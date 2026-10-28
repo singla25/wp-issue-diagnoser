@@ -1,0 +1,2963 @@
+{
+ "fetched_at": "2026-10-28",
+ "method": "signal / claim text found in the page text after removing tags (plugin source files: whitespace collapsed only); excerpts must be read by a person before --apply --reviewed",
+ "pages": {
+  "https://woocommerce.github.io/code-reference/hooks/hooks.html": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://woocommerce.github.io/code-reference/hooks/hooks.html",
+   "text_chars": 200466,
+   "sha256": "d8ebb62a1a92ea6b5d4b7ccf36c4f2e53e4c760352d0c21f618bc82dbdfbf403"
+  },
+  "https://woocommerce.com/document/woocommerce-shortcodes/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://woocommerce.com/document/woocommerce-shortcodes/",
+   "text_chars": 6287,
+   "sha256": "a1d3c8a2fdb534356b1da9a7630ffa633d74dbf127bf43b7d679351fb3541dcf"
+  },
+  "https://developer.woocommerce.com/docs/apis/store-api/resources-endpoints/checkout/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://developer.woocommerce.com/docs/apis/store-api/resources-endpoints/checkout/",
+   "text_chars": 9947,
+   "sha256": "b2cd50f0b150a626f3f11bda5b19cf6f5984128e2b8ff5b2dbfc85beb37c9641"
+  },
+  "https://woocommerce.com/document/using-the-new-block-based-checkout/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://woocommerce.com/document/woocommerce-store-editing/customizing-cart-and-checkout/#using-the-cart-and-checkout-blocks",
+   "text_chars": 10956,
+   "sha256": "da1fe7b808167077179ca57b4a8e5c18e7304e42f5645c419c5a111e2eac4f62"
+  },
+  "https://developer.woocommerce.com/docs/apis/store-api/resources-endpoints/cart/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://developer.woocommerce.com/docs/apis/store-api/resources-endpoints/cart/",
+   "text_chars": 19801,
+   "sha256": "589147109d28c74851542c9fea8029ced82e962c046188f3d940c431d648c134"
+  },
+  "https://developer.wordpress.org/plugins/shortcodes/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://developer.wordpress.org/plugins/shortcodes/",
+   "text_chars": 5839,
+   "sha256": "08c622b4451c082738e29fe68d4025e9af3c9d68ced1a61ee165f2c4a7003d82"
+  },
+  "https://developer.wordpress.org/plugins/hooks/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://developer.wordpress.org/plugins/hooks/",
+   "text_chars": 5910,
+   "sha256": "f8718ccb3b43d4251e9dfc1a93eef96663552d2b314e97049b9e0bd5964d37c4"
+  },
+  "https://developer.wordpress.org/reference/functions/wp_nav_menu/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://developer.wordpress.org/reference/functions/wp_nav_menu/",
+   "text_chars": 40952,
+   "sha256": "863b41baadfc7d9e3423ae29b20ca402ec9afe1e97db711d74da7dafe7299df4"
+  },
+  "https://wordpress.org/plugins/contact-form-7/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/contact-form-7/",
+   "text_chars": 13269,
+   "sha256": "9a6809f1bc66ef6015e7e9e9062eeb9c7f2cb296ae2c5f33bfde67baacf79aa2"
+  },
+  "https://developer.wordpress.org/reference/hooks/authenticate/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://developer.wordpress.org/reference/hooks/authenticate/",
+   "text_chars": 4815,
+   "sha256": "56f073d070addcd6e5a6856fe09822fb3277d7b8c9c3c428f801f6dfa17151ca"
+  },
+  "https://developer.wordpress.org/reference/hooks/pre_get_posts/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://developer.wordpress.org/reference/hooks/pre_get_posts/",
+   "text_chars": 12174,
+   "sha256": "51b08b88e5ef999346847a1573b2353928eec13c4ce5685787e91a93ea27769e"
+  },
+  "https://developer.wordpress.org/reference/hooks/post_gallery/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://developer.wordpress.org/reference/hooks/post_gallery/",
+   "text_chars": 3078,
+   "sha256": "4178ebfa4abd190557bc5421b7d7c177236bcf92747799007e3354f4597bf3e7"
+  },
+  "https://docs.wp-rocket.me/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://docs.wp-rocket.me/",
+   "text_chars": 1836,
+   "sha256": "8400683ee37b6aa03177672445bfb08646b35ddb653e369c5d4399360713ea32"
+  },
+  "https://developer.wordpress.org/reference/hooks/script_loader_tag/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://developer.wordpress.org/reference/hooks/script_loader_tag/",
+   "text_chars": 4109,
+   "sha256": "03e90d48a35354108edd4c258b31c201e797567180fdd2aa61b6e35ae149bafd"
+  },
+  "https://wpml.org/documentation/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wpml.org/documentation/",
+   "text_chars": 4786,
+   "sha256": "ad64bbf98df68d48fb091119ff06d58a0038ed8e41925e5a2189f8822732e6f8"
+  },
+  "https://developers.elementor.com/docs/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://developers.elementor.com/docs/",
+   "text_chars": 1381,
+   "sha256": "e39aa3af3a5b298cc40bbc1158618541b8ba82b62f1afa8f1e6232e4376528bd"
+  },
+  "https://developer.wordpress.org/reference/functions/wp_mail/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://developer.wordpress.org/reference/functions/wp_mail/",
+   "text_chars": 37896,
+   "sha256": "85a57551ceac5ca0670a571265ed09346c8621421b9b09d052e5840a886e888e"
+  },
+  "https://developer.wordpress.org/advanced-administration/wordpress/debug/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://developer.wordpress.org/advanced-administration/debug/",
+   "text_chars": 5628,
+   "sha256": "edffe931c4247b16962235baec2ca430e540e4318d965d5a5ad93ed9b8191f53"
+  },
+  "https://docs.wp-rocket.me/article/1763-optimization-plugins-not-compatible-with-wp-rocket": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://docs.wp-rocket.me/article/1763-optimization-plugins-not-compatible-with-wp-rocket",
+   "text_chars": 3062,
+   "sha256": "63337ce41be677e08964f1290a868fd45eae992af8f62ed3383ad161ef927af6"
+  },
+  "https://developer.woocommerce.com/docs/best-practices/performance/configuring-caching-plugins": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://developer.woocommerce.com/docs/best-practices/performance/configuring-caching-plugins",
+   "text_chars": 5989,
+   "sha256": "e9b945ca1d896b8c9111f0f4e2a916c9a29725988ba0c3d7cf02d1f117f4f096"
+  },
+  "https://woocommerce.com/document/configuring-caching-plugins/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://developer.woocommerce.com/docs/best-practices/performance/configuring-caching-plugins",
+   "text_chars": 5989,
+   "sha256": "e9b945ca1d896b8c9111f0f4e2a916c9a29725988ba0c3d7cf02d1f117f4f096"
+  },
+  "https://elementor.com/help/changes-dont-appear-online/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://elementor.com/help/changes-dont-appear-online/",
+   "text_chars": 51853,
+   "sha256": "7149595de645aeafeb0be035b3c428dae8fceb0874d4e2657ffbe87ce6aa7a48"
+  },
+  "https://developer.woocommerce.com/docs/theming/theme-development/fixing-outdated-woocommerce-templates/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://developer.woocommerce.com/docs/theming/theme-development/fixing-outdated-woocommerce-templates/",
+   "text_chars": 4453,
+   "sha256": "1c14e868d8c094ed4c74daadbadfef022b9252a4a83887cc86544e40a5e3fe47"
+  },
+  "https://developer.woocommerce.com/docs/theming/theme-development/template-structure/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://developer.woocommerce.com/docs/theming/theme-development/template-structure/",
+   "text_chars": 7305,
+   "sha256": "fc87f81a9b8a453cffb55bf45127af5b3f5377c9654e817a75e49a8051f34a90"
+  },
+  "https://make.wordpress.org/core/2020/06/29/updating-jquery-version-shipped-with-wordpress/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://make.wordpress.org/core/2020/06/29/updating-jquery-version-shipped-with-wordpress/",
+   "text_chars": 19231,
+   "sha256": "028de14ddc80b6c393cd0271ece4d1fef887b99bed06a389519aee9d8a2acaeb"
+  },
+  "https://developer.wordpress.org/reference/functions/wp_deregister_script/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://developer.wordpress.org/reference/functions/wp_deregister_script/",
+   "text_chars": 6371,
+   "sha256": "8fd115a2f6b35d069a710cd57487cce093e893ea1fa81eb34d9a2adc277db580"
+  },
+  "https://developer.wordpress.org/reference/hooks/rest_authentication_errors/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://developer.wordpress.org/reference/hooks/rest_authentication_errors/",
+   "text_chars": 4045,
+   "sha256": "ff96d574188722e7b5465de6457695cfc484dd115f799e354ebc3e4d2a378427"
+  },
+  "https://api.jquery.com/jQuery.escapeSelector/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://api.jquery.com/jQuery.escapeSelector/",
+   "text_chars": 3682,
+   "sha256": "4f735fb998552a7962f778f6f14ff39a6fc942df347b957aec5f1f34b15e6262"
+  },
+  "https://api.jquery.com/andSelf/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://api.jquery.com/andSelf/",
+   "text_chars": 3211,
+   "sha256": "3c34fefdf2ca4bc570a74cbd9c72b33040ac4c537f4d8e58f5fa263563e62513"
+  },
+  "https://api.jquery.com/size/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://api.jquery.com/size/",
+   "text_chars": 3898,
+   "sha256": "37637c04611b70ada05cb557796f4d82e377b156a065e8cfc5461be2c36b0ad9"
+  },
+  "https://api.jquery.com/even/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://api.jquery.com/even/",
+   "text_chars": 4219,
+   "sha256": "f5b9dd7e1d3ed03beef69e6d7e2c670fdb498b03050b4594385774094bec96a1"
+  },
+  "https://api.jquery.com/odd/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://api.jquery.com/odd/",
+   "text_chars": 4202,
+   "sha256": "0e93149bbc9880829031bd20dd6f2db08ba6a30e584708fa596e5a4b90628960"
+  },
+  "https://developer.wordpress.org/reference/functions/wp_enqueue_script/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://developer.wordpress.org/reference/functions/wp_enqueue_script/",
+   "text_chars": 47751,
+   "sha256": "b98ba96241d6af62242e28075a06d6bc5b6f3c96668e9f83dc91848198c50767"
+  },
+  "https://api.jquery.com/jQuery.noConflict/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://api.jquery.com/jQuery.noConflict/",
+   "text_chars": 7249,
+   "sha256": "df49601a33c28047f4c86effb47c7166ccb3695eab7ed28ef6696006c28df722"
+  },
+  "https://docs.wp-rocket.me/article/54-exclude-pages-from-the-cache": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://docs.wp-rocket.me/article/54-exclude-pages-from-the-cache",
+   "text_chars": 2651,
+   "sha256": "2222f0c05f076c38693b89385c876590d70b02b65aa77e147d7d9dd2081b2be5"
+  },
+  "https://docs.wp-rocket.me/article/27-using-wp-rocket-on-your-ecommerce-site": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://docs.wp-rocket.me/article/27-using-wp-rocket-on-your-ecommerce-site",
+   "text_chars": 1965,
+   "sha256": "0645d19fe111986d0baa6b0551acb25ffb51ed2b1adb2e1afac7ef7189495554"
+  },
+  "https://plugins.svn.wordpress.org/autoptimize/tags/3.1.17/classes/autoptimizeConfig.php": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://plugins.svn.wordpress.org/autoptimize/tags/3.1.17/classes/autoptimizeConfig.php",
+   "text_chars": 48391,
+   "sha256": "75ae09fda98b6ccaed044ba1338ae47dca7042d9ffffe95c37c1e2bbca4be619"
+  },
+  "https://wordpress.org/plugins/autoptimize/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/autoptimize/",
+   "text_chars": 40332,
+   "sha256": "1e80d7e720d0e2d506de0cad16e05d5f9e10e38f7fce547fcd47fa9407ffa823"
+  },
+  "https://plugins.svn.wordpress.org/litespeed-cache/tags/7.9.2/src/base.cls.php": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://plugins.svn.wordpress.org/litespeed-cache/tags/7.9.2/src/base.cls.php",
+   "text_chars": 35245,
+   "sha256": "6b03f595fa7e013ac23ffa01ff5cd0fbfaf6c9461d44a21bf5894e34bd1919ca"
+  },
+  "https://docs.litespeedtech.com/lscache/lscwp/cache/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://docs.litespeedtech.com/lscache/lscwp/cache/",
+   "text_chars": 45126,
+   "sha256": "d032410afb1fa06c0eb4e67fe436c85691cb45589dd49b67bcd2705f643efabc"
+  },
+  "https://docs.litespeedtech.com/lscache/lscwp/pageopt/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://docs.litespeedtech.com/lscache/lscwp/pageopt/",
+   "text_chars": 37184,
+   "sha256": "c8bfbc7a36932a5030c8254327139a84cbcd35da9bf2fe8dfb18ec27b1b0641c"
+  },
+  "https://plugins.svn.wordpress.org/woocommerce/tags/11.2.1/includes/admin/settings/class-wc-settings-advanced.php": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://plugins.svn.wordpress.org/woocommerce/tags/11.2.1/includes/admin/settings/class-wc-settings-advanced.php",
+   "text_chars": 17734,
+   "sha256": "898200116a25d5454fd99a0010bfcff22c2d174e96ff9ef474bfb7734a7c2f53"
+  },
+  "https://plugins.svn.wordpress.org/elementor/tags/4.3.5/includes/settings/settings.php": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://plugins.svn.wordpress.org/elementor/tags/4.3.5/includes/settings/settings.php",
+   "text_chars": 13323,
+   "sha256": "14e90fd1124b77c4ac99c6c6e21d87e80f78651329f0018ec499e06c8d68866d"
+  },
+  "https://plugins.svn.wordpress.org/elementor/tags/4.3.5/includes/settings/settings-page.php": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://plugins.svn.wordpress.org/elementor/tags/4.3.5/includes/settings/settings-page.php",
+   "text_chars": 10319,
+   "sha256": "2fb15c43816aaaa592c0b07b608fd4dcfae5a1d4e35ba5b1611e7ebd7e735bd4"
+  },
+  "https://plugins.svn.wordpress.org/elementor/tags/3.20.0/core/experiments/manager.php": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://plugins.svn.wordpress.org/elementor/tags/3.20.0/core/experiments/manager.php",
+   "text_chars": 27836,
+   "sha256": "d081e8411a561bd8d548cdf6ca5d74b2aa93361c3b603464991cecfe870a9292"
+  },
+  "https://plugins.svn.wordpress.org/elementor/tags/4.3.5/core/experiments/manager.php": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://plugins.svn.wordpress.org/elementor/tags/4.3.5/core/experiments/manager.php",
+   "text_chars": 31867,
+   "sha256": "d038e2be9bc6700c3ba704bb4569af859e76179958af7ab0f45d45443e147e4a"
+  },
+  "https://elementor.com/help/optimized-assets-loading": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://elementor.com/help/optimized-assets-loading/",
+   "text_chars": 40773,
+   "sha256": "951a9010fd78b0aea48383ea971436f3e3c2597727e22a0a6690e1484d041a8f"
+  },
+  "https://plugins.svn.wordpress.org/elementor/tags/3.24.0/core/experiments/manager.php": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://plugins.svn.wordpress.org/elementor/tags/3.24.0/core/experiments/manager.php",
+   "text_chars": 28963,
+   "sha256": "bdaeaeae95cac9a845017db31a05659d156e5e3c9e8eb928bd28a6ec61fd44f3"
+  },
+  "https://wordpress.org/plugins/woocommerce-gateway-stripe/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/woocommerce-gateway-stripe/",
+   "text_chars": 19899,
+   "sha256": "ba3727495bb32b67a1b3c94ecfdedebd3095ae6500164f89f72068eb2f7e3e49"
+  },
+  "https://wordpress.org/plugins/woocommerce-paypal-payments/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/woocommerce-paypal-payments/",
+   "text_chars": 47659,
+   "sha256": "621a79781610074803c85669ac50c8f87b407c53af5151b316b339e4984d1a06"
+  },
+  "https://wordpress.org/plugins/revslider/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/search/revslider/",
+   "text_chars": 4356,
+   "sha256": "c21b9dd28256c2dccba2890b56bb35dc17ca4cdc4d77fa9f74102c2b5e3f0fe9"
+  },
+  "https://wordpress.org/plugins/smart-slider-3/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/smart-slider-3/",
+   "text_chars": 44036,
+   "sha256": "393a7f4c3eed2772d1540e815a64b906cc5fd49c7b468bac481a2ebb08dfd936"
+  },
+  "https://wordpress.org/plugins/ml-slider/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/ml-slider/",
+   "text_chars": 28973,
+   "sha256": "e06da2f9eccb7af5da8387f0cc60356bf8afd9886e9424fa66427c232e4c9acf"
+  },
+  "https://wordpress.org/plugins/elementor/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/elementor/",
+   "text_chars": 30710,
+   "sha256": "f5cbb6f077027ee5336ef24116fdbbc76585bfa2d37c309027a9df164791b1ff"
+  },
+  "https://wordpress.org/plugins/popup-maker/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/popup-maker/",
+   "text_chars": 37677,
+   "sha256": "83ac3fe10940efa30fce7f3454ae84541404a01cc2754c838849f93fd126ecf2"
+  },
+  "https://wordpress.org/plugins/elementor-pro/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/search/elementor-pro/",
+   "text_chars": 6685,
+   "sha256": "04732c9f73b584ed5e778069583bea3533bbc0e11c6347c18a9f47a227a1b064"
+  },
+  "https://wordpress.org/plugins/optinmonster/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/optinmonster/",
+   "text_chars": 24897,
+   "sha256": "cfd9412345457fe1489a412f8ca7fd257066ab272a0cbae474c82ff77334a130"
+  },
+  "https://wordpress.org/plugins/megamenu/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/megamenu/",
+   "text_chars": 38609,
+   "sha256": "758414c5ae42ca251481537cb26a45451259e9dbf5695135dbca445d3c3d4aa4"
+  },
+  "https://wordpress.org/plugins/max-mega-menu/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/search/max-mega-menu/",
+   "text_chars": 6446,
+   "sha256": "04876853bd2398d58e202ffa1c37a47945e9c467ff2efc84aa4930a1dca2fb37"
+  },
+  "https://wordpress.org/plugins/ubermenu/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/search/ubermenu/",
+   "text_chars": 3893,
+   "sha256": "900bc3542ff5b60fda884166187b515a248c686923274f63816976a44205b964"
+  },
+  "https://wordpress.org/plugins/wpforms-lite/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/wpforms-lite/",
+   "text_chars": 41069,
+   "sha256": "d700f81243c8a8fccf0317bc728f3102b45f2311ee6a50577aa18f35e87c3eb4"
+  },
+  "https://wordpress.org/plugins/gravityforms/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/search/gravityforms/",
+   "text_chars": 5644,
+   "sha256": "be5dbe1df39c2ca2b754b210b8f302e89b277fd00990e8fc825a0a99fa148a27"
+  },
+  "https://wordpress.org/plugins/ninja-forms/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/ninja-forms/",
+   "text_chars": 45534,
+   "sha256": "e539b72590e60dfcacb590e9bf2e0f3b1cbfa68540d3841bdb3090a9d2edb5c2"
+  },
+  "https://wordpress.org/plugins/fluentform/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/fluentform/",
+   "text_chars": 43065,
+   "sha256": "973dcc51f315535be497fc2aa8f4f8c65275ef9c462cd70703cf3cd8ebaeb3a8"
+  },
+  "https://developer.wordpress.org/reference/hooks/wpcf7_before_send_mail/": {
+   "status": 0,
+   "error": "HTTP 404",
+   "final_url": null,
+   "text_chars": 0,
+   "sha256": null
+  },
+  "https://developer.wordpress.org/reference/hooks/wpforms_process/": {
+   "status": 0,
+   "error": "HTTP 404",
+   "final_url": null,
+   "text_chars": 0,
+   "sha256": null
+  },
+  "https://wordpress.org/plugins/wordfence/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/wordfence/",
+   "text_chars": 49363,
+   "sha256": "3ba3dbb7e89ee1df8626efdfc9e55b0c3f6ada3f2ba8cfa4ada4e860b1621e5b"
+  },
+  "https://wordpress.org/plugins/wps-hide-login/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/wps-hide-login/",
+   "text_chars": 17722,
+   "sha256": "87780504d0e0300d408e6f493ac6df9016cf43e2f271f1470af159e52209da90"
+  },
+  "https://wordpress.org/plugins/two-factor/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/two-factor/",
+   "text_chars": 28381,
+   "sha256": "6c025806aeb6533e972ef95c1cfde587ef3ddf8301cb41eb92437c3b504af07d"
+  },
+  "https://wordpress.org/plugins/loginizer/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/loginizer/",
+   "text_chars": 34138,
+   "sha256": "c0c85c58b2b5d8631414113b56721a875d4e62b49603bf3a4cd8d75319cf882b"
+  },
+  "https://developer.wordpress.org/reference/hooks/wp_login/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://developer.wordpress.org/reference/hooks/wp_login/",
+   "text_chars": 3532,
+   "sha256": "f45b9d84097ba43364e81670cc175d363ce020cdc45d51afe9bed687e079da0b"
+  },
+  "https://developer.wordpress.org/reference/hooks/login_form/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://developer.wordpress.org/reference/hooks/login_form/",
+   "text_chars": 3947,
+   "sha256": "037ff1707d1aa102241f429da40081cf6ca29885e14c5b8d9f9fea01593c24c0"
+  },
+  "https://developer.wordpress.org/reference/hooks/login_redirect/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://developer.wordpress.org/reference/hooks/login_redirect/",
+   "text_chars": 5259,
+   "sha256": "26c74dc323c8e7bbe59b510be0cb3d0aeb888478a099b7a1977d043c05a94b13"
+  },
+  "https://wordpress.org/plugins/relevanssi/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/relevanssi/",
+   "text_chars": 12011,
+   "sha256": "fde736aa150e9645501e06e677f225cd3440457bec1391597ae2d53634ba7dbd"
+  },
+  "https://wordpress.org/plugins/searchwp/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/search/searchwp/",
+   "text_chars": 6339,
+   "sha256": "676cbc66231c3453d7eb54769fcec0f064bf33f7ae1f16b6141c8a0be44c9b70"
+  },
+  "https://wordpress.org/plugins/elasticpress/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/elasticpress/",
+   "text_chars": 40293,
+   "sha256": "8f416932e9bad377ced9a6067f3580087220c185dad54e362e624eff1ac27f69"
+  },
+  "https://developer.wordpress.org/reference/hooks/posts_search/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://developer.wordpress.org/reference/hooks/posts_search/",
+   "text_chars": 3266,
+   "sha256": "a7481be7e8c4486d16892f2772c59e687022e3cf852d7b91d31ce70c88a37f04"
+  },
+  "https://developer.wordpress.org/reference/hooks/get_search_form/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://developer.wordpress.org/reference/hooks/get_search_form/",
+   "text_chars": 2285,
+   "sha256": "bdf7a3bb0f6f75d76e06e4e7fc29ec2f5e384e658578ac84e5e1dd87cae5e7a5"
+  },
+  "https://wordpress.org/plugins/nextgen-gallery/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/nextgen-gallery/",
+   "text_chars": 45274,
+   "sha256": "47bea0272040f406cc6f2ee23e5ce48cc2dec49106da6b3b2f4a690b7cecbdf0"
+  },
+  "https://wordpress.org/plugins/envira-gallery-lite/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/envira-gallery-lite/",
+   "text_chars": 30062,
+   "sha256": "47cc18e7036c9d3e8cade397797f1a06e4180795eb4dfc14dcf38df0ed1e636d"
+  },
+  "https://wordpress.org/plugins/foogallery/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/foogallery/",
+   "text_chars": 30813,
+   "sha256": "d70cd8cbb2a7b9672ee65140d669c577f5c6f583977a314adb3f968fa86e57b0"
+  },
+  "https://wordpress.org/plugins/modula-best-grid-gallery/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/modula-best-grid-gallery/",
+   "text_chars": 43199,
+   "sha256": "d56d05c04512469ed91cc98fb3866bd4001e0408e40fc29a5624fd047dbe43d5"
+  },
+  "https://developer.wordpress.org/reference/hooks/wp_get_attachment_image_attributes/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://developer.wordpress.org/reference/hooks/wp_get_attachment_image_attributes/",
+   "text_chars": 6289,
+   "sha256": "807a9a3395720cc9a221a16b6f14c8efba966e90b41de8c662aa31cd5f498811"
+  },
+  "https://wordpress.org/plugins/w3-total-cache/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/w3-total-cache/",
+   "text_chars": 42513,
+   "sha256": "0847512e8fd85152476ebb09556b1a9115645d99d13c893f196bca6bc309fd4d"
+  },
+  "https://wordpress.org/plugins/litespeed-cache/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/litespeed-cache/",
+   "text_chars": 28686,
+   "sha256": "3791a6929e2531f46632eb2ae1b6677efd5939e07a72d62300395d1e7dfc1b04"
+  },
+  "https://wordpress.org/plugins/wp-super-cache/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/wp-super-cache/",
+   "text_chars": 37508,
+   "sha256": "5a0a585e5302f333ff95775261418c2ce28eab0d9c662d91fe112085ff660381"
+  },
+  "https://wordpress.org/plugins/wp-fastest-cache/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/wp-fastest-cache/",
+   "text_chars": 31556,
+   "sha256": "ad10f1d69d36150209dfce44383577ebfc91dc1fe2e5d506c76e80000b580816"
+  },
+  "https://wordpress.org/plugins/sg-cachepress/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/sg-cachepress/",
+   "text_chars": 45626,
+   "sha256": "9249dcdf22213c867e47faea72fcaee2d68dee7f2ab1e2bcd7745134bf39e619"
+  },
+  "https://developer.wordpress.org/reference/hooks/style_loader_tag/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://developer.wordpress.org/reference/hooks/style_loader_tag/",
+   "text_chars": 5036,
+   "sha256": "410f21f1ba300f153f800831c96ab3c2bcc214f67731965b063b03529feb8592"
+  },
+  "https://wordpress.org/plugins/sitepress-multilingual-cms/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/sitepress-multilingual-cms/",
+   "text_chars": 1869,
+   "sha256": "4c5ad9ab37336594874e767649a6e3109b54fcf886d82cfbf9fe8ad213a97c25"
+  },
+  "https://wordpress.org/plugins/polylang/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/polylang/",
+   "text_chars": 16802,
+   "sha256": "ac6d77e5878346711d20e87949e708f4b99dccdb33e5742d8d090432e9f8d1fd"
+  },
+  "https://wordpress.org/plugins/translatepress-multilingual/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/translatepress-multilingual/",
+   "text_chars": 15073,
+   "sha256": "ec471b0fad720944722136d4ef1aecabd86bcbbb356cf105447e4bb13ef982cc"
+  },
+  "https://wordpress.org/plugins/weglot/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/weglot/",
+   "text_chars": 18360,
+   "sha256": "ecc1d07a38123ce92c292a75f4fd8916f2c1c409366357e03cf9fd2b575540b1"
+  },
+  "https://wordpress.org/plugins/loco-translate/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/loco-translate/",
+   "text_chars": 25514,
+   "sha256": "dfb21e522ba377107115b3e4cfee5cea6f87c3b950b6c3a5b120a09d8d4a796a"
+  },
+  "https://developer.wordpress.org/reference/hooks/locale/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://developer.wordpress.org/reference/hooks/locale/",
+   "text_chars": 3559,
+   "sha256": "dc42d4cda988628f1c8f22d55e57c030099a806b129899dc279924c22b18c658"
+  },
+  "https://developer.wordpress.org/reference/hooks/load_textdomain/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://developer.wordpress.org/reference/hooks/load_textdomain/",
+   "text_chars": 2591,
+   "sha256": "6adb2b2f521debbd67f9a5c8776258e24b1246a8d9cb8976f5f9d2c0e65fe46e"
+  },
+  "https://developer.wordpress.org/reference/hooks/gettext/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://developer.wordpress.org/reference/hooks/gettext/",
+   "text_chars": 8241,
+   "sha256": "b095d353d2c9ed8b1a2ed529416a97a623a5d22549f1868200d8da706895cc06"
+  },
+  "https://developer.wordpress.org/reference/hooks/pre_determine_locale/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://developer.wordpress.org/reference/hooks/pre_determine_locale/",
+   "text_chars": 2084,
+   "sha256": "4cc7c946223dc5d1037baec2b2c135b5bbeefae3947dc01d00ea1b314b3ee515"
+  },
+  "https://wordpress.org/plugins/wp-mail-smtp/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/wp-mail-smtp/",
+   "text_chars": 40639,
+   "sha256": "1f46fa45d5f6919eaed7056f8e3562a536b00f91f7c4de297a08d11ba5651c2d"
+  },
+  "https://wordpress.org/plugins/post-smtp/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://wordpress.org/plugins/post-smtp/",
+   "text_chars": 57709,
+   "sha256": "3db827c7a20126819c3e1f0540ef84de680629aba49ce4ecb4ac8dfcd3661e49"
+  },
+  "https://developer.wordpress.org/reference/hooks/wp_fatal_error_handler_enabled/": {
+   "status": 200,
+   "error": null,
+   "final_url": "https://developer.wordpress.org/reference/hooks/wp_fatal_error_handler_enabled/",
+   "text_chars": 2483,
+   "sha256": "3cc0bb758e86fc5ec0015b7621fc13edc6c1dc2adcc9142ad0fe0dd0c90d777d"
+  }
+ },
+ "taxonomy": {
+  "checkout": {
+   "sources_fetched": [
+    "https://woocommerce.github.io/code-reference/hooks/hooks.html",
+    "https://woocommerce.com/document/woocommerce-shortcodes/",
+    "https://developer.woocommerce.com/docs/apis/store-api/resources-endpoints/checkout/",
+    "https://woocommerce.com/document/using-the-new-block-based-checkout/"
+   ],
+   "signals": {
+    "plugins": {
+     "woocommerce": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://woocommerce.github.io/code-reference/hooks/hooks.html",
+       "https://woocommerce.com/document/woocommerce-shortcodes/",
+       "https://developer.woocommerce.com/docs/apis/store-api/resources-endpoints/checkout/",
+       "https://woocommerce.com/document/using-the-new-block-based-checkout/"
+      ],
+      "excerpt": "WooCommerce Code Reference Hooks Reference Documentation REST API Docs WooCommerce Code Reference Sea"
+     }
+    },
+    "shortcodes": {
+     "woocommerce_checkout": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://woocommerce.com/document/woocommerce-shortcodes/"
+      ],
+      "excerpt": "e Block alternative [woocommerce_cart] Displays the cart page. Cart shortcode Cart b lock [woocommerce_checkout] Displays the checkout page. Checkout shortcode Checkout block [woocommerce_my_account]"
+     }
+    },
+    "blocks": {
+     "woocommerce/checkout": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    },
+    "hooks": {
+     "woocommerce_checkout_process": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://woocommerce.github.io/code-reference/hooks/hooks.html"
+      ],
+      "excerpt": "ation_notice class-wc-checkout.php woocommerce_checkout_posted_data class-wc-checkout.php woocommerce_checkout_process class-wc-checkout.php woocommerce_checkout_registration_enabled class-wc-checkout.php woo"
+     },
+     "woocommerce_before_checkout_form": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://woocommerce.github.io/code-reference/hooks/hooks.html"
+      ],
+      "excerpt": "ore_cart_totals cart-totals.php woocommerce_before_checkout_billing_form form-billing.php woocommerce_before_checkout_form form-checkout.php woocommerce_before_checkout_registration_form form-billing.php woocomme"
+     },
+     "woocommerce_checkout_order_review": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://woocommerce.github.io/code-reference/hooks/hooks.html"
+      ],
+      "excerpt": "n_message form-login.php woocommerce_checkout_must_be_logged_in_message form-checkout.php woocommerce_checkout_order_review form-checkout.php woocommerce_checkout_shipping form-checkout.php woocommerce_checkout_sh"
+     },
+     "woocommerce_review_order_before_payment": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://woocommerce.github.io/code-reference/hooks/hooks.html"
+      ],
+      "excerpt": "rt_contents review-order.php woocommerce_review_order_before_order_total review-order.php woocommerce_review_order_before_payment payment.php woocommerce_review_order_before_shipping review-order.php woocommerce_review_"
+     },
+     "woocommerce_checkout_update_order_review": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://woocommerce.github.io/code-reference/hooks/hooks.html"
+      ],
+      "excerpt": "r_data class-wc-checkout.php woocommerce_checkout_update_order_meta class-wc-checkout.php woocommerce_checkout_update_order_review class-wc-ajax.php woocommerce_checkout_update_order_review_expired class-wc-ajax.php wooc"
+     }
+    },
+    "ajax": {
+     "update_order_review": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     },
+     "checkout": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    },
+    "rest": {
+     "wc/store/v1/checkout": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://developer.woocommerce.com/docs/apis/store-api/resources-endpoints/checkout/"
+      ],
+      "excerpt": "ted when the order gets updated via POST requests (right before payment processing). GET /wc/store/v1/checkout There are no parameters required for this endpoint. curl --header \"Nonce: 12345\" --reques"
+     }
+    },
+    "handles": {
+     "wc-checkout": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    },
+    "templates": {
+     "woocommerce/checkout/": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    },
+    "cpts": {
+     "shop_order": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    }
+   }
+  },
+  "cart": {
+   "sources_fetched": [
+    "https://woocommerce.github.io/code-reference/hooks/hooks.html",
+    "https://woocommerce.com/document/woocommerce-shortcodes/",
+    "https://developer.woocommerce.com/docs/apis/store-api/resources-endpoints/cart/"
+   ],
+   "signals": {
+    "plugins": {
+     "woocommerce": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://woocommerce.github.io/code-reference/hooks/hooks.html",
+       "https://woocommerce.com/document/woocommerce-shortcodes/",
+       "https://developer.woocommerce.com/docs/apis/store-api/resources-endpoints/cart/"
+      ],
+      "excerpt": "WooCommerce Code Reference Hooks Reference Documentation REST API Docs WooCommerce Code Reference Sea"
+     }
+    },
+    "shortcodes": {
+     "woocommerce_cart": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://woocommerce.com/document/woocommerce-shortcodes/"
+      ],
+      "excerpt": "for each shortcode (where applicable). Shortcode Description Learn more Block alternative [woocommerce_cart] Displays the cart page. Cart shortcode Cart b lock [woocommerce_checkout] Displays the"
+     }
+    },
+    "blocks": {
+     "woocommerce/cart": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     },
+     "woocommerce/mini-cart": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    },
+    "hooks": {
+     "woocommerce_add_to_cart": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://woocommerce.github.io/code-reference/hooks/hooks.html"
+      ],
+      "excerpt": "c-cart-session.php woocommerce_add_payment_method_form_is_valid class-wc-form-handler.php woocommerce_add_to_cart class-wc-cart.php , CartController.php woocommerce_add_to_cart_form_action AddToCartWithO"
+     },
+     "woocommerce_cart_updated": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://woocommerce.github.io/code-reference/hooks/hooks.html"
+      ],
+      "excerpt": "html wc-cart-functions.php woocommerce_cart_totals_taxes_total_html wc-cart-functions.php woocommerce_cart_updated class-wc-cart-session.php woocommerce_cart_updated_notice_type class-wc-form-handler.php"
+     },
+     "woocommerce_before_cart": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://woocommerce.github.io/code-reference/hooks/hooks.html"
+      ],
+      "excerpt": "o-cart-button.php woocommerce_before_available_downloads downloads.php , my-downloads.php woocommerce_before_cart cart.php woocommerce_before_cart_collaterals cart.php woocommerce_before_cart_contents ca"
+     },
+     "woocommerce_add_to_cart_fragments": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://woocommerce.github.io/code-reference/hooks/hooks.html"
+      ],
+      "excerpt": "art.php , CartController.php woocommerce_add_to_cart_form_action AddToCartWithOptions.php woocommerce_add_to_cart_fragments class-wc-ajax.php woocommerce_add_to_cart_handler class-wc-form-handler.php woocommerce_a"
+     }
+    },
+    "ajax": {
+     "add_to_cart": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     },
+     "get_refreshed_fragments": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     },
+     "remove_from_cart": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    },
+    "rest": {
+     "wc/store/v1/cart": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://developer.woocommerce.com/docs/apis/store-api/resources-endpoints/cart/"
+      ],
+      "excerpt": "ere are no parameters required for this endpoint. curl \"https://example-store.com/wp-json/wc/store/v1/cart\" Returns the full cart object response (see Cart Response ). Responses ​ All endpoints un"
+     }
+    },
+    "handles": {
+     "wc-cart": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     },
+     "wc-add-to-cart": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     },
+     "wc-cart-fragments": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    },
+    "templates": {
+     "woocommerce/cart/": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    }
+   }
+  },
+  "payment": {
+   "sources_fetched": [
+    "https://woocommerce.github.io/code-reference/hooks/hooks.html",
+    "https://developer.woocommerce.com/docs/apis/store-api/resources-endpoints/checkout/"
+   ],
+   "signals": {
+    "plugins": {
+     "woocommerce": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://woocommerce.github.io/code-reference/hooks/hooks.html",
+       "https://developer.woocommerce.com/docs/apis/store-api/resources-endpoints/checkout/"
+      ],
+      "excerpt": "WooCommerce Code Reference Hooks Reference Documentation REST API Docs WooCommerce Code Reference Sea"
+     },
+     "woocommerce-gateway-stripe": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/woocommerce-gateway-stripe/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/woocommerce-gateway-stripe/); this proves the slug is real, not that the plugin provides the feature"
+     },
+     "woocommerce-paypal-payments": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/woocommerce-paypal-payments/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/woocommerce-paypal-payments/); this proves the slug is real, not that the plugin provides the feature"
+     }
+    },
+    "hooks": {
+     "woocommerce_payment_gateways": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://woocommerce.github.io/code-reference/hooks/hooks.html"
+      ],
+      "excerpt": "-payment-gateway.php woocommerce_payment_gateway_supports abstract-wc-payment-gateway.php woocommerce_payment_gateways class-wc-payment-gateways.php woocommerce_payment_methods_list_item wc-account-functions."
+     },
+     "woocommerce_available_payment_gateways": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://woocommerce.github.io/code-reference/hooks/hooks.html"
+      ],
+      "excerpt": "ns class-wc-admin-attributes.php woocommerce_attribute_updated wc-attribute-functions.php woocommerce_available_payment_gateways class-wc-payment-gateways.php woocommerce_available_variation class-wc-product-variable.p"
+     },
+     "woocommerce_payment_complete": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://woocommerce.github.io/code-reference/hooks/hooks.html"
+      ],
+      "excerpt": "ough_stock OrderController.php woocommerce_pay_order_product_in_stock OrderController.php woocommerce_payment_complete class-wc-order.php woocommerce_payment_complete_order_status class-wc-order.php , class-w"
+     }
+    },
+    "handles": {
+     "wc-credit-card-form": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    },
+    "templates": {
+     "woocommerce/checkout/payment": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    }
+   }
+  },
+  "slider": {
+   "sources_fetched": [
+    "https://developer.wordpress.org/plugins/shortcodes/"
+   ],
+   "signals": {
+    "plugins": {
+     "revslider": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/revslider/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/search/revslider/); this proves the slug is real, not that the plugin provides the feature"
+     },
+     "smart-slider-3": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/smart-slider-3/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/smart-slider-3/); this proves the slug is real, not that the plugin provides the feature"
+     },
+     "ml-slider": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/ml-slider/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/ml-slider/); this proves the slug is real, not that the plugin provides the feature"
+     },
+     "elementor": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/elementor/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/elementor/); this proves the slug is real, not that the plugin provides the feature"
+     }
+    },
+    "shortcodes": {
+     "rev_slider": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     },
+     "smartslider3": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     },
+     "metaslider": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    },
+    "handles": {
+     "swiper": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     },
+     "slick": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     },
+     "owl-carousel": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     },
+     "flexslider": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     },
+     "jquery": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    }
+   }
+  },
+  "popup": {
+   "sources_fetched": [
+    "https://developer.wordpress.org/plugins/hooks/"
+   ],
+   "signals": {
+    "plugins": {
+     "popup-maker": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/popup-maker/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/popup-maker/); this proves the slug is real, not that the plugin provides the feature"
+     },
+     "elementor-pro": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/elementor-pro/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/search/elementor-pro/); this proves the slug is real, not that the plugin provides the feature"
+     },
+     "optinmonster": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/optinmonster/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/optinmonster/); this proves the slug is real, not that the plugin provides the feature"
+     }
+    },
+    "shortcodes": {
+     "popup": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    },
+    "handles": {
+     "magnific-popup": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     },
+     "fancybox": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     },
+     "photoswipe": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    },
+    "cpts": {
+     "popup": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    }
+   }
+  },
+  "mega-menu": {
+   "sources_fetched": [
+    "https://developer.wordpress.org/reference/functions/wp_nav_menu/"
+   ],
+   "signals": {
+    "plugins": {
+     "megamenu": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/megamenu/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/megamenu/); this proves the slug is real, not that the plugin provides the feature"
+     },
+     "max-mega-menu": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/max-mega-menu/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/search/max-mega-menu/); this proves the slug is real, not that the plugin provides the feature"
+     },
+     "ubermenu": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/ubermenu/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/search/ubermenu/); this proves the slug is real, not that the plugin provides the feature"
+     }
+    },
+    "hooks": {
+     "wp_nav_menu_args": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://developer.wordpress.org/reference/functions/wp_nav_menu/"
+      ],
+      "excerpt": "enu() * * @param array $args Array of wp_nav_menu() arguments. */ $args = apply_filters( 'wp_nav_menu_args', $args ); $args = (object) $args; /** * Filters whether to short-circuit the wp_nav_menu"
+     },
+     "walker_nav_menu_start_el": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://developer.wordpress.org/reference/functions/wp_nav_menu/"
+      ],
+      "excerpt": "$item->title, $item->ID ), $args->link_after, $args->after ); $output .= apply_filters( 'walker_nav_menu_start_el', $item_output, $item, $depth, $args ); } } Log in to add feedback Skip to note 31 conten"
+     },
+     "wp_nav_menu_items": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://developer.wordpress.org/reference/functions/wp_nav_menu/"
+      ],
+      "excerpt": "stdClass $args An object containing wp_nav_menu() arguments. */ $items = apply_filters( 'wp_nav_menu_items', $items, $args ); /** * Filters the HTML list content for a specific navigation menu. *"
+     },
+     "nav_menu_css_class": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://developer.wordpress.org/reference/functions/wp_nav_menu/"
+      ],
+      "excerpt": "array() : (array) $item->classes; $class_names = esc_attr( implode( ' ', apply_filters( 'nav_menu_css_class', array_filter( $classes ), $item ) ) ); // Build HTML. $output .= $indent . '<li id=\"nav"
+     }
+    },
+    "handles": {
+     "hoverintent": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    },
+    "cpts": {
+     "nav_menu_item": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    }
+   }
+  },
+  "contact-form": {
+   "sources_fetched": [
+    "https://wordpress.org/plugins/contact-form-7/"
+   ],
+   "signals": {
+    "plugins": {
+     "contact-form-7": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://wordpress.org/plugins/contact-form-7/"
+      ],
+      "excerpt": "Contact Form 7 &#8211; WordPress plugin &#124; WordPress.org Skip to content WordPress.org Showcase Plug"
+     },
+     "wpforms-lite": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/wpforms-lite/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/wpforms-lite/); this proves the slug is real, not that the plugin provides the feature"
+     },
+     "gravityforms": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/gravityforms/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/search/gravityforms/); this proves the slug is real, not that the plugin provides the feature"
+     },
+     "ninja-forms": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/ninja-forms/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/ninja-forms/); this proves the slug is real, not that the plugin provides the feature"
+     },
+     "fluentform": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/fluentform/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/fluentform/); this proves the slug is real, not that the plugin provides the feature"
+     }
+    },
+    "shortcodes": {
+     "contact-form-7": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     },
+     "wpforms": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     },
+     "gravityform": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     },
+     "ninja_form": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     },
+     "fluentform": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    },
+    "rest": {
+     "contact-form-7/v1": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    },
+    "ajax": {
+     "wpforms_submit": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    },
+    "hooks": {
+     "wpcf7_before_send_mail": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     },
+     "wpforms_process": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    },
+    "handles": {
+     "contact-form-7": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     },
+     "wpforms": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    }
+   }
+  },
+  "login": {
+   "sources_fetched": [
+    "https://developer.wordpress.org/reference/hooks/authenticate/",
+    "https://woocommerce.com/document/woocommerce-shortcodes/"
+   ],
+   "signals": {
+    "plugins": {
+     "woocommerce": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://woocommerce.com/document/woocommerce-shortcodes/"
+      ],
+      "excerpt": "Shortcodes included with WooCommerce: documentation - WooCommerce Skip to navigation Skip to content Develop on Woo Hire an ex"
+     },
+     "wordfence": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/wordfence/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/wordfence/); this proves the slug is real, not that the plugin provides the feature"
+     },
+     "wps-hide-login": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/wps-hide-login/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/wps-hide-login/); this proves the slug is real, not that the plugin provides the feature"
+     },
+     "two-factor": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/two-factor/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/two-factor/); this proves the slug is real, not that the plugin provides the feature"
+     },
+     "loginizer": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/loginizer/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/loginizer/); this proves the slug is real, not that the plugin provides the feature"
+     }
+    },
+    "shortcodes": {
+     "woocommerce_my_account": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://woocommerce.com/document/woocommerce-shortcodes/"
+      ],
+      "excerpt": "lock [woocommerce_checkout] Displays the checkout page. Checkout shortcode Checkout block [woocommerce_my_account] Displays the user account page. My account shortcode None yet [woocommerce_order_tracki"
+     }
+    },
+    "hooks": {
+     "wp_login": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://developer.wordpress.org/reference/hooks/wp_login/"
+      ],
+      "excerpt": "Fires after the user has successfully logged in. Parameters $user_login string Username. $user WP_User WP_User object of the logged-in user. More Information The wp_login action hook is tr"
+     },
+     "login_form": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://developer.wordpress.org/reference/hooks/login_form/"
+      ],
+      "excerpt": "Fires following the &#8216;Password&#8217; field in the login form. More Information It can be used to customize the built-in WordPress login form. Use in conjunction with &#8216; login_he"
+     },
+     "authenticate": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://developer.wordpress.org/reference/hooks/authenticate/"
+      ],
+      "excerpt": "authenticate – Hook | Developer.WordPress.org Skip to content Handbook home > Article). --> WordPress."
+     },
+     "login_redirect": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://developer.wordpress.org/reference/hooks/login_redirect/"
+      ],
+      "excerpt": "Filters the login redirect URL. Parameters $redirect_to string The redirect destination URL. $requested_redirect_to string The requested redirect destination URL passed as a parameter. $us"
+     },
+     "wp_authenticate_user": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://developer.wordpress.org/reference/hooks/authenticate/"
+      ],
+      "excerpt": "to perform additional validation/authentication any time a user logs in to WordPress. The wp_authenticate_user filter can also be used if you want to perform any additional validation after WordPress&"
+     },
+     "rest_authentication_errors": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://developer.wordpress.org/reference/hooks/rest_authentication_errors/"
+      ],
+      "excerpt": "Filters REST API authentication errors. Description This is used to pass a WP_Error from an authentication method back to the API. Authentication methods should check first if they&#8217;r"
+     }
+    }
+   }
+  },
+  "search": {
+   "sources_fetched": [
+    "https://developer.wordpress.org/reference/hooks/pre_get_posts/"
+   ],
+   "signals": {
+    "plugins": {
+     "relevanssi": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/relevanssi/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/relevanssi/); this proves the slug is real, not that the plugin provides the feature"
+     },
+     "searchwp": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/searchwp/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/search/searchwp/); this proves the slug is real, not that the plugin provides the feature"
+     },
+     "elasticpress": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/elasticpress/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/elasticpress/); this proves the slug is real, not that the plugin provides the feature"
+     }
+    },
+    "hooks": {
+     "posts_search": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://developer.wordpress.org/reference/hooks/posts_search/"
+      ],
+      "excerpt": "Filters the search SQL that is used in the WHERE clause of WP_Query . Parameters $search string Search SQL for WHERE clause. $query WP_Query The current WP_Query object. More Information S"
+     },
+     "get_search_form": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://developer.wordpress.org/reference/hooks/get_search_form/"
+      ],
+      "excerpt": "Filters the HTML output of the search form. Parameters $form string The search form HTML output. $args array The array of arguments for building the search form. See get_search_form() for"
+     }
+    },
+    "rest": {
+     "wp/v2/search": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    }
+   }
+  },
+  "gallery": {
+   "sources_fetched": [
+    "https://developer.wordpress.org/reference/hooks/post_gallery/"
+   ],
+   "signals": {
+    "plugins": {
+     "nextgen-gallery": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/nextgen-gallery/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/nextgen-gallery/); this proves the slug is real, not that the plugin provides the feature"
+     },
+     "envira-gallery-lite": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/envira-gallery-lite/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/envira-gallery-lite/); this proves the slug is real, not that the plugin provides the feature"
+     },
+     "foogallery": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/foogallery/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/foogallery/); this proves the slug is real, not that the plugin provides the feature"
+     },
+     "modula-best-grid-gallery": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/modula-best-grid-gallery/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/modula-best-grid-gallery/); this proves the slug is real, not that the plugin provides the feature"
+     }
+    },
+    "shortcodes": {
+     "gallery": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     },
+     "envira-gallery": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     },
+     "foogallery": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     },
+     "nggallery": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    },
+    "blocks": {
+     "core/gallery": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    },
+    "hooks": {
+     "post_gallery": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://developer.wordpress.org/reference/hooks/post_gallery/"
+      ],
+      "excerpt": "post_gallery – Hook | Developer.WordPress.org Skip to content Handbook home > Article). --> WordPress."
+     },
+     "wp_get_attachment_image_attributes": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://developer.wordpress.org/reference/hooks/wp_get_attachment_image_attributes/"
+      ],
+      "excerpt": "Filters the list of attachment image attributes. Parameters $attr string[] Array of attribute values for the image markup, keyed by attribute name. See wp_get_attachment_image() . More Arg"
+     }
+    },
+    "handles": {
+     "lightbox": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     },
+     "photoswipe": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     },
+     "fancybox": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    }
+   }
+  },
+  "cache": {
+   "sources_fetched": [
+    "https://docs.wp-rocket.me/"
+   ],
+   "signals": {
+    "plugins": {
+     "wp-rocket": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://docs.wp-rocket.me/"
+      ],
+      "excerpt": "WP Rocket Knowledge Base Toggle Navigation Getting started Features RocketCDN Tips & tutorials Comp"
+     },
+     "w3-total-cache": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/w3-total-cache/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/w3-total-cache/); this proves the slug is real, not that the plugin provides the feature"
+     },
+     "litespeed-cache": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/litespeed-cache/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/litespeed-cache/); this proves the slug is real, not that the plugin provides the feature"
+     },
+     "autoptimize": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/autoptimize/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/autoptimize/); this proves the slug is real, not that the plugin provides the feature"
+     },
+     "wp-super-cache": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/wp-super-cache/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/wp-super-cache/); this proves the slug is real, not that the plugin provides the feature"
+     },
+     "wp-fastest-cache": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/wp-fastest-cache/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/wp-fastest-cache/); this proves the slug is real, not that the plugin provides the feature"
+     },
+     "sg-cachepress": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/sg-cachepress/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/sg-cachepress/); this proves the slug is real, not that the plugin provides the feature"
+     }
+    },
+    "dropins": {
+     "advanced-cache.php": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     },
+     "object-cache.php": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    }
+   }
+  },
+  "optimisation": {
+   "sources_fetched": [
+    "https://docs.wp-rocket.me/",
+    "https://developer.wordpress.org/reference/hooks/script_loader_tag/"
+   ],
+   "signals": {
+    "plugins": {
+     "wp-rocket": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://docs.wp-rocket.me/"
+      ],
+      "excerpt": "WP Rocket Knowledge Base Toggle Navigation Getting started Features RocketCDN Tips & tutorials Comp"
+     },
+     "autoptimize": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/autoptimize/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/autoptimize/); this proves the slug is real, not that the plugin provides the feature"
+     },
+     "w3-total-cache": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/w3-total-cache/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/w3-total-cache/); this proves the slug is real, not that the plugin provides the feature"
+     },
+     "litespeed-cache": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/litespeed-cache/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/litespeed-cache/); this proves the slug is real, not that the plugin provides the feature"
+     }
+    },
+    "hooks": {
+     "script_loader_tag": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://developer.wordpress.org/reference/hooks/script_loader_tag/"
+      ],
+      "excerpt": "script_loader_tag – Hook | Developer.WordPress.org Skip to content Handbook home > Article). --> WordPress."
+     },
+     "style_loader_tag": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://developer.wordpress.org/reference/hooks/style_loader_tag/"
+      ],
+      "excerpt": "Filters the HTML link tag of an enqueued style. Parameters $tag string The link tag for the enqueued style. $handle string The style&#8217;s registered handle. $href string The stylesheet&"
+     }
+    },
+    "handles": {
+     "jquery": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://developer.wordpress.org/reference/hooks/script_loader_tag/"
+      ],
+      "excerpt": "_admin()) return $tag; $exclude_handles = &#91; 'heartbeat', 'wp-hooks', 'wp-auth-check', 'jquery', 'jquery-core', 'jquery-ui-core', 'wp-i18n' &#93;; if (in_array($handle, $exclude_handl"
+     },
+     "jquery-core": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://developer.wordpress.org/reference/hooks/script_loader_tag/"
+      ],
+      "excerpt": "return $tag; $exclude_handles = &#91; 'heartbeat', 'wp-hooks', 'wp-auth-check', 'jquery', 'jquery-core', 'jquery-ui-core', 'wp-i18n' &#93;; if (in_array($handle, $exclude_handles)) { $tag = $"
+     }
+    }
+   }
+  },
+  "translation": {
+   "sources_fetched": [
+    "https://wpml.org/documentation/"
+   ],
+   "signals": {
+    "plugins": {
+     "sitepress-multilingual-cms": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/sitepress-multilingual-cms/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/sitepress-multilingual-cms/); this proves the slug is real, not that the plugin provides the feature"
+     },
+     "polylang": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/polylang/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/polylang/); this proves the slug is real, not that the plugin provides the feature"
+     },
+     "translatepress-multilingual": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/translatepress-multilingual/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/translatepress-multilingual/); this proves the slug is real, not that the plugin provides the feature"
+     },
+     "weglot": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/weglot/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/weglot/); this proves the slug is real, not that the plugin provides the feature"
+     },
+     "loco-translate": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/loco-translate/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/loco-translate/); this proves the slug is real, not that the plugin provides the feature"
+     }
+    },
+    "hooks": {
+     "locale": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://developer.wordpress.org/reference/hooks/locale/"
+      ],
+      "excerpt": "Filters the locale ID of the WordPress installation. Parameters $locale string The locale ID. Source return apply_filters( 'locale', $locale ); View all references View on Trac View on Git"
+     },
+     "load_textdomain": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://developer.wordpress.org/reference/hooks/load_textdomain/"
+      ],
+      "excerpt": "Fires before the MO translation file is loaded. Parameters $domain string Text domain. Unique identifier for retrieving translated strings. $mofile string Path to the .mo file. Source do_a"
+     },
+     "gettext": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://developer.wordpress.org/reference/hooks/gettext/"
+      ],
+      "excerpt": "Filters text with its translation. Parameters $translation string Translated text. $text string Text to translate. $domain string Text domain. Unique identifier for retrieving translated s"
+     },
+     "pre_determine_locale": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://developer.wordpress.org/reference/hooks/pre_determine_locale/"
+      ],
+      "excerpt": "Filters the locale for the current request prior to the default determination process. Description Using this filter allows to override the default logic, effectively short-circuiting the"
+     }
+    }
+   }
+  },
+  "page-builder": {
+   "sources_fetched": [
+    "https://developers.elementor.com/docs/"
+   ],
+   "signals": {
+    "plugins": {
+     "elementor": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://developers.elementor.com/docs/"
+      ],
+      "excerpt": "Elementor Developers Skip to content Elementor Developers Search... K Main Navigation Getting Start"
+     },
+     "elementor-pro": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/elementor-pro/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/search/elementor-pro/); this proves the slug is real, not that the plugin provides the feature"
+     }
+    },
+    "shortcodes": {
+     "elementor-template": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    },
+    "hooks": {
+     "elementor/frontend/after_enqueue_scripts": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     },
+     "elementor/widgets/register": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    },
+    "handles": {
+     "elementor-frontend": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     },
+     "elementor-webpack-runtime": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    },
+    "cpts": {
+     "elementor_library": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    }
+   }
+  },
+  "email": {
+   "sources_fetched": [
+    "https://developer.wordpress.org/reference/functions/wp_mail/"
+   ],
+   "signals": {
+    "plugins": {
+     "wp-mail-smtp": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/wp-mail-smtp/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/wp-mail-smtp/); this proves the slug is real, not that the plugin provides the feature"
+     },
+     "post-smtp": {
+      "found": true,
+      "check": "exists",
+      "in": [
+       "https://wordpress.org/plugins/post-smtp/"
+      ],
+      "excerpt": "page exists in the official plugin directory (https://wordpress.org/plugins/post-smtp/); this proves the slug is real, not that the plugin provides the feature"
+     }
+    },
+    "hooks": {
+     "wp_mail": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://developer.wordpress.org/reference/functions/wp_mail/"
+      ],
+      "excerpt": "wp_mail() – Function | Developer.WordPress.org Skip to content Handbook home > Article). --> Word"
+     },
+     "phpmailer_init": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://developer.wordpress.org/reference/functions/wp_mail/"
+      ],
+      "excerpt": "PMailer $phpmailer The PHPMailer instance (passed by reference). */ do_action_ref_array( 'phpmailer_init', array( &$phpmailer ) ); $mail_data = compact( 'to', 'subject', 'message', 'headers', 'a"
+     },
+     "wp_mail_from": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://developer.wordpress.org/reference/functions/wp_mail/"
+      ],
+      "excerpt": "sage wp_mail( $to, $subject, $message, $headers, $attachments ); Optional filters &#8216; wp_mail_from &#8216; and &#8216; wp_mail_from_name &#8216; are run on the sender email address and nam"
+     },
+     "wp_mail_failed": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://developer.wordpress.org/reference/functions/wp_mail/"
+      ],
+      "excerpt": "$e->getCode(); /** This filter is documented in wp-includes/pluggable.php */ do_action( 'wp_mail_failed', new WP_Error( 'wp_mail_failed', $e->getMessage(), $mail_error_data ) ); return false; }"
+     }
+    }
+   }
+  },
+  "white-screen": {
+   "sources_fetched": [
+    "https://developer.wordpress.org/advanced-administration/wordpress/debug/"
+   ],
+   "signals": {
+    "hooks": {
+     "wp_fatal_error_handler_enabled": {
+      "found": true,
+      "check": "content",
+      "in": [
+       "https://developer.wordpress.org/reference/hooks/wp_fatal_error_handler_enabled/"
+      ],
+      "excerpt": "Filters whether the fatal error handler is enabled. Description Important: This filter runs before it can be used by plugins. It cannot be used by plugins, mu-plugins, or themes. To use th"
+     }
+    },
+    "dropins": {
+     "fatal-error-handler.php": {
+      "found": false,
+      "check": null,
+      "in": [],
+      "excerpt": null
+     }
+    }
+   }
+  }
+ },
+ "kb": {
+  "wp-rocket-with-incompatible-plugin": {
+   "sources_fetched": [
+    "https://docs.wp-rocket.me/article/1763-optimization-plugins-not-compatible-with-wp-rocket"
+   ],
+   "claims": {
+    "W3 Total Cache": {
+     "found": true,
+     "in": [
+      "https://docs.wp-rocket.me/article/1763-optimization-plugins-not-compatible-with-wp-rocket"
+     ],
+     "excerpt": "imize PageSpeed Ninja Swift Performance Super Static Cache Speed Booster Pack WP-Optimize W3 Total Cache WP Fastest Cache WP Performance Score Booster WP-FFPC WP Super Cache WordPress Gzip Compr"
+    },
+    "WP Fastest Cache": {
+     "found": true,
+     "in": [
+      "https://docs.wp-rocket.me/article/1763-optimization-plugins-not-compatible-with-wp-rocket"
+     ],
+     "excerpt": "Ninja Swift Performance Super Static Cache Speed Booster Pack WP-Optimize W3 Total Cache WP Fastest Cache WP Performance Score Booster WP-FFPC WP Super Cache WordPress Gzip Compression WP HTTP Co"
+    },
+    "LiteSpeed Cache": {
+     "found": true,
+     "in": [
+      "https://docs.wp-rocket.me/article/1763-optimization-plugins-not-compatible-with-wp-rocket"
+     ],
+     "excerpt": "Hyper Cache Hyper Cache Extended Kreativo Pro Speed Optimization Leverage Browser Caching LiteSpeed Cache plugin Lite Cache Page Optimize PageSpeed Ninja Swift Performance Super Static Cache Spee"
+    },
+    "WP Super Cache": {
+     "found": true,
+     "in": [
+      "https://docs.wp-rocket.me/article/1763-optimization-plugins-not-compatible-with-wp-rocket"
+     ],
+     "excerpt": "ter Pack WP-Optimize W3 Total Cache WP Fastest Cache WP Performance Score Booster WP-FFPC WP Super Cache WordPress Gzip Compression WP HTTP Compression 10Web Booster Additionally, when Minify Ja"
+    },
+    "WP-Optimize": {
+     "found": true,
+     "in": [
+      "https://docs.wp-rocket.me/article/1763-optimization-plugins-not-compatible-with-wp-rocket"
+     ],
+     "excerpt": "che Page Optimize PageSpeed Ninja Swift Performance Super Static Cache Speed Booster Pack WP-Optimize W3 Total Cache WP Fastest Cache WP Performance Score Booster WP-FFPC WP Super Cache WordP"
+    },
+    "Breeze": {
+     "found": true,
+     "in": [
+      "https://docs.wp-rocket.me/article/1763-optimization-plugins-not-compatible-with-wp-rocket"
+     ],
+     "excerpt": "llowing optimization plugins: Airlift AccelerateWP Add Expires Headers & Optimized Minify Breeze (Unless you're using Cloudways' Cloudflare Enterprise plan). Cache Enabler Far Future Exp"
+    },
+    "Fast Velocity Minify": {
+     "found": true,
+     "in": [
+      "https://docs.wp-rocket.me/article/1763-optimization-plugins-not-compatible-with-wp-rocket"
+     ],
+     "excerpt": "'t be used: JavaScript to Footer MinQueue Better WordPress Minify Dependency Minification Fast Velocity Minify WP Super Minify Async JS and CSS Merge + Minify + Refresh Also, when LazyLoad for images"
+    },
+    "Autoptimize": {
+     "found": true,
+     "in": [
+      "https://docs.wp-rocket.me/article/1763-optimization-plugins-not-compatible-with-wp-rocket"
+     ],
+     "excerpt": "Minify JavaScript files options can't be used at the same time as the following features: Autoptimize 's minification and aggregation. You can find more information in this article . Remove U"
+    },
+    "Perfmatters": {
+     "found": true,
+     "in": [
+      "https://docs.wp-rocket.me/article/1763-optimization-plugins-not-compatible-with-wp-rocket"
+     ],
+     "excerpt": "is not compatible with the following specific features: Autoptimize's add-on, Rapidload . Perfmatters' Remove Unused CSS . You can find more details here . Did this answer your question? Than"
+    },
+    "can't be used at the same time": {
+     "found": true,
+     "in": [
+      "https://docs.wp-rocket.me/article/1763-optimization-plugins-not-compatible-with-wp-rocket"
+     ],
+     "excerpt": "Minify JavaScript files WP Rocket's Minify CSS files and Minify JavaScript files options can't be used at the same time as the following features: Autoptimize 's minification and aggregation. You can find more"
+    }
+   }
+  },
+  "page-cache-with-woocommerce": {
+   "sources_fetched": [
+    "https://developer.woocommerce.com/docs/best-practices/performance/configuring-caching-plugins",
+    "https://woocommerce.com/document/configuring-caching-plugins/"
+   ],
+   "claims": {
+    "woocommerce_cart_hash": {
+     "found": true,
+     "in": [
+      "https://developer.woocommerce.com/docs/best-practices/performance/configuring-caching-plugins",
+      "https://woocommerce.com/document/configuring-caching-plugins/"
+     ],
+     "excerpt": "oCommerce uses for this, which you can exclude from caching. COOKIE NAME DURATION PURPOSE woocommerce_cart_hash session Helps WooCommerce determine when cart contents/data changes. woocommerce_items_in"
+    },
+    "woocommerce_items_in_cart": {
+     "found": true,
+     "in": [
+      "https://developer.woocommerce.com/docs/best-practices/performance/configuring-caching-plugins",
+      "https://woocommerce.com/document/configuring-caching-plugins/"
+     ],
+     "excerpt": "oocommerce_cart_hash session Helps WooCommerce determine when cart contents/data changes. woocommerce_items_in_cart session Helps WooCommerce determine when cart contents/data changes. wp_woocommerce_sessi"
+    },
+    "wp_woocommerce_session_": {
+     "found": true,
+     "in": [
+      "https://developer.woocommerce.com/docs/best-practices/performance/configuring-caching-plugins",
+      "https://woocommerce.com/document/configuring-caching-plugins/"
+     ],
+     "excerpt": "mmerce_items_in_cart session Helps WooCommerce determine when cart contents/data changes. wp_woocommerce_session_ 2 days Contains a unique code for each customer so that it knows where to find the cart d"
+    },
+    "Cart My Account Checkout": {
+     "found": true,
+     "in": [
+      "https://developer.woocommerce.com/docs/best-practices/performance/configuring-caching-plugins",
+      "https://woocommerce.com/document/configuring-caching-plugins/"
+     ],
+     "excerpt": "lude the following pages from the cache through your caching systems respective settings. Cart My Account Checkout These pages need to stay dynamic since they display information specific to the current c"
+    },
+    "need to stay dynamic": {
+     "found": true,
+     "in": [
+      "https://developer.woocommerce.com/docs/best-practices/performance/configuring-caching-plugins",
+      "https://woocommerce.com/document/configuring-caching-plugins/"
+     ],
+     "excerpt": "he through your caching systems respective settings. Cart My Account Checkout These pages need to stay dynamic since they display information specific to the current customer and their cart. Excluding"
+    }
+   }
+  },
+  "cache-plugin-with-elementor": {
+   "sources_fetched": [
+    "https://elementor.com/help/changes-dont-appear-online/"
+   ],
+   "claims": {
+    "combine/minify": {
+     "found": true,
+     "in": [
+      "https://elementor.com/help/changes-dont-appear-online/"
+     ],
+     "excerpt": "gin-level caches WP Fastest Cache : Delete Cache and Minified CSS/JS. Temporarily disable combine/minify to rule out stale assets. If any other caching/performance plugins are active (LiteSpeed"
+    },
+    "caching/performance plugins": {
+     "found": true,
+     "in": [
+      "https://elementor.com/help/changes-dont-appear-online/"
+     ],
+     "excerpt": "inified CSS/JS. Temporarily disable combine/minify to rule out stale assets. If any other caching/performance plugins are active (LiteSpeed Cache, W3 Total Cache, WP Rocket, Autoptimize), purge them as well"
+    },
+    "multiple full-page cache plugins": {
+     "found": true,
+     "in": [
+      "https://elementor.com/help/changes-dont-appear-online/"
+     ],
+     "excerpt": "peed Cache, W3 Total Cache, WP Rocket, Autoptimize), purge them as well and avoid running multiple full-page cache plugins at once. If you use object cache (Redis/Memcached), purge it from its plugin or your host"
+    },
+    "LiteSpeed Cache": {
+     "found": true,
+     "in": [
+      "https://elementor.com/help/changes-dont-appear-online/"
+     ],
+     "excerpt": "ine/minify to rule out stale assets. If any other caching/performance plugins are active (LiteSpeed Cache, W3 Total Cache, WP Rocket, Autoptimize), purge them as well and avoid running multiple f"
+    },
+    "WP Rocket": {
+     "found": true,
+     "in": [
+      "https://elementor.com/help/changes-dont-appear-online/"
+     ],
+     "excerpt": "ts. If any other caching/performance plugins are active (LiteSpeed Cache, W3 Total Cache, WP Rocket, Autoptimize), purge them as well and avoid running multiple full-page cache plugins at o"
+    }
+   }
+  },
+  "woocommerce-outdated-template-override": {
+   "sources_fetched": [
+    "https://developer.woocommerce.com/docs/theming/theme-development/fixing-outdated-woocommerce-templates/",
+    "https://developer.woocommerce.com/docs/theming/theme-development/template-structure/"
+   ],
+   "claims": {
+    "templates overridden by your theme": {
+     "found": true,
+     "in": [
+      "https://developer.woocommerce.com/docs/theming/theme-development/fixing-outdated-woocommerce-templates/"
+     ],
+     "excerpt": "Commerce > Status > System Status. Scroll to the end of the page where there is a list of templates overridden by your theme/child theme and a warning message that they need to be updated. Save a backup of the outd"
+    },
+    "need to be updated": {
+     "found": true,
+     "in": [
+      "https://developer.woocommerce.com/docs/theming/theme-development/fixing-outdated-woocommerce-templates/"
+     ],
+     "excerpt": "a list of templates overridden by your theme/child theme and a warning message that they need to be updated. Save a backup of the outdated template. Copy the default template from wp-content/plugin"
+    },
+    "System Status": {
+     "found": true,
+     "in": [
+      "https://developer.woocommerce.com/docs/theming/theme-development/fixing-outdated-woocommerce-templates/",
+      "https://developer.woocommerce.com/docs/theming/theme-development/template-structure/"
+     ],
+     "excerpt": "p of the old templates, and then restore any customizations. Go to WooCommerce > Status > System Status. Scroll to the end of the page where there is a list of templates overridden by your them"
+    }
+   }
+  },
+  "core-jquery-replaced": {
+   "sources_fetched": [
+    "https://make.wordpress.org/core/2020/06/29/updating-jquery-version-shipped-with-wordpress/",
+    "https://developer.wordpress.org/reference/functions/wp_deregister_script/"
+   ],
+   "claims": {
+    "jQuery Migrate": {
+     "found": true,
+     "in": [
+      "https://make.wordpress.org/core/2020/06/29/updating-jquery-version-shipped-with-wordpress/"
+     ],
+     "excerpt": "ing the recommendations of the jQuery team , the updating has to happen in stages: Remove jQuery Migrate 1.x. This is planned for WordPress 5.5. Update to the latest version of jQuery and add th"
+    },
+    "backwards compatibility": {
+     "found": true,
+     "in": [
+      "https://make.wordpress.org/core/2020/06/29/updating-jquery-version-shipped-with-wordpress/"
+     ],
+     "excerpt": "braries and plugins will still be available to enqueue through Script Loader, to maintain backwards compatibility. mobilio 10:29 pm on June 30, 2020 where to start? justlevine 12:10 pm on July 2, 2020 @"
+    },
+    "there are intentional safeguards in place to prevent critical admin scripts, such as jQuery core, from being unregistered": {
+     "found": true,
+     "in": [
+      "https://developer.wordpress.org/reference/functions/wp_deregister_script/"
+     ],
+     "excerpt": "tes Copy page View as Markdown Back to top Removes a registered script. Description Note: there are intentional safeguards in place to prevent critical admin scripts, such as jQuery core, from being unregistered. See also WP_Dependencies::remove() Parameters $handle string required Name of the script"
+    }
+   }
+  },
+  "rest-authentication-errors-contention": {
+   "sources_fetched": [
+    "https://developer.wordpress.org/reference/hooks/rest_authentication_errors/"
+   ],
+   "claims": {
+    "Filters REST API authentication errors": {
+     "found": true,
+     "in": [
+      "https://developer.wordpress.org/reference/hooks/rest_authentication_errors/"
+     ],
+     "excerpt": "rs Source Related Changelog User Contributed Notes Copy page View as Markdown Back to top Filters REST API authentication errors. Description This is used to pass a WP_Error from an authentication method back to the AP"
+    },
+    "pass a WP_Error from an authentication method back to the API": {
+     "found": true,
+     "in": [
+      "https://developer.wordpress.org/reference/hooks/rest_authentication_errors/"
+     ],
+     "excerpt": "Markdown Back to top Filters REST API authentication errors. Description This is used to pass a WP_Error from an authentication method back to the API. Authentication methods should check first if they&#8217;re being used, as multiple authe"
+    },
+    "Authentication methods should check first if they": {
+     "found": true,
+     "in": [
+      "https://developer.wordpress.org/reference/hooks/rest_authentication_errors/"
+     ],
+     "excerpt": "escription This is used to pass a WP_Error from an authentication method back to the API. Authentication methods should check first if they&#8217;re being used, as multiple authentication methods can be enabled on a site (cookies"
+    }
+   }
+  },
+  "jquery-api-version-mismatch": {
+   "sources_fetched": [
+    "https://api.jquery.com/jQuery.escapeSelector/",
+    "https://api.jquery.com/andSelf/",
+    "https://api.jquery.com/size/",
+    "https://api.jquery.com/even/",
+    "https://api.jquery.com/odd/"
+   ],
+   "claims": {
+    "version added: 3.0": {
+     "found": true,
+     "in": [
+      "https://api.jquery.com/jQuery.escapeSelector/"
+     ],
+     "excerpt": "Selector Description: Escapes any character that has a special meaning in a CSS selector. version added: 3.0 jQuery.escapeSelector( selector ) selector Type: Selector A string containing a selector"
+    },
+    "removed: 3.0": {
+     "found": true,
+     "in": [
+      "https://api.jquery.com/andSelf/",
+      "https://api.jquery.com/size/"
+     ],
+     "excerpt": "> Miscellaneous Traversing | Removed .andSelf() Returns: jQuery version deprecated: 1.8 , removed: 3.0 Description: Add the previous set of elements on the stack to the current set. version ad"
+    },
+    "version added: 3.5": {
+     "found": true,
+     "in": [
+      "https://api.jquery.com/even/",
+      "https://api.jquery.com/odd/"
+     ],
+     "excerpt": "tion: Reduce the set of matched elements to the even ones in the set, numbered from zero. version added: 3.5 .even() This method does not accept any arguments. Given a jQuery object that represents"
+    }
+   }
+  },
+  "script-missing-dependency": {
+   "sources_fetched": [
+    "https://developer.wordpress.org/reference/functions/wp_enqueue_script/"
+   ],
+   "claims": {
+    "An array of registered script handles this script depends on": {
+     "found": true,
+     "in": [
+      "https://developer.wordpress.org/reference/functions/wp_enqueue_script/"
+     ],
+     "excerpt": "the script relative to the WordPress root directory. Default: '' $deps string[] optional An array of registered script handles this script depends on. Default: array() $ver string|bool|null optional String specifying script version number,"
+    }
+   }
+  },
+  "library-loaded-twice": {
+   "sources_fetched": [
+    "https://api.jquery.com/jQuery.noConflict/"
+   ],
+   "claims": {
+    "multiple versions of the jQuery library on the same page": {
+     "found": true,
+     "in": [
+      "https://api.jquery.com/jQuery.noConflict/"
+     ],
+     "excerpt": "ethod. This is rarely necessary, and if you must do this (for example, if you need to use multiple versions of the jQuery library on the same page), you need to consider that most plug-ins rely on the presence of the jQuery variable and"
+    },
+    "may not operate correctly": {
+     "found": true,
+     "in": [
+      "https://api.jquery.com/jQuery.noConflict/"
+     ],
+     "excerpt": ", you need to consider that most plug-ins rely on the presence of the jQuery variable and may not operate correctly in this situation. Examples: Example 1 Map the original object that was referenced by $ b"
+    }
+   }
+  },
+  "multiple-full-page-cache-plugins": {
+   "sources_fetched": [
+    "https://elementor.com/help/changes-dont-appear-online/"
+   ],
+   "claims": {
+    "multiple full-page cache plugins": {
+     "found": true,
+     "in": [
+      "https://elementor.com/help/changes-dont-appear-online/"
+     ],
+     "excerpt": "peed Cache, W3 Total Cache, WP Rocket, Autoptimize), purge them as well and avoid running multiple full-page cache plugins at once. If you use object cache (Redis/Memcached), purge it from its plugin or your host"
+    },
+    "W3 Total Cache": {
+     "found": true,
+     "in": [
+      "https://elementor.com/help/changes-dont-appear-online/"
+     ],
+     "excerpt": "e out stale assets. If any other caching/performance plugins are active (LiteSpeed Cache, W3 Total Cache, WP Rocket, Autoptimize), purge them as well and avoid running multiple full-page cache p"
+    },
+    "LiteSpeed Cache": {
+     "found": true,
+     "in": [
+      "https://elementor.com/help/changes-dont-appear-online/"
+     ],
+     "excerpt": "ine/minify to rule out stale assets. If any other caching/performance plugins are active (LiteSpeed Cache, W3 Total Cache, WP Rocket, Autoptimize), purge them as well and avoid running multiple f"
+    },
+    "WP Fastest Cache": {
+     "found": true,
+     "in": [
+      "https://elementor.com/help/changes-dont-appear-online/"
+     ],
+     "excerpt": "ed-Cache, Age, X-Var. If you see HIT, it’s cached upstream. Clear all plugin-level caches WP Fastest Cache : Delete Cache and Minified CSS/JS. Temporarily disable combine/minify to rule out stale"
+    }
+   }
+  }
+ },
+ "settings": {
+  "wp-rocket-never-cache-urls": {
+   "evidence": [
+    {
+     "role": "label",
+     "url": "https://docs.wp-rocket.me/article/54-exclude-pages-from-the-cache",
+     "claim": "Advanced Rules",
+     "fetched": true,
+     "found": true,
+     "excerpt": "g it from all other optimizations. Using the Never Cache URL(s)s option 1 Go to WP Rocket Advanced Rules tab. 2 Locate the box Never cache URL(s). 3 Enter the URL of the page you wish to exclude"
+    },
+    {
+     "role": "label",
+     "url": "https://docs.wp-rocket.me/article/54-exclude-pages-from-the-cache",
+     "claim": "Never cache URL",
+     "fetched": true,
+     "found": true,
+     "excerpt": "ding a page from cache, you are also excluding it from all other optimizations. Using the Never Cache URL(s)s option 1 Go to WP Rocket Advanced Rules tab. 2 Locate the box Never cache URL(s). 3 E"
+    },
+    {
+     "role": "behaviour",
+     "url": "https://docs.wp-rocket.me/article/27-using-wp-rocket-on-your-ecommerce-site",
+     "claim": "compatible with e-commerce plugins",
+     "fetched": true,
+     "found": true,
+     "excerpt": "oubleshooting License Contact Contact Using WP Rocket on your ecommerce site WP Rocket is compatible with e-commerce plugins for WordPress such as: WooCommerce BigCommerce Easy Digital Download iThemes Exchange Jig"
+    }
+   ]
+  },
+  "wp-rocket-never-cache-cookies": {
+   "evidence": [
+    {
+     "role": "label",
+     "url": "https://docs.wp-rocket.me/article/27-using-wp-rocket-on-your-ecommerce-site",
+     "claim": "Never Cache Cookies",
+     "fetched": true,
+     "found": true,
+     "excerpt": "driven cart widget, go to WP Rocket → Advanced Rules and enter the following value in the Never Cache Cookies field: woocommerce_items_in_cart If you are using Easy Digital Downloads, use the followi"
+    },
+    {
+     "role": "value",
+     "url": "https://docs.wp-rocket.me/article/27-using-wp-rocket-on-your-ecommerce-site",
+     "claim": "woocommerce_items_in_cart",
+     "fetched": true,
+     "found": true,
+     "excerpt": "P Rocket → Advanced Rules and enter the following value in the Never Cache Cookies field: woocommerce_items_in_cart If you are using Easy Digital Downloads, use the following: edd_items_in_cart If you are"
+    }
+   ]
+  },
+  "autoptimize-js-aggregate": {
+   "evidence": [
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/autoptimize/tags/3.1.17/classes/autoptimizeConfig.php",
+     "claim": "register_setting( 'autoptimize', 'autoptimize_js_aggregate' )",
+     "fetched": true,
+     "found": true,
+     "excerpt": "'autoptimize_enable_site_config' ); register_setting( 'autoptimize', 'autoptimize_js' ); register_setting( 'autoptimize', 'autoptimize_js_aggregate' ); register_setting( 'autoptimize', 'autoptimize_js_defer_not_aggregate' ); register_settin"
+    },
+    {
+     "role": "label",
+     "url": "https://plugins.svn.wordpress.org/autoptimize/tags/3.1.17/classes/autoptimizeConfig.php",
+     "claim": "Aggregate JS-files",
+     "fetched": true,
+     "found": true,
+     "excerpt": "> <tr valign=\"top\" class=\"js_sub js_aggregate_master\"> <th scope=\"row\"><?php esc_html_e( 'Aggregate JS-files?', 'autoptimize' ); ?></th> <td><label class=\"cb_label\"><input type=\"checkbox\" id=\"autopt"
+    },
+    {
+     "role": "doc",
+     "url": "https://wordpress.org/plugins/autoptimize/",
+     "claim": "aggregate JS-files",
+     "fetched": true,
+     "found": true,
+     "excerpt": "maybe it&#8217;s HTTP/2 + minification (which AO can do as well, simply untick the &#8220;aggregate JS-files&#8221; and/ or &#8220;aggregate CSS-files&#8221; options). And Autoptimize can do a lot m"
+    }
+   ]
+  },
+  "autoptimize-js-exclude": {
+   "evidence": [
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/autoptimize/tags/3.1.17/classes/autoptimizeConfig.php",
+     "claim": "register_setting( 'autoptimize', 'autoptimize_js_exclude' )",
+     "fetched": true,
+     "found": true,
+     "excerpt": "defer_not_aggregate' ); register_setting( 'autoptimize', 'autoptimize_js_defer_inline' ); register_setting( 'autoptimize', 'autoptimize_js_exclude' ); register_setting( 'autoptimize', 'autoptimize_js_trycatch' ); register_setting( 'autopti"
+    },
+    {
+     "role": "label",
+     "url": "https://plugins.svn.wordpress.org/autoptimize/tags/3.1.17/classes/autoptimizeConfig.php",
+     "claim": "Exclude scripts from Autoptimize",
+     "fetched": true,
+     "found": true,
+     "excerpt": "/td> </tr> <?php } ?> <tr valign=\"top\" class=\"js_sub\"> <th scope=\"row\"><?php esc_html_e( 'Exclude scripts from Autoptimize:', 'autoptimize' ); ?></th> <td><label><input type=\"text\" pattern=\"[^\\*]*\" style=\"width:1"
+    }
+   ]
+  },
+  "autoptimize-css-aggregate": {
+   "evidence": [
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/autoptimize/tags/3.1.17/classes/autoptimizeConfig.php",
+     "claim": "register_setting( 'autoptimize', 'autoptimize_css_aggregate' )",
+     "fetched": true,
+     "found": true,
+     "excerpt": "'autoptimize_js_include_inline' ); register_setting( 'autoptimize', 'autoptimize_css' ); register_setting( 'autoptimize', 'autoptimize_css_aggregate' ); register_setting( 'autoptimize', 'autoptimize_css_exclude' ); register_setting( 'autopti"
+    },
+    {
+     "role": "label",
+     "url": "https://plugins.svn.wordpress.org/autoptimize/tags/3.1.17/classes/autoptimizeConfig.php",
+     "claim": "Aggregate CSS-files",
+     "fetched": true,
+     "found": true,
+     "excerpt": "''; ?>/></td> </tr> <tr class=\"css_sub\" valign=\"top\"> <th scope=\"row\"><?php esc_html_e( 'Aggregate CSS-files?', 'autoptimize' ); ?></th> <td><label class=\"cb_label\"><input type=\"checkbox\" id=\"autopt"
+    },
+    {
+     "role": "doc",
+     "url": "https://wordpress.org/plugins/autoptimize/",
+     "claim": "aggregate CSS-files",
+     "fetched": true,
+     "found": true,
+     "excerpt": "hich AO can do as well, simply untick the &#8220;aggregate JS-files&#8221; and/ or &#8220;aggregate CSS-files&#8221; options). And Autoptimize can do a lot more then &#8220;just&#8221; optimizing you"
+    }
+   ]
+  },
+  "autoptimize-css-exclude": {
+   "evidence": [
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/autoptimize/tags/3.1.17/classes/autoptimizeConfig.php",
+     "claim": "register_setting( 'autoptimize', 'autoptimize_css_exclude' )",
+     "fetched": true,
+     "found": true,
+     "excerpt": "ze', 'autoptimize_css' ); register_setting( 'autoptimize', 'autoptimize_css_aggregate' ); register_setting( 'autoptimize', 'autoptimize_css_exclude' ); register_setting( 'autoptimize', 'autoptimize_css_justhead' ); register_setting( 'autopt"
+    },
+    {
+     "role": "label",
+     "url": "https://plugins.svn.wordpress.org/autoptimize/tags/3.1.17/classes/autoptimizeConfig.php",
+     "claim": "Exclude CSS from Autoptimize",
+     "fetched": true,
+     "found": true,
+     "excerpt": "></label></td> </tr> <tr valign=\"top\" class=\"css_sub\"> <th scope=\"row\"><?php esc_html_e( 'Exclude CSS from Autoptimize:', 'autoptimize' ); ?></th> <td><label><input type=\"text\" pattern=\"[^\\*]*\" style=\"width:1"
+    }
+   ]
+  },
+  "autoptimize-optimize-checkout": {
+   "evidence": [
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/autoptimize/tags/3.1.17/classes/autoptimizeConfig.php",
+     "claim": "register_setting( 'autoptimize', 'autoptimize_optimize_checkout' )",
+     "fetched": true,
+     "found": true,
+     "excerpt": "timize_cache_nogzip' ); register_setting( 'autoptimize', 'autoptimize_optimize_logged' ); register_setting( 'autoptimize', 'autoptimize_optimize_checkout' ); register_setting( 'autoptimize', 'autoptimize_minify_excluded' ); register_setting( 'aut"
+    },
+    {
+     "role": "label",
+     "url": "https://plugins.svn.wordpress.org/autoptimize/tags/3.1.17/classes/autoptimizeConfig.php",
+     "claim": "Also optimize shop cart/ checkout",
+     "fetched": true,
+     "found": true,
+     "excerpt": "exists( 'wpsc_is_checkout' ) ) { ?> <tr valign=\"top\" > <th scope=\"row\"><?php esc_html_e( 'Also optimize shop cart/ checkout?', 'autoptimize' ); ?></th> <td><label class=\"cb_label\"><input type=\"checkbox\" name=\"auto"
+    }
+   ]
+  },
+  "autoptimize-optimize-logged": {
+   "evidence": [
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/autoptimize/tags/3.1.17/classes/autoptimizeConfig.php",
+     "claim": "register_setting( 'autoptimize', 'autoptimize_optimize_logged' )",
+     "fetched": true,
+     "found": true,
+     "excerpt": "utoptimize_cache_clean' ); register_setting( 'autoptimize', 'autoptimize_cache_nogzip' ); register_setting( 'autoptimize', 'autoptimize_optimize_logged' ); register_setting( 'autoptimize', 'autoptimize_optimize_checkout' ); register_setting( 'a"
+    },
+    {
+     "role": "label",
+     "url": "https://plugins.svn.wordpress.org/autoptimize/tags/3.1.17/classes/autoptimizeConfig.php",
+     "claim": "Also optimize for logged in editors/ administrators",
+     "fetched": true,
+     "found": true,
+     "excerpt": "'</code>' ); ?> </label></td> </tr> <tr valign=\"top\"> <th scope=\"row\"><?php esc_html_e( 'Also optimize for logged in editors/ administrators?', 'autoptimize' ); ?></th> <td><label class=\"cb_label\"><input type=\"checkbox\" name=\"auto"
+    }
+   ]
+  },
+  "litespeed-do-not-cache-uris": {
+   "evidence": [
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/litespeed-cache/tags/7.9.2/src/base.cls.php",
+     "claim": "= 'cache-exc'",
+     "fetched": true,
+     "found": true,
+     "excerpt": "URI = 'cache-force_pub_uri'; const O_CACHE_PRIV_URI = 'cache-priv_uri'; const O_CACHE_EXC = 'cache-exc'; const O_CACHE_EXC_ROLES = 'cache-exc_roles'; const O_CACHE_DROP_QS = 'cache-drop_qs'; co"
+    },
+    {
+     "role": "label",
+     "url": "https://docs.litespeedtech.com/lscache/lscwp/cache/",
+     "claim": "Do Not Cache URIs",
+     "fetched": true,
+     "found": true,
+     "excerpt": "uld you enable it? Scheduled Purge URLs Scheduled Purge Time Purge All Hooks Excludes tab Do Not Cache URIs Do Not Cache Query Strings Do Not Cache Categories Do Not Cache Tags Do Not Cache Cookies"
+    }
+   ]
+  },
+  "litespeed-do-not-cache-cookies": {
+   "evidence": [
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/litespeed-cache/tags/7.9.2/src/base.cls.php",
+     "claim": "= 'cache-exc_cookies'",
+     "fetched": true,
+     "found": true,
+     "excerpt": "rowser'; const O_CACHE_EXC_USERAGENTS = 'cache-exc_useragents'; const O_CACHE_EXC_COOKIES = 'cache-exc_cookies'; const O_CACHE_EXC_QS = 'cache-exc_qs'; const O_CACHE_EXC_CAT = 'cache-exc_cat'; const O_"
+    },
+    {
+     "role": "label",
+     "url": "https://docs.litespeedtech.com/lscache/lscwp/cache/",
+     "claim": "Do Not Cache Cookies",
+     "fetched": true,
+     "found": true,
+     "excerpt": "ab Do Not Cache URIs Do Not Cache Query Strings Do Not Cache Categories Do Not Cache Tags Do Not Cache Cookies Do Not Cache User Agents Do Not Cache Roles Verify a page is not being cached ESI tab Pub"
+    }
+   ]
+  },
+  "litespeed-do-not-cache-query-strings": {
+   "evidence": [
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/litespeed-cache/tags/7.9.2/src/base.cls.php",
+     "claim": "= 'cache-exc_qs'",
+     "fetched": true,
+     "found": true,
+     "excerpt": "he-exc_useragents'; const O_CACHE_EXC_COOKIES = 'cache-exc_cookies'; const O_CACHE_EXC_QS = 'cache-exc_qs'; const O_CACHE_EXC_CAT = 'cache-exc_cat'; const O_CACHE_EXC_TAG = 'cache-exc_tag'; const"
+    },
+    {
+     "role": "label",
+     "url": "https://docs.litespeedtech.com/lscache/lscwp/cache/",
+     "claim": "Do Not Cache Query Strings",
+     "fetched": true,
+     "found": true,
+     "excerpt": "Scheduled Purge URLs Scheduled Purge Time Purge All Hooks Excludes tab Do Not Cache URIs Do Not Cache Query Strings Do Not Cache Categories Do Not Cache Tags Do Not Cache Cookies Do Not Cache User Agents D"
+    }
+   ]
+  },
+  "litespeed-js-combine": {
+   "evidence": [
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/litespeed-cache/tags/7.9.2/src/base.cls.php",
+     "claim": "= 'optm-js_comb'",
+     "fetched": true,
+     "found": true,
+     "excerpt": "_OPTM_CSS_EXC = 'optm-css_exc'; const O_OPTM_JS_MIN = 'optm-js_min'; const O_OPTM_JS_COMB = 'optm-js_comb'; const O_OPTM_JS_COMB_EXT_INL = 'optm-js_comb_ext_inl'; const O_OPTM_JS_DELAY_INC = 'optm"
+    },
+    {
+     "role": "label",
+     "url": "https://docs.litespeedtech.com/lscache/lscwp/pageopt/",
+     "claim": "JS Combine",
+     "fetched": true,
+     "found": true,
+     "excerpt": "usly CSS Per URL Inline CSS Async Lib Font Display Optimization JS Settings tab JS Minify JS Combine JS Combine External and Inline Load JS Deferred HTML Settings tab HTML Minify DNS Prefetc"
+    }
+   ]
+  },
+  "litespeed-css-combine": {
+   "evidence": [
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/litespeed-cache/tags/7.9.2/src/base.cls.php",
+     "claim": "= 'optm-css_comb'",
+     "fetched": true,
+     "found": true,
+     "excerpt": "------------------------- ## const O_OPTM_CSS_MIN = 'optm-css_min'; const O_OPTM_CSS_COMB = 'optm-css_comb'; const O_OPTM_CSS_COMB_EXT_INL = 'optm-css_comb_ext_inl'; const O_OPTM_UCSS = 'optm-ucss'"
+    },
+    {
+     "role": "label",
+     "url": "https://docs.litespeedtech.com/lscache/lscwp/pageopt/",
+     "claim": "CSS Combine",
+     "fetched": true,
+     "found": true,
+     "excerpt": "ization Page Optimization Page Optimization Table of contents CSS Settings tab CSS Minify CSS Combine Generate UCSS UCSS Inline CSS Combine External and Inline Load CSS Asynchronously CSS Per"
+    }
+   ]
+  },
+  "woocommerce-cache-exclude-pages": {
+   "evidence": [
+    {
+     "role": "doc",
+     "url": "https://woocommerce.com/document/configuring-caching-plugins/",
+     "claim": "Cart My Account Checkout These pages need to stay dynamic",
+     "fetched": true,
+     "found": true,
+     "excerpt": "lude the following pages from the cache through your caching systems respective settings. Cart My Account Checkout These pages need to stay dynamic since they display information specific to the current customer and their cart. Excluding"
+    },
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/woocommerce/tags/11.2.1/includes/admin/settings/class-wc-settings-advanced.php",
+     "claim": "woocommerce_cart_page_id",
+     "fetched": true,
+     "found": true,
+     "excerpt": "'desc' => __( 'Page where shoppers review their shopping cart', 'woocommerce' ), 'id' => 'woocommerce_cart_page_id', 'type' => 'single_select_page_with_search', 'default' => '', 'class' => 'wc-page-search"
+    },
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/woocommerce/tags/11.2.1/includes/admin/settings/class-wc-settings-advanced.php",
+     "claim": "woocommerce_checkout_page_id",
+     "fetched": true,
+     "found": true,
+     "excerpt": "sc' => __( 'Page where shoppers go to finalize their purchase', 'woocommerce' ), 'id' => 'woocommerce_checkout_page_id', 'type' => 'single_select_page_with_search', 'default' => wc_get_page_id( 'checkout' ),"
+    },
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/woocommerce/tags/11.2.1/includes/admin/settings/class-wc-settings-advanced.php",
+     "claim": "woocommerce_myaccount_page_id",
+     "fetched": true,
+     "found": true,
+     "excerpt": "y_filters( 'woocommerce_my_account_shortcode_tag', 'woocommerce_my_account' ) ), 'id' => 'woocommerce_myaccount_page_id', 'type' => 'single_select_page_with_search', 'default' => '', 'class' => 'wc-page-search"
+    }
+   ]
+  },
+  "woocommerce-cache-exclude-cookies": {
+   "evidence": [
+    {
+     "role": "doc",
+     "url": "https://woocommerce.com/document/configuring-caching-plugins/",
+     "claim": "woocommerce_cart_hash",
+     "fetched": true,
+     "found": true,
+     "excerpt": "oCommerce uses for this, which you can exclude from caching. COOKIE NAME DURATION PURPOSE woocommerce_cart_hash session Helps WooCommerce determine when cart contents/data changes. woocommerce_items_in"
+    },
+    {
+     "role": "doc",
+     "url": "https://woocommerce.com/document/configuring-caching-plugins/",
+     "claim": "woocommerce_items_in_cart",
+     "fetched": true,
+     "found": true,
+     "excerpt": "oocommerce_cart_hash session Helps WooCommerce determine when cart contents/data changes. woocommerce_items_in_cart session Helps WooCommerce determine when cart contents/data changes. wp_woocommerce_sessi"
+    },
+    {
+     "role": "doc",
+     "url": "https://woocommerce.com/document/configuring-caching-plugins/",
+     "claim": "wp_woocommerce_session_",
+     "fetched": true,
+     "found": true,
+     "excerpt": "mmerce_items_in_cart session Helps WooCommerce determine when cart contents/data changes. wp_woocommerce_session_ 2 days Contains a unique code for each customer so that it knows where to find the cart d"
+    }
+   ]
+  },
+  "elementor-css-print-method": {
+   "evidence": [
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/elementor/tags/4.3.5/includes/settings/settings.php",
+     "claim": "get_option( 'elementor_css_print_method', 'external' )",
+     "fetched": true,
+     "found": true,
+     "excerpt": "tices' ); } public function add_generator_tag_settings( $settings ) { $css_print_method = get_option( 'elementor_css_print_method', 'external' ); $settings[] = 'css_print_method-' . $css_print_method; $google_font = Fonts::is_google_f"
+    },
+    {
+     "role": "label",
+     "url": "https://plugins.svn.wordpress.org/elementor/tags/4.3.5/includes/settings/settings.php",
+     "claim": "CSS Print Method",
+     "fetched": true,
+     "found": true,
+     "excerpt": "public function on_admin_init() { $this->maybe_remove_all_admin_notices(); } /** * Update CSS print method. * * Clear post CSS cache. * * Fired by `add_option_elementor_css_print_method` and * `up"
+    },
+    {
+     "role": "label",
+     "url": "https://plugins.svn.wordpress.org/elementor/tags/4.3.5/includes/settings/settings.php",
+     "claim": "Internal Embedding",
+     "fetched": true,
+     "found": true,
+     "excerpt": "=> [ 'external' => esc_html__( 'External File', 'elementor' ), 'internal' => esc_html__( 'Internal Embedding', 'elementor' ), ], 'desc' => sprintf( /* translators: %s: <head> tag. */ esc_html__( 'In"
+    }
+   ]
+  },
+  "elementor-optimized-gutenberg-loading": {
+   "evidence": [
+    {
+     "role": "label",
+     "url": "https://plugins.svn.wordpress.org/elementor/tags/4.3.5/includes/settings/settings.php",
+     "claim": "Optimized Gutenberg Loading",
+     "fetched": true,
+     "found": true,
+     "excerpt": "oading=\"lazy\"</code>' ), ], ], 'optimized_gutenberg_loading' => [ 'label' => esc_html__( 'Optimized Gutenberg Loading', 'elementor' ), 'field_args' => [ 'type' => 'select', 'std' => '1', 'options' => [ '1' ="
+    },
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/elementor/tags/4.3.5/includes/settings/settings.php",
+     "claim": "optimized_gutenberg_loading",
+     "fetched": true,
+     "found": true,
+     "excerpt": "lementor' ), '<code>fetchpriority=\"high\"</code>', '<code>loading=\"lazy\"</code>' ), ], ], 'optimized_gutenberg_loading' => [ 'label' => esc_html__( 'Optimized Gutenberg Loading', 'elementor' ), 'field_args' ="
+    },
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/elementor/tags/4.3.5/includes/settings/settings-page.php",
+     "claim": "'elementor_' . $field_id",
+     "fetched": true,
+     "found": true,
+     "excerpt": "field ) { $full_field_id = ! empty( $field['full_field_id'] ) ? $field['full_field_id'] : 'elementor_' . $field_id; $field['field_args']['id'] = $full_field_id; $field_classes = [ $full_field_id ]; if ( !"
+    }
+   ]
+  },
+  "elementor-experiment-improved-asset-loading": {
+   "evidence": [
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/elementor/tags/3.20.0/core/experiments/manager.php",
+     "claim": "'name' => 'e_optimized_assets_loading'",
+     "fetched": true,
+     "found": true,
+     "excerpt": "PREFIX . $feature_name; } private function add_default_features() { $this->add_feature( [ 'name' => 'e_optimized_assets_loading', 'title' => esc_html__( 'Improved Asset Loading', 'elementor' ), 'tag' => esc_html__( 'Pe"
+    },
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/elementor/tags/4.3.5/core/experiments/manager.php",
+     "claim": "OPTION_PREFIX = 'elementor_experiment-'",
+     "fetched": true,
+     "found": true,
+     "excerpt": "ACTIVE = 'active'; const STATE_INACTIVE = 'inactive'; const TYPE_HIDDEN = 'hidden'; const OPTION_PREFIX = 'elementor_experiment-'; private $states; private $release_statuses; private $features; /** * Add Feature * * Eac"
+    },
+    {
+     "role": "doc",
+     "url": "https://elementor.com/help/optimized-assets-loading",
+     "claim": "Improved Asset Loading",
+     "fetched": true,
+     "found": true,
+     "excerpt": "Improved Asset Loading | Elementor Skip to content Elementor Knowledge hub logo Topics Close Topics Open Topics"
+    },
+    {
+     "role": "doc",
+     "url": "https://elementor.com/help/optimized-assets-loading",
+     "claim": "may cause potential conflicts",
+     "fetched": true,
+     "found": true,
+     "excerpt": "files), and the Swiper library in Elementor and Elementor Pro instances. 3rd party addons may cause potential conflicts if they have not optimized their plugins to use this feature properly. Conditional and In"
+    }
+   ]
+  },
+  "elementor-experiment-improved-css-loading": {
+   "evidence": [
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/elementor/tags/3.20.0/core/experiments/manager.php",
+     "claim": "'name' => 'e_optimized_css_loading'",
+     "fetched": true,
+     "found": true,
+     "excerpt": "BLE, 'default' => self::STATE_ACTIVE, 'generator_tag' => true, ] ); $this->add_feature( [ 'name' => 'e_optimized_css_loading', 'title' => esc_html__( 'Improved CSS Loading', 'elementor' ), 'tag' => esc_html__( 'Perf"
+    },
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/elementor/tags/3.24.0/core/experiments/manager.php",
+     "claim": "'name' => 'e_optimized_css_loading'",
+     "fetched": true,
+     "found": true,
+     "excerpt": "PREFIX . $feature_name; } private function add_default_features() { $this->add_feature( [ 'name' => 'e_optimized_css_loading', 'title' => esc_html__( 'Improved CSS Loading', 'elementor' ), 'tag' => esc_html__( 'Perf"
+    },
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/elementor/tags/4.3.5/core/experiments/manager.php",
+     "claim": "OPTION_PREFIX = 'elementor_experiment-'",
+     "fetched": true,
+     "found": true,
+     "excerpt": "ACTIVE = 'active'; const STATE_INACTIVE = 'inactive'; const TYPE_HIDDEN = 'hidden'; const OPTION_PREFIX = 'elementor_experiment-'; private $states; private $release_statuses; private $features; /** * Add Feature * * Eac"
+    }
+   ]
+  },
+  "elementor-experiment-optimized-css-files": {
+   "evidence": [
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/elementor/tags/4.3.5/core/experiments/manager.php",
+     "claim": "'name' => 'e_optimized_css_files'",
+     "fetched": true,
+     "found": true,
+     "excerpt": "ctive' => true, 'minimum_installation_version' => '3.30.0', ], ] ); $this->add_feature( [ 'name' => 'e_optimized_css_files', 'title' => esc_html__( 'Optimized CSS Files', 'elementor' ), 'tag' => esc_html__( 'Perfo"
+    },
+    {
+     "role": "label",
+     "url": "https://plugins.svn.wordpress.org/elementor/tags/4.3.5/core/experiments/manager.php",
+     "claim": "Keeps external CSS files available and consistent for sites behind page caching or a CDN",
+     "fetched": true,
+     "found": true,
+     "excerpt": "ntor' ), 'tag' => esc_html__( 'Performance', 'elementor' ), 'description' => esc_html__( 'Keeps external CSS files available and consistent for sites behind page caching or a CDN.', 'elementor' ), 'release_status' => self::RELEASE_STATUS_ALPHA, 'default' => self::STAT"
+    },
+    {
+     "role": "key",
+     "url": "https://plugins.svn.wordpress.org/elementor/tags/4.3.5/core/experiments/manager.php",
+     "claim": "OPTION_PREFIX = 'elementor_experiment-'",
+     "fetched": true,
+     "found": true,
+     "excerpt": "ACTIVE = 'active'; const STATE_INACTIVE = 'inactive'; const TYPE_HIDDEN = 'hidden'; const OPTION_PREFIX = 'elementor_experiment-'; private $states; private $release_statuses; private $features; /** * Add Feature * * Eac"
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,32 @@
+{
+ "expect": [
+  {
+   "type": "php-redeclare",
+   "contains": "my_helper"
+  },
+  {
+   "type": "php-location",
+   "contains": "plugin-b/b.php:9"
+  },
+  {
+   "type": "component-path",
+   "contains": "plugin-a"
+  },
+  {
+   "type": "component-path",
+   "contains": "plugin-b"
+  },
+  {
+   "type": "js-not-defined",
+   "contains": "$ is not a function"
+  },
+  {
+   "type": "http-request-failed",
+   "contains": "500"
+  },
+  {
+   "type": "rest-route",
+   "contains": "wc/store/v1"
+  }
+ ]
+}

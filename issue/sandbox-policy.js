@@ -1,0 +1,142 @@
+// The sandbox is a throwaway copy of a site in Docker. This file is the single place that says WHAT a sandbox container is allowed to be:
+// buildSpec() produces the Docker Compose project (as JSON, which Compose reads natively) and validateSpec() checks any spec against the
+// safeguards. sandbox.js refuses to start a project that fails validateSpec(), so a future edit that weakens a container cannot slip through.
+//
+//   not privileged · no docker.sock · no host network/pid/ipc · cap_drop ALL (plus a short, tested allow-list added back so Apache and
+//   MariaDB can start) · no-new-privileges · memory, CPU and process limits · ports bound to 127.0.0.1 only · images pinned by digest ·
+//   random project name + labels · bind mounts only from inside the sandbox folder · no host environment passed through
+//
+// Network: the database and the WP-CLI container live on an INTERNAL network (no route out). Only the WordPress container is also on a
+// normal network, because Docker cannot publish a port on an internal-only network. Its DNS is pointed at an unroutable address, so raw
+// cURL / fsockopen to a HOST NAME fails too; a raw connection to an IP address is NOT blocked at the network level. See LIMITS.
+
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+
+const PIN_FILE = path.join(__dirname, '..', 'data', 'sandbox-images.json');
+const PROJECT_RE = /^pgsb[0-9a-f]{8}$/;
+const DIGEST_REF = /^[a-z0-9][a-z0-9._\/-]*@sha256:[0-9a-f]{64}$/;
+// What Apache (www-data via setuid) and MariaDB (gosu) need to start after "drop everything". Anything outside this list is a violation.
+const ALLOWED_CAPS = ['CHOWN', 'DAC_OVERRIDE', 'FOWNER', 'SETGID', 'SETUID'];
+const MAX = { mem_mb: 1024, cpus: 2, pids: 1024 };
+const WP_UID = '33:33'; // www-data in the official images
+
+// Shown in every sandbox report, first, in plain words.
+const NOTICE = 'The WordPress (web) container can still make RAW OUTBOUND connections: code in the copied plugins or theme that opens its own socket to an IP address (cURL, fsockopen, file_get_contents on a URL with an IP) is not blocked, because Docker cannot publish a port on a network with no route out and a firewall inside the container would need extra privileges. WordPress\'s own HTTP API, host-name lookups and mail ARE blocked. Only the database and WP-CLI containers have no route out at all.';
+const RECOMMENDATION = 'Recommendation: run sandboxes only for copies of sites you own or are explicitly authorised to test, and whose plugin code you trust. Do not run a sandbox on untrusted or third-party code.';
+const LIMITS = [
+    'WP_HTTP_BLOCK_EXTERNAL and the pre_http_request filter stop WordPress\'s own HTTP API (wp_remote_get, wp_remote_post, ...). They do NOT stop code that opens its own connection: raw cURL, fsockopen, file_get_contents on a URL, exec/shell_exec.',
+    'To cover that, the WordPress container\'s DNS points at an unroutable address, so such code fails when it uses a host name. A connection to a raw IP address is NOT blocked at the network level (Docker cannot publish a port on an internal-only network, and a firewall inside the container would need extra privileges).',
+    'The database and WP-CLI containers are on an internal network with no route out at all.',
+    'Mail is switched off by a must-use plugin (pre_wp_mail) and cron is disabled; code that talks SMTP itself, or sends mail with the PHP mail() function, is not intercepted (the image has no mail transport, so it fails).',
+    'Payment gateways found in live mode stop the sandbox from starting unless you pass --neutralise-payments, which switches them off; API keys and webhook secrets in options are blanked, but keys stored anywhere else (a custom table, a file) are not found.'
+];
+
+function images(file = PIN_FILE) {
+    const p = JSON.parse(fs.readFileSync(file, 'utf8'));
+    for (const k of ['wordpress', 'cli', 'db']) if (!p.images[k] || !DIGEST_REF.test(p.images[k].ref)) throw Object.assign(new Error(`data/sandbox-images.json: image "${k}" is missing or not pinned by digest. Run: npm run guard:setup-sandbox -- --repin`), { exitCode: 2 });
+    return p;
+}
+
+const rand = (n = 24) => crypto.randomBytes(n).toString('base64url').replace(/[^A-Za-z0-9]/g, '').slice(0, n);
+const newProject = () => `pgsb${crypto.randomBytes(4).toString('hex')}`;
+
+// siteDir: the sandbox's own copy (…/sandboxes/<id>/site). Everything bind-mounted comes from inside it.
+function buildSpec({ project, issueId, siteDir, logDir, themes = [], images: pins = images(), hasLanguages = false, creds = { root: rand(), user: 'wp', pass: rand(), name: 'wordpress' } }) {
+    if (!PROJECT_RE.test(project)) throw new Error(`project name "${project}" must be pgsb + 8 hex digits`);
+    const label = extra => ({ 'pg.sandbox': '1', 'pg.owner': 'plugin-guard', 'pg.project': project, 'pg.issue': String(issueId), ...extra });
+    const hardened = { cap_drop: ['ALL'], security_opt: ['no-new-privileges:true'], restart: 'no', stop_grace_period: '5s' };
+    const wpBinds = [
+        `${path.join(siteDir, 'wp-config.php')}:/var/www/html/wp-config.php:ro`,
+        `${path.join(siteDir, 'wp-content', 'plugins')}:/var/www/html/wp-content/plugins`,
+        `${path.join(siteDir, 'wp-content', 'mu-plugins')}:/var/www/html/wp-content/mu-plugins`,
+        `${path.join(siteDir, 'wp-content', 'uploads')}:/var/www/html/wp-content/uploads`,
+        ...(hasLanguages ? [`${path.join(siteDir, 'wp-content', 'languages')}:/var/www/html/wp-content/languages`] : []),
+        // themes one by one, so the default themes that ship in the image stay available for the theme swap
+        ...themes.map(t => `${path.join(siteDir, 'wp-content', 'themes', t)}:/var/www/html/wp-content/themes/${t}`),
+        `${logDir}:/var/log/pg`
+    ];
+    const spec = {
+        name: project,
+        services: {
+            db: {
+                image: pins.images.db.ref, ...hardened, cap_add: [...ALLOWED_CAPS],
+                environment: { MARIADB_ROOT_PASSWORD: creds.root, MARIADB_DATABASE: creds.name, MARIADB_USER: creds.user, MARIADB_PASSWORD: creds.pass },
+                command: ['--skip-name-resolve', '--max-connections=50'],
+                healthcheck: { test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized'], interval: '3s', timeout: '3s', retries: 40, start_period: '5s' },
+                volumes: ['dbdata:/var/lib/mysql'], networks: ['back'],
+                mem_limit: '512m', cpus: 1, pids_limit: 256, labels: label({ 'pg.role': 'db' })
+            },
+            wordpress: {
+                image: pins.images.wordpress.ref, ...hardened, cap_add: [...ALLOWED_CAPS],
+                environment: { WORDPRESS_DB_HOST: 'db:3306', WORDPRESS_DB_USER: creds.user, WORDPRESS_DB_PASSWORD: creds.pass, WORDPRESS_DB_NAME: creds.name },
+                depends_on: { db: { condition: 'service_healthy' } },
+                volumes: ['wpcore:/var/www/html', ...wpBinds],
+                ports: ['127.0.0.1::80'], networks: ['back', 'front'], dns: ['192.0.2.1'],
+                mem_limit: '768m', cpus: 1, pids_limit: 512, labels: label({ 'pg.role': 'wordpress' })
+            },
+            cli: {
+                image: pins.images.cli.ref, ...hardened, cap_add: [],
+                entrypoint: ['tail', '-f', '/dev/null'], user: WP_UID,
+                environment: { WORDPRESS_DB_HOST: 'db:3306', WORDPRESS_DB_USER: creds.user, WORDPRESS_DB_PASSWORD: creds.pass, WORDPRESS_DB_NAME: creds.name },
+                depends_on: { wordpress: { condition: 'service_started' } },
+                volumes: ['wpcore:/var/www/html', ...wpBinds],
+                networks: ['back'], mem_limit: '256m', cpus: 0.5, pids_limit: 128, labels: label({ 'pg.role': 'cli' })
+            }
+        },
+        volumes: { dbdata: { labels: label({}) }, wpcore: { labels: label({}) } },
+        networks: { back: { internal: true, labels: label({}) }, front: { labels: label({}) } }
+    };
+    return spec;
+}
+
+// -> list of violations (empty = the spec satisfies every safeguard). Pure; no Docker needed.
+function validateSpec(spec, { sandboxDir } = {}) {
+    const v = [], push = m => v.push(m);
+    if (!spec || typeof spec !== 'object') return ['spec is not an object'];
+    if (!PROJECT_RE.test(String(spec.name))) push(`project name "${spec.name}" is not pgsb + 8 hex digits (a random prefix is required)`);
+    const text = JSON.stringify(spec);
+    if (/docker\.sock|\/var\/run\/docker/i.test(text)) push('the Docker socket must never be mounted or referenced');
+    if (/\$\{|\$\(/.test(text)) push('no variable interpolation: nothing may be pulled from the host environment');
+    const nets = spec.networks || {};
+    for (const [n, def] of Object.entries(nets)) if (def && (def.external || def.driver === 'host')) push(`network "${n}" is external or host`);
+    const services = spec.services || {};
+    if (!Object.keys(services).length) push('no services');
+    const ALLOWED_SERVICE_KEYS = new Set(['image', 'cap_drop', 'cap_add', 'security_opt', 'restart', 'stop_grace_period', 'environment', 'command', 'entrypoint', 'user', 'healthcheck', 'volumes', 'networks', 'depends_on', 'ports', 'dns', 'mem_limit', 'cpus', 'pids_limit', 'labels']);
+    for (const [name, s] of Object.entries(services)) {
+        const at = m => push(`${name}: ${m}`);
+        for (const k of Object.keys(s)) if (!ALLOWED_SERVICE_KEYS.has(k)) at(`"${k}" is not an allowed service setting (privileged, network_mode, pid, ipc, devices, sysctls, ... are all refused)`);
+        if (s.privileged) at('must not be privileged');
+        if (!s.image || !DIGEST_REF.test(s.image)) at(`image "${s.image}" is not pinned by digest (repo@sha256:...)`);
+        if (!Array.isArray(s.cap_drop) || !s.cap_drop.includes('ALL')) at('cap_drop must include ALL');
+        for (const c of s.cap_add || []) if (!ALLOWED_CAPS.includes(c)) at(`capability ${c} is not in the allowed set (${ALLOWED_CAPS.join(', ')})`);
+        // exactly this and nothing else: seccomp=unconfined, apparmor=unconfined, label=disable and the like would switch protections OFF
+        if (!Array.isArray(s.security_opt) || s.security_opt.length !== 1 || s.security_opt[0] !== 'no-new-privileges:true') at('security_opt must be exactly ["no-new-privileges:true"]: no other option (seccomp=unconfined, apparmor=unconfined, label=disable, ...) is allowed');
+        if (s.restart !== 'no') at('restart must be "no" (nothing keeps running after teardown)');
+        const mem = String(s.mem_limit || ''), memMb = /^(\d+)m$/.test(mem) ? Number(mem.slice(0, -1)) : /^(\d+)g$/.test(mem) ? Number(mem.slice(0, -1)) * 1024 : NaN;
+        if (!(memMb > 0 && memMb <= MAX.mem_mb)) at(`mem_limit must be set and at most ${MAX.mem_mb}m (got "${mem}")`);
+        if (!(Number(s.cpus) > 0 && Number(s.cpus) <= MAX.cpus)) at(`cpus must be set and at most ${MAX.cpus} (got ${s.cpus})`);
+        if (!(Number(s.pids_limit) > 0 && Number(s.pids_limit) <= MAX.pids)) at(`pids_limit must be set and at most ${MAX.pids} (got ${s.pids_limit})`);
+        for (const p of s.ports || []) if (!/^127\.0\.0\.1:/.test(String(p))) at(`port "${p}" must be bound to 127.0.0.1 only`);
+        const L = s.labels || {};
+        if (L['pg.sandbox'] !== '1' || L['pg.owner'] !== 'plugin-guard' || L['pg.project'] !== spec.name || !L['pg.issue']) at('labels pg.sandbox, pg.owner, pg.project and pg.issue are required (teardown and the leftover sweep find containers by them)');
+        for (const m of s.volumes || []) {
+            const src = String(m).split(':')[0];
+            if (src.startsWith('/') || src.startsWith('.') || src.startsWith('~')) {
+                if (!sandboxDir) at(`bind mount "${m}": no sandbox folder given to check it against`);
+                else { const real = path.resolve(src); if (real !== path.resolve(sandboxDir) && !real.startsWith(path.resolve(sandboxDir) + path.sep)) at(`bind mount source "${src}" is outside the sandbox folder`); }
+            } else if (!(spec.volumes && spec.volumes[src])) at(`volume "${src}" is not a declared named volume`);
+        }
+        for (const [k, val] of Object.entries(s.environment || {})) if (val === null || val === undefined || typeof val !== 'string') at(`environment ${k} must be a literal string (a null value would be taken from the host)`);
+        for (const n of s.networks || []) {
+            if (!nets[n]) at(`network "${n}" is not declared`);
+            else if (name !== 'wordpress' && !nets[n].internal) at(`only the wordpress service may use a network with a route out ("${n}" is not internal)`);
+        }
+        if (name === 'wordpress' && !(s.dns && s.dns.length && s.dns.every(d => /^192\.0\.2\./.test(d)))) at('dns must point at an unroutable address (192.0.2.0/24) so host-name lookups made by raw sockets fail');
+    }
+    for (const [name, s] of Object.entries(services)) if (name !== 'wordpress' && (s.ports || []).length) push(`${name}: only the wordpress service may publish a port`);
+    return v;
+}
+
+module.exports = { NOTICE, RECOMMENDATION, buildSpec, validateSpec, images, newProject, rand, ALLOWED_CAPS, MAX, LIMITS, PROJECT_RE, DIGEST_REF, WP_UID, PIN_FILE };
