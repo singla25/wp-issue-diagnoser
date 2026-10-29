@@ -71,7 +71,7 @@ function fixture(wpRoot, { publicShot = true, mode = 'normal' } = {}) {
     return new Promise(r => server.listen(0, '127.0.0.1', () => r({ server, hits, url: `http://127.0.0.1:${server.address().port}/`, close: () => server.close() })));
 }
 const docHits = (hits, paths) => hits.filter(h => paths.includes(h.path));
-const ENV = (cool) => ({ ...process.env, NAVIGATION_DELAY_MS: '2000', REQUEST_DELAY_MS: '500', PG_PROBE_COOLDOWN_FILE: cool, PSI_API_KEY: 'must-not-reach-the-worker', PG_TEST_PASSWORD: 'must-not-reach-the-worker' });
+const ENV = (cool) => ({ ...process.env, PG_PROBE_NAV_DELAY_MS: '2000', PG_PROBE_REQUEST_DELAY_MS: '500', PG_PROBE_COOLDOWN_FILE: cool, PSI_API_KEY: 'must-not-reach-the-worker', PG_TEST_PASSWORD: 'must-not-reach-the-worker' });
 function newIssue(root, site, o = {}) {
     const issue = store.create({ title: 'Probe fixture', description: 'fixture', symptom: o.symptom || 'js-error', environment: 'local', url: site.url, root, pages: o.pages || ['/'], oracle: o.oracle, needsLogin: o.needsLogin });
     if (o.images) store.intakeImages(issue.id, o.images, { wpRoot: root });
@@ -79,7 +79,7 @@ function newIssue(root, site, o = {}) {
 }
 
 (async () => {
-    if (!probe.frontendReady().ok) { console.log(`SKIP  the frontend browser is not installed (${probe.frontendReady().reason}): the probe tests did not run`); process.exit(0); }
+    if (!probe.browserReady().ok) { console.log(`SKIP  plugin-guard's own browser is not installed (${probe.browserReady().reason}): the probe tests did not run`); process.exit(0); }
 
     // ================================================================ pure parts first
     group('oracle: pure evaluation (the pattern screen, the direction of every type, partial results)');
@@ -145,7 +145,7 @@ function newIssue(root, site, o = {}) {
     const sorted = docs.map(h => h.at).sort((a, b) => a - b), gaps = sorted.slice(1).map((t, i) => t - sorted[i]);
     const avg = Math.round(gaps.reduce((a, b) => a + b, 0) / gaps.length);
     ok(gaps.length >= 6 && Math.min(...gaps) >= 1450 && avg >= 1900, `page requests are paced by the governor: the governor waits 0.75-1.25 x the 2000 ms navigation delay, so the shortest gap must be >= 1500 ms (here ${Math.min(...gaps)} ms) and the average about 2000 ms or more (here ${avg} ms)`);
-    ok(docs.every(h => /WordPress-Frontend-QA-Agent/.test(h.ua)), 'the tester identifies itself in the user agent');
+    ok(docs.every(h => /PluginGuard-Probe/.test(h.ua)), 'the tester identifies itself in the user agent');
     ok(docHits(site.hits, ['/cart/']).length === 2 && !pagesA.find(p => p.url.endsWith('/cart/') && p.viewport.name === 'mobile').loaded, 'the 500 page was requested twice in total (the governor\'s single retry) and NOT again at the second screen size: no new information, more load on a broken server');
 const lastCart = pagesA.find(p => p.url.endsWith('/cart/') && p.viewport.name === 'mobile');
 ok(lastCart.skipped && lastCart.reused_status === 500, 'the skipped load is recorded with its reason');

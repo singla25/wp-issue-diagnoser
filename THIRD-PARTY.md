@@ -17,6 +17,7 @@ No component calls a network service at run time. Three explicit commands use th
 | pngjs | 7.0.0 | MIT | direct |
 | postcss | 8.5.32 | MIT | direct |
 | semver | 7.8.5 | ISC | direct |
+| @playwright/test | 1.64.1 | Apache-2.0 | direct (PDF reports, the page probe, browser tests; Chromium is installed by `npm run setup:guard`) |
 | tesseract.js | 7.0.0 | Apache-2.0 | direct |
 | bmp-js | 0.1.0 | MIT | transitive |
 | idb-keyval | 6.3.0 | Apache-2.0 | transitive |
@@ -32,6 +33,8 @@ No component calls a network service at run time. Three explicit commands use th
 | wasm-feature-detect | 1.9.0 | Apache-2.0 | transitive |
 | webidl-conversions | 3.0.1 | BSD-2-Clause | transitive |
 | whatwg-url | 5.0.0 | MIT | transitive |
+| playwright | 1.64.1 | Apache-2.0 | transitive |
+| playwright-core | 1.64.1 | Apache-2.0 | transitive |
 | zlibjs | 0.3.1 | MIT | transitive |
 
 `jpeg-js` is needed only to decode JPEG screenshots for the OCR variants (pngjs reads PNG only).

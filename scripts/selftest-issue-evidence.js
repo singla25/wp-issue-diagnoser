@@ -278,22 +278,29 @@ const pgRoot = path.join(__dirname, '..');
     // a long line, because /*[\s\S]*?*/ is non-greedy but still jumps to the next */ in the file).
     // wsrc = comment-stripped source (for negative-absence checks: forbidden patterns must not
     // appear even in comments, so stripping is the right tool for those).
-    const wraw = fs.readFileSync(path.join(pgRoot, 'issue', 'probe-worker.js'), 'utf8');
-    const wsrc = wraw.replace(/\/\/.*$/gm, '').replace(/\/\*[^*]*\*+(?:[^/*][^*]*\*+)*\//g, '');
-    const FORBIDDEN = /\.(click|dblclick|fill|type|press|check|uncheck|selectOption|setInputFiles|hover|tap|dragTo|dispatchEvent|focus|submit)\s*\(|\bmouse\.|\bkeyboard\.|\.requestSubmit|\.submit\(|method:\s*['"](POST|PUT|PATCH|DELETE)/;
-    ok(!FORBIDDEN.test(wsrc), 'probe-worker.js contains no call that clicks, types, fills, hovers, taps, submits or sends a non-GET request');
-    // Positive: the three required governor calls must be present in the raw source.
-    ok(/installReadOnlyGuard\(context\)/.test(wraw) && /governor\.navigate\(/.test(wraw) && /governor\.request\(/.test(wraw),
-        'all navigation and the public-origin GET go through the governor (installReadOnlyGuard, governor.navigate, governor.request all present in worker source)');
-    // Negative: forbidden direct-access patterns must not appear even in comments.
-    ok(!/\.goto\(|page\.request|\bfetch\(|https?\.(get|request)/.test(wsrc),
-        'worker never calls page.goto, fetch or http directly (checked in comment-stripped source)');
-    // Only probe-worker.js (the child process) touches a browser or the governor.
-    // Use raw source here too: the strip bug would hide the governor require in any file that has
-    // an inline block comment later on the same long line.
-    const touches = fs.readdirSync(path.join(pgRoot, 'issue')).filter(f => /require\([^)]*governor|\bgovernor\.(navigate|request|tick)\(|newContext\(|chromium\.launch|\.goto\(/.test(fs.readFileSync(path.join(pgRoot, 'issue', f), 'utf8')));
-    ok(touches.join() === 'probe-worker.js', `only probe-worker.js (a child process) touches a browser or the governor (found: ${touches.join(', ')})`);
-    ok(/STOP_AFTER_429\s*=\s*'1'/.test(wraw) && !/WAF|bypass|evade|stealth|webdriver/i.test(wsrc), 'the worker stops at the first 429 and contains nothing about evading a WAF');
+    const probeFiles = fs.readdirSync(path.join(pgRoot, 'probe')).filter(f => f.endsWith('.js')).sort();
+    const stripC = t => t.replace(/\/\/.*$/gm, '').replace(/\/\*[^*]*\*+(?:[^/*][^*]*\*+)*\//g, '');
+    const rawOf = f => fs.readFileSync(path.join(pgRoot, 'probe', f), 'utf8');
+    // `.type()` with no argument is the console message's kind, not typing; typing always has an argument.
+    const FORBIDDEN = /(?<!sandboxActions)\.(click|dblclick|fill|press|check|uncheck|selectOption|setInputFiles|hover|tap|dragTo|dispatchEvent|focus|submit)\s*\(|\.type\s*\((?!\s*\))|\bmouse\.|\bkeyboard\.|\.requestSubmit|\.submit\(|method:\s*['"](POST|PUT|PATCH|DELETE)/;
+    const readOnlyFiles = probeFiles.filter(f => f !== 'sandbox-actions.js');
+    ok(readOnlyFiles.length >= 6 && readOnlyFiles.every(f => !FORBIDDEN.test(stripC(rawOf(f)))), `the probe (${readOnlyFiles.join(', ')}) contains no call that clicks, types, fills, hovers, taps, submits or sends a non-GET request`);
+    ok(FORBIDDEN.test(stripC(rawOf('sandbox-actions.js'))) && /sandboxActions\.(login|click)/.test(rawOf('worker.js')) && (rawOf('worker.js').match(/sandboxActions\.(login|click)\(/g) || []).every(() => true)
+        && rawOf('worker.js').split('\n').filter(l => /sandboxActions\.(login|click)\(/.test(l)).every(l => /job\.sandbox/.test(l)), 'the only typing/clicking code is probe/sandbox-actions.js, and worker.js calls it only on lines guarded by job.sandbox');
+    // Positive: the governed calls must be present.
+    const wraw = probeFiles.map(rawOf).join('\n');
+    ok(/installReadOnlyGuard\(context/.test(rawOf('worker.js')) && /governor\.navigate\(/.test(rawOf('worker.js')) && /governor\.request\(/.test(rawOf('worker.js')),
+        'all navigation and the public-origin GET go through the safety layer (installReadOnlyGuard, governor.navigate, governor.request all present in worker.js)');
+    // Negative: only probe/safety.js (the request safety layer) may call goto / fetch; no other probe file, and nothing in issue/.
+    const DIRECT = /\.goto\(|page\.request|\bfetch\(|https?\.(get|request)/;
+    ok(probeFiles.filter(f => DIRECT.test(stripC(rawOf(f)))).join() === 'safety.js', `only probe/safety.js (the safety layer) calls page.goto / fetch / http directly (found: ${probeFiles.filter(f => DIRECT.test(stripC(rawOf(f)))).join(', ')})`);
+    // Only probe/worker.js (the child process) drives a browser; nothing in issue/ does.
+    const drives = (dir, f) => /\bnewContext\(|chromium\.launch|\.goto\(/.test(fs.readFileSync(path.join(pgRoot, dir, f), 'utf8'));
+    const touches = fs.readdirSync(path.join(pgRoot, 'issue')).filter(f => /require\([^)]*(governor|probe\/safety)|\bgovernor\.(navigate|request|tick)\(|newContext\(|chromium\.launch|\.goto\(/.test(fs.readFileSync(path.join(pgRoot, 'issue', f), 'utf8')));
+    ok(touches.length === 0, `no file in issue/ touches a browser or the request safety layer (found: ${touches.join(', ') || 'none'})`);
+    const driving = probeFiles.filter(f => drives('probe', f));
+    ok(driving.join() === 'safety.js,worker.js', `only the safety layer (page.goto) and the worker (browser contexts) drive a browser (found: ${driving.join(', ')})`);
+    ok(/stopAfter429:\s*1\b/.test(wraw) && !/bypass|evade|stealth|webdriver|circumvent/i.test(stripC(wraw)), 'the probe stops at the first 429 and contains nothing about bypassing or evading protection');
 
     console.log(failures ? `\n${failures} check(s) FAILED` : `\nAll checks passed${skipped ? ` (${skipped} skipped, see SKIP lines)` : ''}`);
     fs.rmSync(tmp, { recursive: true, force: true });

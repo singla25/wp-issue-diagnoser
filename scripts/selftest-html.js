@@ -26,7 +26,7 @@ const data = { schema_version: '1.0', run_id: 'r', generated_at: new Date().toIS
 
 async function main() {
     let pw;
-    try { pw = require(require.resolve('@playwright/test', { paths: [path.join(__dirname, '..', '..', 'frontend')] })); } catch { console.log('NOT RUN  Playwright is not installed (npm run setup:frontend): the dashboard was not tested in a browser'); process.exit(0); }
+    try { pw = require('../lib/playwright').load(); } catch { console.log('NOT RUN  Playwright is not installed (npm run setup:guard): the dashboard was not tested in a browser'); process.exit(0); }
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pg-html-'));
     const file = path.join(dir, 'report.html');
     fs.writeFileSync(file, html.build(data));

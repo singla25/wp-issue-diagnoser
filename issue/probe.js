@@ -1,7 +1,7 @@
 // Phase B4 + B5: the live page probe, the oracle, the "is the original public" check and the screenshot comparison.
 //
-// Read-only on the site, always. The browser work happens in probe-worker.js (a separate process); every request it makes goes through
-// the frontend's request governor (pacing, concurrency cap, 429 / 403 / WAF-challenge detection, persisted state, cross-run cooldown).
+// Read-only on the site, always. The browser work happens in probe/worker.js (a separate process); every request it makes goes through
+// the probe's own request safety layer (probe/safety.js: pacing, concurrency 1, 429 / 403 / WAF-challenge detection, persisted state, cooldown file).
 // Nothing is clicked, typed or submitted; non-GET requests made by the page are aborted. The first 429 or challenge ends the probe.
 // The probe runs only for a site the reporter named AND stated the environment of (live needs --authorized; see lib/issue-store.js).
 // A live probe never logs in: problems that need a logged-in user are "could not test" until the sandbox (a later step).
@@ -16,21 +16,18 @@ const oracleMod = require('./oracle');
 const imgdiff = require('./imgdiff');
 const ownership = require('../lib/ownership');
 
-const FRONT = path.join(__dirname, '..', '..', 'frontend');
-const WORKER = path.join(__dirname, 'probe-worker.js');
+const WORKER = path.join(__dirname, '..', 'probe', 'worker.js');
 const VIEWPORTS = { desktop: [1440, 900], laptop: [1280, 800], tablet: [768, 1024], mobile: [390, 844], 'small-mobile': [375, 812] };
 const DEFAULTS = { probePages: 3, viewports: ['laptop', 'mobile'], maxLoads: 8, timeoutMs: 10 * 60 * 1000 };
 const STRIP_ENV = /^(PSI_API_KEY|WPSCAN_API_TOKEN|PG_TEST_.*)$/;
-const cooldownFile = env => env.PG_PROBE_COOLDOWN_FILE || path.join(FRONT, 'reports', '.protection-cooldown.json');
+const cooldownFile = env => env.PG_PROBE_COOLDOWN_FILE || path.join(__dirname, '..', 'state', 'probe-cooldown.json');
 const cut = (s, n = 200) => redact.text(String(s ?? '').replace(/\s+/g, ' ').trim()).slice(0, n);
 const step = (id, label, status, reason = null, extra = {}) => ({ ...extra, id, label, status, reason }); // the fixed fields win: an extra field can never overwrite the status
 
-function frontendReady() {
-    try {
-        const pw = require(path.join(FRONT, 'node_modules', '@playwright', 'test'));
-        const exe = pw.chromium.executablePath();
-        return fs.existsSync(exe) ? { ok: true } : { ok: false, reason: `Chromium is not installed (${exe}). Run once from the repository root: npm run setup:frontend` };
-    } catch { return { ok: false, reason: 'src/frontend dependencies are not installed. Run once from the repository root: npm run setup:frontend' }; }
+// The probe's own browser: plugin-guard's Playwright and Chromium (lib/playwright.js), never another module's.
+function browserReady() {
+    const st = require('../lib/playwright').status();
+    return st.ok ? { ok: true } : { ok: false, reason: st.reason };
 }
 
 // debug.log of the LOCAL copy: size now, and later the bytes added since. Read-only, never through a symlink, never outside the root.
@@ -141,7 +138,7 @@ async function run(id, { root = null, options = {}, env = process.env, imageFile
         if (!issue.url) return { status: 'NOT_RUN', reason: 'no site address was given (--url), so no page could be loaded' };
         const a = store.authorization(issue);
         if (!a.ok) return { status: 'BLOCKED', reason: a.message };
-        const fe = frontendReady(); if (!fe.ok) return { status: 'NOT_RUN', reason: fe.reason };
+        const br = browserReady(); if (!br.ok) return { status: 'NOT_RUN', reason: br.reason };
         return null;
     })();
     const imageDiffStep = () => steps.push(pairResults.length
@@ -169,7 +166,7 @@ async function run(id, { root = null, options = {}, env = process.env, imageFile
     const jobFile = path.join(stateRoot, 'job.json'), outFile = path.join(stateRoot, 'result.json');
     const measure = issue.oracle.type === 'visible-width' ? [String(issue.oracle.value).replace(/,\s*\d+$/, '')] : [];
     fs.writeFileSync(jobFile, JSON.stringify({ base: pl.base, pages: pl.pages, viewports: pl.viewports, measure, layout: options.layout !== false, expected: pl.expected, publicCheck: publicUrl ? { url: publicUrl } : null,
-        stateRoot, cooldownFile: cooldownFile(env), frontendDir: FRONT, out: outFile }), { mode: 0o600 });
+        stateRoot, cooldownFile: cooldownFile(env), out: outFile }), { mode: 0o600 });
     fs.rmSync(outFile, { force: true });
     const mark = logMark(root);
     const w = await runWorker({ file: jobFile }, env, options.timeoutMs || DEFAULTS.timeoutMs);
@@ -248,7 +245,7 @@ async function run(id, { root = null, options = {}, env = process.env, imageFile
 async function observeSandbox({ base, pages, vp, measure = [], click = null, stateDir, tag = 'probe', login = false, env = process.env, options = {} }) {
     const dir = path.join(stateDir, tag); fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
     const jobFile = path.join(dir, 'job.json'), outFile = path.join(dir, 'result.json');
-    fs.writeFileSync(jobFile, JSON.stringify({ base: base.href, pages, viewports: vp, measure, layout: false, sandbox: true, login: !!login, click, expected: null, publicCheck: null, stateRoot: dir, cooldownFile: path.join(dir, 'cooldown.json'), frontendDir: FRONT, out: outFile }), { mode: 0o600 });
+    fs.writeFileSync(jobFile, JSON.stringify({ base: base.href, pages, viewports: vp, measure, layout: false, sandbox: true, login: !!login, click, expected: null, publicCheck: null, stateRoot: dir, cooldownFile: path.join(dir, 'cooldown.json'), out: outFile }), { mode: 0o600 });
     fs.rmSync(outFile, { force: true });
     const childEnv = { ...env }; if (!login) { delete childEnv.PG_TEST_USER; delete childEnv.PG_TEST_PASSWORD; }
     const w = await new Promise(resolve => { const c = spawn(process.execPath, [WORKER, jobFile], { env: Object.fromEntries(Object.entries(childEnv).filter(([k]) => !/^(PSI_API_KEY|WPSCAN_API_TOKEN)$/.test(k) && (login || !/^PG_TEST_/.test(k)))), stdio: ['ignore', 'ignore', 'pipe'] }); let err = ''; c.stderr.on('data', d => { err = (err + d).slice(-1000); }); const t = setTimeout(() => c.kill('SIGKILL'), options.timeoutMs || 5 * 60 * 1000); c.on('close', code => { clearTimeout(t); resolve({ code, err }); }); });
@@ -278,4 +275,4 @@ async function runSandbox(id, { url, stateDir, options = {}, env = process.env, 
     return { ok: true, oracle, status_codes: pagesFull.map(p => p.reused_status || p.status), fatal_text: pagesFull.some(p => /There has been a critical error|Fatal error|Parse error/i.test(p.text || '')), login: o.login || null, pages: pagesFull.map(({ text, ...p }) => ({ ...p, text_chars: (text || '').length })) };
 }
 
-module.exports = { runSandbox, observeSandbox, viewportsFor, sandboxBase, absPages, run, plan, cluesFrom, logMark, logGrowth, frontendReady, VIEWPORTS, DEFAULTS, cooldownFile };
+module.exports = { runSandbox, observeSandbox, viewportsFor, sandboxBase, absPages, run, plan, cluesFrom, logMark, logGrowth, browserReady, VIEWPORTS, DEFAULTS, cooldownFile };

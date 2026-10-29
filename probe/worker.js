@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// Live page probe worker. Runs as its OWN process because the frontend's governor binds to the site at load time (TEST_URL).
-// Everything that touches the site goes through src/frontend/lib/governor.js: every navigation (pacing, concurrency cap, 429 / 403 / WAF
-// challenge detection, persisted state) and the single "is the original public" GET. READ-ONLY by construction:
+// Page probe worker (plugin-guard's own; no other module is used). Runs as its OWN process so a crash or a hang cannot take the investigation down,
+// and so the parent can kill it on a timeout. Everything that touches the site goes through ./safety.js: every navigation (pacing, concurrency 1,
+// 429 / 403 / WAF-challenge / 5xx detection, one retry of a 5xx page) and the single "is the original public" GET. READ-ONLY by construction:
 //   - non-GET requests made by the page are aborted (installReadOnlyGuard) and counted;
 //   - nothing is clicked, typed, hovered or submitted; no cookie, login or consent is touched;
-//   - the first 429 or challenge ends the probe (STOP_AFTER_429=1, no retry); the cooldown is recorded and honoured by the next run.
+//   - the first 429 or challenge ends the probe (no retry); the cooldown is recorded in the probe's own file and honoured by the next run.
 // SANDBOX MODE (job.sandbox): the target is a throwaway copy on 127.0.0.1. Only there may the page be clicked and a test user logged in; every request to any
-// other origin is aborted, and the same governor paces everything. Credentials come from the environment (PG_TEST_USER / PG_TEST_PASSWORD), never from files.
+// other origin is aborted, and the same safety layer paces everything. Credentials come from the environment (PG_TEST_USER / PG_TEST_PASSWORD), never from files.
 // Input: a job JSON file (argv[2]). Output: the result JSON file named in the job. Text from the site is data: it is cut and never executed.
 
 const fs = require('fs');
@@ -14,16 +14,6 @@ const path = require('path');
 
 const jobFile = process.argv[2];
 const job = JSON.parse(fs.readFileSync(jobFile, 'utf8'));
-process.env.TEST_URL = job.base;
-process.env.QA_REPORTS_DIR = job.stateRoot;
-process.env.QA_LIVE_QUIET = '1';
-process.env.STOP_AFTER_429 = '1';
-// The governor counts each 5xx twice (the navigation and the browser's own observation of the response), so one broken page plus its single
-// retry scores 4. The default limit of 3 would end every probe of a white-screen page at once. 5 is the most the frontend's own config allows:
-// one broken page can be observed, a second one stops the probe as "server instability". A lower value set by the user is kept.
-process.env.STOP_AFTER_5XX = process.env.STOP_AFTER_5XX || '5';
-const FRONT = job.frontendDir;
-const fe = m => require(path.join(FRONT, m));
 
 // Layout checks compare elements with each other (overlap checks are quadratic), so a very large page could keep the probe busy for minutes.
 // Two limits, both visible in the result: pages above MAX_ELEMENTS skip the heavy checks, and each page load gets a time budget.
@@ -34,31 +24,23 @@ const save = () => fs.writeFileSync(job.out, JSON.stringify(out));
 const cut = (s, n = 300) => String(s ?? '').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '').slice(0, n);
 
 (async () => {
-    const config = fe('qa.config');
-    config.cooldownFile = job.cooldownFile;
-    config.liveFrames = false;
-    const governor = fe('lib/governor');
-    const { NetworkRecorder, installReadOnlyGuard, applyDenyList } = fe('lib/network');
-    const { INIT_SCRIPT, pageContext, assetSource } = fe('lib/wp-context');
-    const { readJsonl, files } = fe('lib/findings');
-    const visual = fe('lib/visual-checks');
-    const pageChecks = fe('lib/page-checks');
-    const collide = require('./collide');
-    const imgdiff = require('./imgdiff');
-    const { chromium, request } = require(path.join(FRONT, 'node_modules', '@playwright', 'test'));
-
-    governor.resetState();
+    const probeCfg = require('./config'), { Safety } = require('./safety'), rec_ = require('./recorder'), wpLib = require('./wp'), layoutLib = require('./layout');
+    const sandboxActions = require('./sandbox-actions');
+const { NetworkRecorder, installReadOnlyGuard, installSandboxGuard, applyDenyList } = rec_;
+    const { INIT_SCRIPT, pageContext, assetSource } = wpLib;
+    const collide = require('../issue/collide');
+    const imgdiff = require('../issue/imgdiff');
+    const { chromium, request } = require('../lib/playwright').load();
+    const origin = new URL(job.base).origin;
+    // a private sandbox needs no politeness towards a third party: short pauses, a short retry delay (the live probe keeps the full defaults)
+    const config = probeCfg.resolve({ cooldownFile: job.cooldownFile, ...(job.sandbox ? { navigationDelayMs: probeCfg.num('PG_PROBE_NAV_DELAY_MS', 250, { min: 0, max: 30000 }), requestDelayMs: probeCfg.num('PG_PROBE_REQUEST_DELAY_MS', 250, { min: 0, max: 15000 }), serverErrorRetryDelayMs: probeCfg.num('PG_PROBE_5XX_RETRY_DELAY_MS', 500, { min: 0, max: 30000 }) } : {}) });
+    config.screenshotsDir = path.join(job.stateRoot, 'screenshots');
+    const governor = new Safety(config, { origin, stateDir: path.join(job.stateRoot, '.state') });
     fs.mkdirSync(config.screenshotsDir, { recursive: true });
 
-    // ---- cooldown: a previous run (frontend agent or probe) was limited by site protection -> not one request ----
-    try {
-        const all = JSON.parse(fs.readFileSync(config.cooldownFile, 'utf8'));
-        const last = all.at ? all : all[config.origin];
-        if (last) {
-            const until = new Date(last.at).getTime() + config.protectionCooldownMinutes * 60000;
-            if (Date.now() < until) { out.protection = { kind: 'cooldown', reason: `cooling down after site protection at ${last.at} (${last.reason}); next run allowed after ${new Date(until).toISOString()}`, requests_sent: 0 }; save(); return; }
-        }
-    } catch { /* no cooldown file */ }
+    // ---- cooldown: a previous probe run was limited by site protection -> not one request ----
+    const cd = governor.readCooldown();
+    if (cd) { out.protection = { kind: 'cooldown', reason: `cooling down after site protection at ${cd.at} (${cd.reason}); next run allowed after ${cd.until}`, requests_sent: 0 }; save(); return; }
 
     const browser = await chromium.launch();
     const ua = await (async () => { const c = await browser.newContext(); const p = await c.newPage(); const u = await p.evaluate(() => navigator.userAgent); await c.close(); return `${u} ${config.userAgentSuffix}`; })();
@@ -77,30 +59,20 @@ const cut = (s, n = 300) => String(s ?? '').replace(/[\u0000-\u0008\u000b\u000c\
         const context = await browser.newContext({ viewport: { width: vp.width, height: vp.height }, isMobile: mobile, hasTouch: mobile, userAgent: ua, reducedMotion: 'reduce', serviceWorkers: 'block' });
         let blocked;
         if (job.sandbox) {   // the sandbox may be written to and clicked; nothing outside it may be reached
-            blocked = [];
-            const origin = new URL(job.base).origin;
-            await context.route('**/*', route => { const r = route.request(); if (new URL(r.url()).origin === origin || r.url().startsWith('data:') || r.url().startsWith('blob:')) return route.continue(); blocked.push({ method: r.method(), url: r.url().split('?')[0] }); return route.abort('blockedbyclient'); });
-        } else blocked = await installReadOnlyGuard(context);
+            blocked = await installSandboxGuard(context, origin);
+        } else blocked = await installReadOnlyGuard(context, origin);
         await context.addInitScript(INIT_SCRIPT);
         const page = await context.newPage();
-        const recorder = new NetworkRecorder(page);
-        if (job.sandbox && job.login && process.env.PG_TEST_USER && process.env.PG_TEST_PASSWORD) {
-            try {
-                await governor.navigate(page, new URL('wp-login.php', job.base).href, { waitUntil: 'load', settleMs: 300 });
-                await page.fill('#user_login', process.env.PG_TEST_USER); await page.fill('#user_pass', process.env.PG_TEST_PASSWORD);
-                await Promise.all([page.waitForNavigation({ waitUntil: 'load', timeout: 20000 }).catch(() => {}), page.click('#wp-submit')]);
-                const cookies = await context.cookies();
-                out.login = { attempted: true, ok: cookies.some(c => /^wordpress_logged_in/.test(c.name)) };
-            } catch (e) { out.login = { attempted: true, ok: false, error: cut(e.message, 120) }; }
-        }
-        let blockedSeen = 0, findingsSeen = readJsonl(files.FINDINGS_FILE).length;
+        const recorder = new NetworkRecorder(page, governor);
+        if (job.sandbox && job.login && process.env.PG_TEST_USER && process.env.PG_TEST_PASSWORD) out.login = await sandboxActions.login({ page, context, governor, base: job.base, cut });
+        let blockedSeen = 0;
         for (const url of job.pages) {
             if (stopAll) break;
             const rec = { url, viewport: { name: vp.name, width: vp.width, height: vp.height }, loaded: false, status: 0 };
             out.pages.push(rec);
             if (answered5xx.has(url)) { rec.skipped = `answered HTTP ${answered5xx.get(url).status} at ${answered5xx.get(url).vp}; not requested again at another screen size`; rec.reused_status = answered5xx.get(url).status; out.planned -= 1; pageIndex++; continue; }
             try {
-                await applyDenyList(page);
+                await applyDenyList(page, governor);
                 recorder.reset();
                 const nav = await governor.navigate(page, url, { waitUntil: 'load', settleMs: 1500 });
                 Object.assign(rec, { loaded: nav.status > 0, status: nav.status, first_status: nav.firstStatus, retried: !!nav.retried, outcome: nav.outcome, title: cut(nav.title, 160), final_url: page.url() });
@@ -112,7 +84,7 @@ const cut = (s, n = 300) => String(s ?? '').replace(/[\u0000-\u0008\u000b\u000c\
                 rec.console_errors = recorder.meaningfulConsoleErrors().slice(0, 20).map(e => ({ text: cut(e.text), url: e.url || '', source: e.url ? sourceOf(e.url) : null }));
                 rec.page_errors = recorder.pageErrors.slice(0, 20).map(e => { const u = urlIn(e.stack); return { text: cut(e.text), stack: cut(e.stack, 400), url: u, source: u ? sourceOf(u) : null }; });
                 rec.failed_requests = recorder.failed.filter(f => !f.benign).slice(0, 30).map(f => ({ url: f.url, type: f.type, errorText: cut(f.errorText, 80), source: sourceOf(f.url) }));
-                rec.error_responses = recorder.errorResponses().slice(0, 40).map(r => ({ url: r.url, status: r.status, type: r.type, same_site: governor.isTargetHost ? governor.isTargetHost(r.url) : new URL(r.url).origin === config.origin, source: sourceOf(r.url) }));
+                rec.error_responses = recorder.errorResponses().slice(0, 40).map(r => ({ url: r.url, status: r.status, type: r.type, same_site: governor.isTargetHost(r.url), source: sourceOf(r.url) }));
                 const assets = recorder.responses.filter(r => ['script', 'stylesheet'].includes(r.type)).slice(0, 120).map(r => ({ url: r.url, status: r.status, type: r.type, source: sourceOf(r.url), library: collide.libOf(r.url, '') }));
                 rec.assets = assets;
                 const byLib = new Map();
@@ -121,16 +93,10 @@ const cut = (s, n = 300) => String(s ?? '').replace(/[\u0000-\u0008\u000b\u000c\
                 rec.runtime = await page.evaluate(() => ({ jquery: window.jQuery && window.jQuery.fn ? window.jQuery.fn.jquery : null, dollar_is_jquery: typeof window.$ !== 'undefined' && window.$ === window.jQuery })).catch(() => null);
                 rec.scroll = await page.evaluate(() => ({ doc_width: Math.max(document.documentElement.scrollWidth, document.body ? document.body.scrollWidth : 0), viewport_width: document.documentElement.clientWidth }));
                 rec.text = cut(await page.evaluate(() => (document.body ? document.body.innerText : '')), 200000);
-                rec.lcp = await page.evaluate(() => (window.__qaPerf && typeof window.__qaPerf.lcp === 'number' ? Math.round(window.__qaPerf.lcp) : null)).catch(() => null);
+                rec.lcp = await page.evaluate(() => (window.__pgPerf && typeof window.__pgPerf.lcp === 'number' ? Math.round(window.__pgPerf.lcp) : null)).catch(() => null);
                 rec.measure = {};
                 for (const sel of job.measure || []) rec.measure[sel] = await page.evaluate(s => { try { const el = document.querySelector(s); if (!el) return { found: false }; const b = el.getBoundingClientRect(), st = getComputedStyle(el); return { found: true, visible: b.width > 0 && b.height > 0 && st.visibility !== 'hidden' && st.display !== 'none' && Number(st.opacity) > 0.05, width: Math.round(b.width) }; } catch { return { found: false, error: 'invalid selector' }; } }, sel);
-                if (job.sandbox && job.click) {
-                    const snap = sel => page.evaluate(q => { try { const e = document.querySelector(q); if (!e) return { found: false }; const b = e.getBoundingClientRect(), st = getComputedStyle(e); return { found: true, visible: b.width > 0 && b.height > 0 && st.display !== 'none' && st.visibility !== 'hidden', text: (e.innerText || '').slice(0, 300), html: e.outerHTML.slice(0, 3000), cls: e.className && String(e.className) }; } catch { return { found: false }; } }, sel);
-                    const before = await snap(job.click.to), from = await snap(job.click.from);
-                    rec.click = { from: job.click.from, to: job.click.to, clicked: false, changed: false };
-                    if (!from.found || !before.found) rec.click.error = !from.found ? 'the element to click was not found' : 'the element that should change was not found';
-                    else { try { await page.click(job.click.from, { timeout: 5000 }); rec.click.clicked = true; await page.waitForTimeout(1500); const after = await snap(job.click.to); rec.click.changed = JSON.stringify(before) !== JSON.stringify(after); } catch (e) { rec.click.error = cut(e.message, 120); } }
-                }
+                if (job.sandbox && job.click) rec.click = await sandboxActions.click({ page, spec: job.click, cut });
                 const wp = await pageContext(page).catch(() => null);
                 rec.context = wp ? { post_id: wp.postId, post_type: wp.postType, template: wp.template, builders: wp.builders, plugins: wp.plugins, themes: wp.themes } : null;
                 rec.blocked_non_get = blocked.slice(blockedSeen).map(b => ({ method: b.method, url: b.url })); blockedSeen = blocked.length;
@@ -139,15 +105,15 @@ const cut = (s, n = 300) => String(s ?? '').replace(/[\u0000-\u0008\u000b\u000c\
                 await page.screenshot({ path: shot, fullPage: false });
                 rec.screenshot = shot;
 
-                // ---- the frontend agent's own layout checks (overflow, overlap, clipped text, squeezed columns): they only read the DOM ----
+                // ---- layout checks (overflow, text at the edge, overlap, broken words, controls off-screen): they only read the DOM ----
                 if (job.layout !== false) {
                     const elements = await page.evaluate(() => document.getElementsByTagName('*').length).catch(() => 0);
                     rec.elements = elements;
+                    rec.layout = [];
                     if (elements > LAYOUT_MAX_ELEMENTS) {
                         rec.layout_status = `skipped: the page has ${elements} elements (cap ${LAYOUT_MAX_ELEMENTS}); the horizontal-scroll measurement above still ran`;
                         out.layout_notes.push(`layout checks skipped on ${url} at ${vp.name}: ${elements} elements (cap ${LAYOUT_MAX_ELEMENTS})`);
                     } else {
-                        const opts = { url, viewport: `${vp.name} ${vp.width}x${vp.height}`, viewportName: vp.name, ctx: wp || {}, vw: vp.width };
                         const deadline = Date.now() + LAYOUT_BUDGET_MS;
                         let cut_short = null;
                         const run = async (name, fn) => {
@@ -159,17 +125,10 @@ const cut = (s, n = 300) => String(s ?? '').replace(/[\u0000-\u0008\u000b\u000c\
                             catch (e) { if (e.budget) cut_short = `during ${name}`; else out.layout_notes.push(`${name} failed on ${url} at ${vp.name}: ${cut(e.message, 120)}`); }
                             finally { clearTimeout(timer); }
                         };
-                        await run('checkLayout', () => pageChecks.checkLayout(page, opts));
-                        let groups = []; await run('groups', async () => { groups = await visual.collectGroupIssues(page); });
-                        await run('overflow', () => visual.checkOverflowExtras(page, opts, groups));
-                        await run('responsive', () => visual.checkResponsiveExtras(page, opts));
-                        await run('images', () => visual.checkImagesVisual(page, opts));
+                        for (const name of layoutLib.ORDER) await run(name, async () => { for (const f of await layoutLib.runCheck(page, name, { viewportWidth: vp.width })) rec.layout.push({ title: cut(f.title, 140), category: f.category, severity: f.severity, status: f.status, actual: cut(f.actual, 240), near: f.near || null, selector: f.selector || null, where: f.where ? cut(f.where, 200) : null, screenshot: f.screenshot || null }); });
                         rec.layout_status = cut_short ? `cut short ${cut_short}: the ${LAYOUT_BUDGET_MS} ms budget for this page load ran out` : 'ran';
                         if (cut_short) out.layout_notes.push(`layout checks cut short ${cut_short} on ${url} at ${vp.name} (budget ${LAYOUT_BUDGET_MS} ms)`);
                     }
-                    const all = readJsonl(files.FINDINGS_FILE);
-                    rec.layout = all.slice(findingsSeen).map(f => ({ title: cut(f.title, 140), category: f.category, severity: f.severity, status: f.status, actual: cut(f.actual, 240), near: f.near || null, selector: f.fix && f.fix.element || null, where: f.fix && f.fix.where ? cut(f.fix.where, 200) : null, screenshot: f.evidence && f.evidence.screenshot || null }));
-                    findingsSeen = all.length;
                 }
 
                 // ---- screenshot comparison against the reporter's "expected" image, same screen width, regions mapped to page elements ----
@@ -182,7 +141,7 @@ const cut = (s, n = 300) => String(s ?? '').replace(/[\u0000-\u0008\u000b\u000c\
                         const regions = await page.evaluate(rs => rs.map(r => {
                             const el = document.elementFromPoint(r.center.x, r.center.y);
                             if (!el) return { ...r, element: null };
-                            const loc = window.__qaLocate ? window.__qaLocate(el) : null;
+                            const loc = window.__pgLocate ? window.__pgLocate(el) : null;
                             return { ...r, element: { tag: el.tagName.toLowerCase(), id: el.id || null, classes: [...el.classList].slice(0, 4), text: (el.innerText || '').trim().slice(0, 40), selector: loc && loc.selector || null, builder: loc && loc.builder || null, heading: loc && loc.heading || null } };
                         }), cmp.regions).catch(() => cmp.regions);
                         out.image_diff = { ok: true, expected: expected.name, actual: `probe screenshot of ${url} at ${vp.name} ${vp.width}px`, page: url, viewport: vp.name, size: cmp.size, size_mismatch: cmp.size_mismatch, diff_pixels: cmp.diff_pixels, diff_percent: cmp.diff_percent, regions, diff_image: diffFile };
@@ -219,13 +178,7 @@ const cut = (s, n = 300) => String(s ?? '').replace(/[\u0000-\u0008\u000b\u000c\
     const st = governor.snapshot();
     out.governor = { requests_made: st.requestsMade, ok_responses: st.okResponses, status_429: st.status429, status_403: st.status403, status_5xx: st.status5xx, challenges: st.challenges || 0, stopped: !!st.stopped, stop_reason: st.stopReason || null, navigation_delay_ms: config.navigationDelayMs, request_delay_ms: config.requestDelayMs };
 
-    // remember a protection event so the next run (probe or frontend agent) cools down before sending any request
-    if (st.stopped && !/^Cooling down/.test(st.stopReason || '')) {
-        let cd = {}; try { cd = JSON.parse(fs.readFileSync(config.cooldownFile, 'utf8')); } catch { /* none yet */ }
-        if (cd.at) cd = {};
-        cd[config.origin] = { at: new Date().toISOString(), reason: st.stopReason };
-        fs.mkdirSync(path.dirname(config.cooldownFile), { recursive: true });
-        fs.writeFileSync(config.cooldownFile, JSON.stringify(cd, null, 2));
-    }
+    // remember a protection event so the next run cools down before sending any request
+    governor.writeCooldown();
     save();
 })().catch(e => { out.error = cut(e && e.stack || e, 600); save(); process.exit(0); });
