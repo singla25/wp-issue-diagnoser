@@ -87,6 +87,7 @@ const readRun = () => { const id = runs.list().pop(); return { id, dir: runs.dir
     ok(by('no-hscroll').reproduced_in_sandbox === 'no' && by('no-hscroll').bisect === null, 'the overflow that never happens: "not reproduced", not bisected');
     ok(A.shared.page_loads < A.issues.reduce((s, i) => s + (Number((/\((\d+) tests/.exec(i.bisect || '') || [])[1]) || 0), 0) && A.shared.cache_hits > 0, `shared cache: ${A.shared.page_loads} page loads served ${A.shared.sets} sets, ${A.shared.cache_hits} answers reused`);
     ok(A.sandbox_steps.some(s => s.id === 'sandbox-teardown' && s.status === 'PASSED') && JSON.parse(fs.readFileSync(path.join(FD, 'fake.state.json'), 'utf8')).containers.length === 0, 'teardown ran: no container left');
+    ok(R.a.plain && /Some pages of your site returned a server error/.test(R.a.plain.headline) && /IN PLAIN WORDS/.test(full.out) && /## guard:auto[\s\S]*### In plain words/.test(fs.readFileSync(path.join(R.dir, '03-final-validation-report.md'), 'utf8')), 'the report, auto.json, the Markdown and the terminal all carry the "In plain words" part');
     ok(A.integrity.same === true && hashTree(root) === before, `the original tree is unchanged (fingerprint of ${A.integrity.files} files, and the full hash)`);
     group('the outputs');
     for (const f of ['report.html', 'report.pdf', 'findings.json', 'auto.json', '03-final-validation-report.md', 'claude-tasks.md']) ok(fs.existsSync(path.join(R.dir, f)), `${f} exists`);

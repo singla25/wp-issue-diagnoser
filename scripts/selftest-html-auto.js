@@ -11,6 +11,7 @@ async function run(pw, browser, dir, base) {
     console.log('\n== report.html: guard:auto sections');
     const issue = (o = {}) => ({ id: 'iss-20261028-100000-abcdef', title: `[auto] Console error: “${XSS}” on /shop/`, oracle: { type: 'console-error', value: XSS }, pages: ['/shop/', '/cart/'], occurrences: 3, severity: 'P2', fingerprint: 'abc123', verdict: 'Reproduced and cause found', confidence: 'high', reproduced_in_sandbox: 'yes', sandbox_reason: null, not_plugin_conflict: false, cause: '[REPRODUCIBLE] Sandbox bisection: pg-a + pg-b. They break together.', bisect: 'cause-found: [pg-a, pg-b] (6 tests, 2 cached)', options: ['[you-can-do-this] shim: candidate (VERIFIED IN SANDBOX)', `[needs-a-human] plugin: ${XSS}`], report: '../../issues/iss-x/result/issue.html', ...o });
     const auto = {
+        plain: { headline: 'Your site itself is not answering properly: its pages returned a server error (HTTP 500).', lines: ['The automatic browser tests were paused ON PURPOSE after three server errors in a row.', `• In "acme-shop" (wp-content/plugins/acme-shop/inc/cart.php line 48): ${XSS}`], next: ['Fix or update the "acme-shop" plugin/theme, or switch it off, then reload the home page.', 'Run the same command again.'] },
         inputs: { url: 'https://staging.example/', environment: 'staging', root: '/srv/copy', max_issues: 5, sandbox_max_issues: 3 }, mode: 'sandbox', mode_reason: null, preflight: { started_docker: false, attempts: [] },
         counts: { considered: 9, groups: 3, issues: 2, reproduced: 2, not_plugin: 1 },
         issues: [issue(), issue({ id: 'iss-20261028-100001-abcdef', title: '[auto] Uncaught JavaScript error: “themebug” on /legacy/', oracle: { type: 'console-error', value: 'themebug' }, verdict: 'Probable cause', not_plugin_conflict: true, cause: null, bisect: 'not-explained (3 tests, 0 cached)', options: [] })],
@@ -27,8 +28,11 @@ async function run(pw, browser, dir, base) {
     await page.goto(`file://${file}`);
     ok(errors.length === 0 && requests.length === 0, `opens from file:// without script errors or network requests (${errors.join('; ') || 'none'})`);
     const heads = await page.locator('main h2').allInnerTexts();
-    const want = ['Summary', 'Run summary (guard:auto)', 'Frontend findings', 'Code and conflict findings', 'Auto-issues: causes and fixes', 'Not a plugin conflict', 'What did not run, and why', 'Findings'];
-    ok(want.every((w, i) => heads[i] === w), `the sections come in the required order: ${heads.slice(0, 8).join(' > ')}`);
+    const want = ['In plain words', 'Summary', 'Run summary (guard:auto)', 'Frontend findings', 'Code and conflict findings', 'Auto-issues: causes and fixes', 'Not a plugin conflict', 'What did not run, and why', 'Findings'];
+    ok(want.every((w, i) => heads[i] === w), `the sections come in the required order: ${heads.slice(0, 9).join(' > ')}`);
+    const plainTxt = await page.locator('#auto-plain').innerText();
+    ok(/not answering properly/.test(plainTxt) && /paused ON PURPOSE/.test(plainTxt) && /acme-shop/.test(plainTxt) && /What to do next/.test(plainTxt) && /Fix or update the "acme-shop"/.test(plainTxt) && await page.locator('#auto-plain ol li').count() === 2, '"In plain words" is the FIRST section: the headline, the likely cause, and numbered next steps');
+    ok((await page.locator('#auto-plain').innerText()).includes('<img src=x') && await page.evaluate(() => window.__pwned === undefined), 'hostile text from the error log is shown as text inside it');
     ok(/Sandbox: ONE throwaway copy/.test(await page.locator('#auto-summary').innerText()) && /7 page load\(s\) for 7 plugin set\(s\); 9 answer/.test(await page.locator('#auto-summary').innerText()) && /unchanged \(120 files/.test(await page.locator('#auto-summary').innerText()), 'summary: mode, shared page loads, and the original-site check');
     const cards = page.locator('#auto-issues details.f');
     ok(await cards.count() === 2 && /Reproduced and cause found/.test(await cards.first().innerText()) && /\[pg-a, pg-b\]/.test(await cards.first().innerText()) && /VERIFIED IN SANDBOX/.test(await cards.first().innerText()), 'auto-issue cards: verdict, bisect cause and fix');

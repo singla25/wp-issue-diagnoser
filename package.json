@@ -40,7 +40,8 @@
     "selftest:auto-preflight": "node scripts/selftest-auto-preflight.js",
     "selftest:auto-pipeline": "node scripts/selftest-auto-pipeline.js",
     "selftest:auto-agent1": "node scripts/selftest-auto-agent1.js",
-    "selftest:auto-docker": "node scripts/selftest-auto-docker.js"
+    "selftest:auto-docker": "node scripts/selftest-auto-docker.js",
+    "selftest:auto-diagnosis": "node scripts/selftest-auto-diagnosis.js"
   },
   "license": "ISC",
   "dependencies": {
