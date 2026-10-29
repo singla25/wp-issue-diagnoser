@@ -13,6 +13,7 @@ const bisect = require('./bisect');
 const oracleMod = require('./oracle');
 const phase = require('./sandbox-phase');
 const { WpCli } = require('../lib/wpcli');
+const readdir = require('../lib/sorted-dir');
 
 const { step, names, pluginFolders, makeApplier } = phase;
 const MAX_UNION_PAGES = 12;
@@ -50,7 +51,7 @@ async function runMany(ids, { root, options = {}, env = process.env, sandboxOpti
         const siteTheme = names(handle.wp.run(['option', 'get', 'stylesheet']))[0] || null;
         const defaultTheme = themes.filter(t => /^twenty/.test(t) && t !== siteTheme).sort().pop() || null;
         const muDirAbs = path.join(handle.dir, 'site', 'wp-content', 'mu-plugins');
-        const muAll = (fs.existsSync(muDirAbs) ? fs.readdirSync(muDirAbs).sort().filter(f => f.endsWith('.php') && f !== 'pg-sandbox-guard.php').map(f => f.replace(/\.php$/, '')) : []);
+        const muAll = (fs.existsSync(muDirAbs) ? readdir(muDirAbs).filter(f => f.endsWith('.php') && f !== 'pg-sandbox-guard.php').map(f => f.replace(/\.php$/, '')) : []);
         const apply = makeApplier({ handle, plugins: active, requires, defaultTheme, siteTheme, muAll });
 
         // ---- the union of what every issue loads, and the shared cache of observations ----
