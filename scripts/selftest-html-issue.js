@@ -1,4 +1,4 @@
-// Browser tests of issue.html and the Issues index, opened from file://. Called from selftest-html.js (Playwright from src/frontend).
+// Browser tests of issue.html and the Issues index, opened from file://. Called from selftest-html.js (plugin-guard's own Playwright).
 // Checks: every section, untrusted text shown as text, offline, no innerHTML, keyboard use (graph, screenshot dialog), 375 px without sideways
 // scrolling, and a computed colour-contrast check (WCAG 2 AA) in the light and the dark scheme.
 const fs = require('fs');

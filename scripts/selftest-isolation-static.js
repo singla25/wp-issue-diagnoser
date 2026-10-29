@@ -26,6 +26,9 @@ const REFERENCE = [
     /run-qa\.js|qa-report\.json|QA_REPORTS_DIR|\.protection-cooldown/   // its entry script, its report, the env var and cooldown file it owns
 ];
 
+// src/plugin-guard must not depend on src/combined either (messages and documentation may name it; code may not load or open it)
+const COMBINED = [/require\([^)]*combined/, /['"`]combined['"`]/, /\.\.\/combined/];
+
 function walk(dir, out = []) {
     for (const e of fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
         if (e.isSymbolicLink()) continue;
@@ -68,5 +71,9 @@ ok(JSON.stringify(Object.keys(allowed)) === JSON.stringify(Object.keys(allowed).
 const probe = ["path.join(__dirname, '..', '..', 'frontend')", "require('../../frontend/lib/governor')", "const x = 'src/frontend/reports'", "const FRONT = 1", "job.frontendDir", "require('../agents/frontend')", "spawn(node, ['run-qa.js'])", "process.env.QA_REPORTS_DIR", "'.protection-cooldown.json'"];
 ok(probe.every(s => REFERENCE.some(re => re.test(s))), 'the detector recognises every kind of reference (path, relative path, identifiers, entry script, shared env var and cooldown file)');
 ok(!["// the Frontend QA findings are shown in the report", "const frontendFindings = 1", "Frontend QA did not run"].some(s => REFERENCE.some(re => re.test(s))), 'and it ignores the word "frontend" in prose and unrelated identifiers');
+const loads = [];
+for (const rel of walk(ROOT)) { if (/\.(js|json)$/.test(rel)) fs.readFileSync(path.join(ROOT, rel), 'utf8').split('\n').forEach((l, i) => { if (COMBINED.some(re => re.test(l))) loads.push(`${rel}:${i + 1}`); }); }
+ok(loads.length === 0, `no code in src/plugin-guard loads src/combined${loads.length ? ': ' + loads.slice(0, 5).join(', ') : ''}`);
+ok(["require('../../combined/lib/auto')", "path.join(__dirname, '..', '..', 'combined')"].every(x => COMBINED.some(re => re.test(x))) && !COMBINED.some(re => re.test('// provided by src/combined (message only)')), 'the detector for src/combined recognises a load and ignores a message');
 console.log(failures ? `\n${failures} FAILED` : '\nAll checks passed');
 process.exit(failures ? 1 : 0);

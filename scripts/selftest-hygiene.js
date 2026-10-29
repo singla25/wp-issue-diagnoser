@@ -64,8 +64,6 @@ ok(CLIENT.length === 0, `no client or site name from this computer's own project
 // .gitignore
 const gi = fs.readFileSync(path.join(ROOT, '.gitignore'), 'utf8').split('\n').map(l => l.trim());
 for (const [pat, why] of [['src/plugin-guard/issues/', 'issue folders (reports, screenshots, OCR text)'], ['src/plugin-guard/sandboxes/', 'sandbox copies of sites'], ['src/plugin-guard/data/ocr/*.traineddata', 'the OCR language file'], ['.env', 'environment files'], ['.env.*', 'environment files'], ['node_modules/', 'dependencies'], ['reports/*', 'run output'], ['src/plugin-guard/projects/*/history/', 'scan history']]) ok(gi.includes(pat), `.gitignore covers ${pat} (${why})`);
-const feGi = fs.readFileSync(path.join(ROOT, 'src', 'frontend', '.gitignore'), 'utf8').split('\n').map(l => l.trim());
-ok(feGi.includes('sites/*') && feGi.includes('!sites/example.com.js'), 'src/frontend/.gitignore keeps the site journeys (client data) out, except the example');
 // the OCR file really is not present as a tracked-looking file outside data/ocr, and no dump / archive is lying around
 const stray = files.filter(f => /\.(sql|sql\.gz|zip|tar|tgz|gz|bak|dump|sqlite|db)$/i.test(f)).map(f => path.relative(ROOT, f));
 ok(stray.length === 0, `no database dump or archive among the repository files (${stray.join(', ') || 'none'})`);

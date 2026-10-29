@@ -8,7 +8,6 @@
   ],
   "url": "https://staging.example.com/",
   "environment": "staging",
-  "frontendMode": "smoke",
   "timeoutMinutes": 20,
   "maxAgeHours": 24,
   "runProjectTests": false

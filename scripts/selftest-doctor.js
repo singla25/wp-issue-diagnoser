@@ -46,7 +46,7 @@ ok(dc.packageCheck(pkgDir, 'x').ok === true && dc.packageCheck(path.join(tmp, 'n
 
 console.log('\n== the doctor lists all of them');
 const names = workflow.doctorChecks(null).map(c => c.name);
-for (const want of ['PHP CLI', 'Chromium browser', 'Docker CLI', 'Docker Compose', 'Docker (rootless)', 'Docker sandbox images', 'Rootless Docker user service (guard:auto)', 'OCR language data', 'Packages: issue mode (src/plugin-guard)', 'Packages: frontend agent (src/frontend)']) ok(names.includes(want), `doctor reports: ${want}`);
+for (const want of ['PHP CLI', 'Chromium browser', 'Docker CLI', 'Docker Compose', 'Docker (rootless)', 'Docker sandbox images', 'Rootless Docker user service (guard:auto)', 'OCR language data', 'Packages: issue mode (src/plugin-guard)']) ok(names.includes(want), `doctor reports: ${want}`);
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log(failures ? `\n${failures} FAILED` : '\nAll checks passed');
 process.exit(failures ? 1 : 0);

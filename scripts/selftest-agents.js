@@ -232,15 +232,6 @@ fs.writeFileSync(cfgFile, JSON.stringify({ customPaths: CUSTOM }));
     const mixed = await validateAgent.run({ runId: mix.id });
     ok(mixed.input_problems.some(p => /Agent 1 tested/.test(p)) && !mixed.complete, 'results for two different sites are not combined');
 
-    const noAuth = await quiet(() => workflow.qaUrl({ url: 'https://example.com/' }));
-    ok(noAuth.r === 3 && /Testing did not run: Say what kind of site/.test(noAuth.out), 'qa-url without --env does not start (exit 3) and says what to add');
-    const l = /Run id: (\S+)/.exec(noAuth.out)[1];
-    const a1 = runs.read(l, 'agent1.json');
-    ok(a1.tests_ran === false && a1.checks.some(x => x.status === 'NEEDS_AUTHORIZATION') && a1.findings[0].status === 'NEEDS_AUTHORIZATION', 'the refusal is recorded as NEEDS_AUTHORIZATION evidence, not as a site defect');
-    ok(/Source-code checks have NOT run/.test(noAuth.out) && /qa-code --root/.test(noAuth.out) && /customPaths/.test(noAuth.out), 'URL-first explains how to continue with the source code (exact next command)');
-    const live = await quiet(() => workflow.qaUrl({ url: 'https://example.com/', env: 'live' }));
-    ok(live.r === 3, 'qa-url on a live site without --authorized does not start');
-
     const local = await quiet(() => workflow.scanLocal({ root, config: cfgFile }));
     ok(local.r === 1 || local.r === 0, `local-first scan completes (exit ${local.r})`);
     ok(/Agent 1 skipped: a source checkout is not a running website/.test(local.out), 'local-first says a source checkout is not a running site and skips browser tests');
@@ -253,8 +244,6 @@ fs.writeFileSync(cfgFile, JSON.stringify({ customPaths: CUSTOM }));
     const cli = (...args) => spawnSync(process.execPath, [path.join(__dirname, 'guard.js'), ...args], { encoding: 'utf8', env: { ...process.env, INIT_CWD: tmp } });
     ok(cli('scan', '--root', path.join(tmp, 'nope')).status === 2, 'unusable --root: exit 2');
     ok(cli('qa-code').status === 2, 'qa-code without --root: exit 2');
-    ok(cli('qa-url', '--url', 'not a url').status === 2, 'invalid URL: exit 2');
-    ok(cli('qa-url', '--url', 'https://example.com/').status === 3, 'qa-url without an environment: exit 3 (nothing sent)');
     const sc = cli('scan', '--root', 'site', '--config', cfgFile);
     ok([0, 1].includes(sc.status) && /report\.html/.test(sc.stdout) && !/opened/i.test(sc.stdout.replace(/not opened/, '')), `scan --root with a root relative to INIT_CWD works and only PRINTS the open command (exit ${sc.status})`);
     ok(cli('doctor').status === 0 && cli('config', '--root', root, '--config', cfgFile).status === 0, 'doctor and config commands run');

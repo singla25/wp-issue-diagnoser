@@ -1,18 +1,4 @@
 {
   "_about": "References from src/plugin-guard to src/frontend that still exist (file -> number of matching lines). Must shrink to {} (see docs/HANDOFF.md). Rewritten by: node scripts/selftest-isolation-static.js --write-allowlist",
-  "allowed": {
-    "README.md": 1,
-    "agents/frontend.js": 14,
-    "lib/workflow.js": 4,
-    "scripts/selftest-agent1.js": 3,
-    "scripts/selftest-auto-agent1.js": 1,
-    "scripts/selftest-auto-docker.js": 2,
-    "scripts/selftest-auto-pipeline.js": 2,
-    "scripts/selftest-auto.js": 2,
-    "scripts/selftest-doctor.js": 1,
-    "scripts/selftest-html-issue.js": 1,
-    "scripts/selftest-html.js": 1,
-    "scripts/selftest-hygiene.js": 2,
-    "scripts/selftest-issue-probe.js": 1
-  }
+  "allowed": {}
 }

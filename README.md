@@ -22,7 +22,7 @@ npm run guard:fixfile -- acme                                           # → re
 npm run guard:retest -- acme                                            # after Claude fixed things: Fixed / Still open / New
 ```
 
-The PDF needs Chromium: run `npm run setup:frontend` once (same as the frontend module). Without it you still get the HTML copy.
+The PDF needs Chromium: run `npm run setup:guard` once (Plugin Guard's own Playwright). Without it you still get the HTML copy.
 
 ## The two modes
 
@@ -114,7 +114,7 @@ Every scan stores a snapshot (`projects/<name>/history/`, git-ignored). The next
 Reports go to `reports/runs/<run-id>/` (git-ignored). The older `scan <project>` flow above is unchanged.
 
 ```
-Agent 1  user / frontend    runs the existing src/frontend Playwright agent on a URL  ──►  01-user-test-report.md, evidence/frontend/
+Agent 1  user / frontend    browser tests of a URL (provided by src/combined, not by this folder)  ──►  01-user-test-report.md, evidence/frontend/
 Agent 2  code / security    inspects a local WordPress root (php -l, WP patterns, conflicts) ─►  02-code-test-report.md
 Agent 3  validation         re-checks both, correlates, decides statuses, applies the ownership gate
                             ──►  03-final-validation-report.md · findings.json · claude-tasks.md · report.html
@@ -123,7 +123,7 @@ Agent 3  validation         re-checks both, correlates, decides statuses, applie
 ### Workflow A: URL first
 
 ```bash
-node src/plugin-guard/scripts/guard.js qa-url --url https://staging.example.com/ --env staging     # Agent 1 (mode: --mode smoke|responsive|visual|seo|prelaunch)
+node src/combined/scripts/combined.js qa-url --url https://staging.example.com/ --env staging     # Agent 1 (mode: --mode smoke|responsive|visual|seo|prelaunch)
 node src/plugin-guard/scripts/guard.js qa-validate --run latest                                    # PARTIAL report (no source code yet), says so
 # when you have the code:
 node src/plugin-guard/scripts/guard.js qa-code --root /path/to/wordpress --run <run-id>            # Agent 2 into the same run

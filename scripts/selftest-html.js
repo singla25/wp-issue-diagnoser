@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Browser test of report.html opened from a file:// path (Playwright from src/frontend). No network: every request is counted and aborted.
+// Browser test of report.html opened from a file:// path (plugin-guard's own Playwright). No network: every request is counted and aborted.
 // Verifies search, combined filters, clear-all, counts, empty state, untrusted-text handling, offline use.
 
 const fs = require('fs');

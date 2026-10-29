@@ -309,7 +309,7 @@ ok(pjo.pages.every(p => !('text' in p) && (p.text_preview || '').length <= 300) 
     const nz = s => s.replace(/127\.0\.0\.1:\d+/g, '127.0.0.1:PORT').replace(/iss-[0-9a-f-]+/g, 'ISS');
     ok(nz(stable(rX)) === nz(stable(rY)) && rX.oracle.result === 'yes' && rY.oracle.result === 'yes', 'two probes of the same page (different issues, different server ports): identical clues and the same oracle answer');
     siteX.close(); siteY.close(); site.close();
-    ok(!fs.existsSync(path.join(__dirname, '..', '..', 'frontend', 'reports', '.protection-cooldown.json')) || true, 'tests used temporary cooldown files, not src/frontend/reports');
+    ok(probe.cooldownFile({}).startsWith(path.join(__dirname, '..', 'state') + path.sep), 'the default cooldown file is inside plugin-guard (state/); the tests above used temporary ones (PG_PROBE_COOLDOWN_FILE)');
 
     console.log(failures ? `\n${failures} check(s) FAILED` : '\nAll checks passed');
     fs.rmSync(tmp, { recursive: true, force: true });

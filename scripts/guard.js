@@ -18,12 +18,10 @@
 //   guard.js list
 //
 // Three-agent QA workflow (reports in reports/runs/<run-id>/; see src/plugin-guard/README.md):
-//   guard.js scan --root .                      local-first: Agent 2 on this WordPress root (+ Agent 1 if --url), then Agent 3
-//   guard.js qa-url --url <site> --env staging|local|live [--authorized] [--mode smoke|responsive|visual|seo|prelaunch]
+//   guard.js scan --root .                      local-first: Agent 2 on this WordPress root, then Agent 3 (Agent 1 = browser tests: src/combined)
+//   (qa-url and auto drive the Frontend QA agent and now live in src/combined: node src/combined/scripts/combined.js qa-url|auto ...)
 //   guard.js qa-code --root <wp-root> [--config file] [--run <id>]
 //   guard.js qa-validate [--run <id>|latest] [--fail-on CRITICAL|HIGH|MEDIUM|LOW] [--allow-stale]
-//   guard.js auto --url <site> --root <wp-root> --env local|staging|live [--authorized] [--max-issues 5] [--sandbox-max-issues 3] [--no-sandbox]
-//                                    one command: frontend QA + code scan + auto-issues + ONE shared sandbox bisection + validation + one report
 //   guard.js issue new|investigate|show|list|retest|open [id]   investigate ONE reported problem (issue mode; needs: npm run setup:guard)
 //   guard.js doctor [--root .]   guard.js config --root .   guard.js show [--run <id>]
 //   qa exit codes: 0 done · 1 findings at/above --fail-on · 2 bad usage/config · 3 blocked (authorization, site protection, nothing could run)
@@ -130,8 +128,11 @@ async function main() {
         return code;
     }
     if (cmd === 'issue') return require('../lib/issue-cli').run(o);
-    if (cmd === 'auto') return require('../lib/auto').auto(o);
-    const QA = { 'qa-url': workflow.qaUrl, 'qa-code': workflow.qaCode, 'qa-validate': workflow.qaValidate, doctor: workflow.doctor, config: workflow.showConfig, show: workflow.showRun };
+    if (cmd === 'auto' || cmd === 'qa-url') {
+        console.error(`"${cmd}" drives the Frontend QA agent, so it lives in src/combined now:\n  node src/combined/scripts/combined.js ${process.argv.slice(2).join(' ')}${cmd === 'auto' ? '\n  (or: npm run guard:auto -- ...)' : ''}`);
+        return 2;
+    }
+    const QA = { 'qa-code': workflow.qaCode, 'qa-validate': workflow.qaValidate, doctor: workflow.doctor, config: workflow.showConfig, show: workflow.showRun };
     if (QA[cmd]) return QA[cmd](o);
     if (cmd === 'scan' && !name && (o.root || o.config)) return workflow.scanLocal(o);
     if (!name) throw new Error(`"${cmd}" needs a project name`);
@@ -200,7 +201,9 @@ async function main() {
     throw new Error(`Unknown command "${cmd}"`);
 }
 
-main().then(code => process.exit(code || 0)).catch(e => {
+module.exports = { parse, FLAGS };   // src/combined reuses the same option parser
+
+if (require.main === module) main().then(code => process.exit(code || 0)).catch(e => {
     console.error(`\nPlugin Guard: ${e.message}`);
     process.exit(e.exitCode || 2);
 });

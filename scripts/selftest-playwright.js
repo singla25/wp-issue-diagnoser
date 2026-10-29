@@ -44,7 +44,7 @@ fs.rmSync(tmp, { recursive: true, force: true });
 console.log('\n== the users of the resolver');
 const src = f => fs.readFileSync(path.join(PG, f), 'utf8');
 ok(/require\('\.\/playwright'\)\.load\(\)/.test(src('lib/report-pdf.js')), 'the PDF report (lib/report-pdf.js) uses it');
-ok(/require\('\.\/playwright'\)/.test(src('lib/auto.js')) && /require\('\.\/playwright'\)\.status\(\)/.test(src('lib/workflow.js')), 'the PDF of the auto run and the doctor use it');
+ok(/require\('\.\/playwright'\)\.status\(\)/.test(src('lib/workflow.js')), 'the doctor uses it (the PDF of the auto run: see src/combined/scripts/selftest-doctor.js)');
 const doc = spawnSync(process.execPath, [path.join(__dirname, 'guard.js'), 'doctor'], { encoding: 'utf8' }).stdout;
 ok(/Chromium browser: (installed \(Playwright 1\.64\.1, plugin-guard's own\)|Playwright .* not)/.test(doc), 'the doctor reports plugin-guard\'s own Chromium');
 
