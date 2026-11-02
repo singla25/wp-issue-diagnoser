@@ -148,7 +148,7 @@ async function run(id, { root = null, options = {}, env = process.env, imageFile
     if (gate) {
         steps.push(step('live-probe', 'Live page probe', gate.status, gate.reason));
         steps.push(step('original-public', 'Are the originals of the screenshots public?', issue.public_originals && issue.public_originals.length ? 'NOT_RUN' : 'NOT_RUN', issue.public_originals && issue.public_originals.length ? `${gate.reason}; the originals (${issue.public_originals.length}) are probably downloadable by anyone until deleted` : 'no screenshot came from inside the WordPress folder'));
-        result.oracle = oracleMod.evaluate(issue.oracle, { pages: [], planned: 0, skipped: gate.reason, debug_log: logGrowth(logMark(root)) }, { needsLogin: issue.needs_login });
+        result.oracle = oracleMod.evaluate(issue.oracle, { pages: [], planned: 0, skipped: gate.reason, debug_log: logGrowth(logMark(root)) }, { needsLogin: issue.needs_login, symptom: issue.symptom });
         if (issue.oracle.type === 'debug-log' && result.oracle.result === 'could-not-test' && !root) result.oracle.reason = 'no local WordPress copy (--root) and no live probe';
         steps.push(step('oracle', 'Oracle: is the symptom present?', 'NOT_RUN', `symptom reproduced: ${result.oracle.result.replace(/-/g, ' ')} (${result.oracle.reason})`, { reproduced: result.oracle.result }));
         imageDiffStep();
@@ -177,7 +177,7 @@ async function run(id, { root = null, options = {}, env = process.env, imageFile
         const why = w.killed ? `the probe worker ran longer than ${Math.round((options.timeoutMs || DEFAULTS.timeoutMs) / 60000)} minutes and was stopped` : `the probe worker failed: ${cut((raw && raw.error) || w.err || `exit ${w.code}`, 240)}`;
         steps.push(step('live-probe', 'Live page probe', 'FAILED', why));
         steps.push(step('oracle', 'Oracle: is the symptom present?', 'NOT_RUN', `symptom reproduced: could not test (${why})`, { reproduced: 'could-not-test' }));
-        result.oracle = oracleMod.evaluate(issue.oracle, { pages: [], planned: pl.planned, skipped: why }, { needsLogin: issue.needs_login });
+        result.oracle = oracleMod.evaluate(issue.oracle, { pages: [], planned: pl.planned, skipped: why }, { needsLogin: issue.needs_login, symptom: issue.symptom });
         steps.push(step('original-public', 'Are the originals of the screenshots public?', 'NOT_RUN', publicUrl ? why : 'no screenshot came from inside the WordPress folder'));
         imageDiffStep();
         return finish();
@@ -186,7 +186,7 @@ async function run(id, { root = null, options = {}, env = process.env, imageFile
     // keep the screenshots and diff image with the issue; strip raw page text before anything is written
     const keep = f => { if (!f || !fs.existsSync(f)) return null; const dest = path.join('work', 'probe', 'screenshots', path.basename(f)); return path.relative(dir, f) === dest ? dest : dest; };
     const pagesFull = raw.pages.map(norm);
-    result.pages = pagesFull.map(({ text, ...p }) => ({ ...p, text_chars: (text || '').length, text_preview: cut(text, 300), screenshot: keep(p.screenshot),
+    result.pages = pagesFull.map(({ text, ...p }) => ({ ...p, text_chars: (text || '').length, text_flags: oracleMod.textFlags(text), text_preview: cut(text, 300), screenshot: keep(p.screenshot),
         console_errors: p.console_errors.map(e => ({ ...e, text: cut(e.text, 400) })), page_errors: p.page_errors.map(e => ({ ...e, text: cut(e.text, 400) })) }));
     result.protection = raw.protection; result.governor = raw.governor; result.public_check = raw.public_check; result.notes = [...pl.notes, ...(raw.layout_notes || [])];
     if (raw.image_diff) result.image_diff = { ...(result.image_diff || {}), ...(raw.image_diff.ok ? { mode: 'probe', ...raw.image_diff, diff_image: keep(raw.image_diff.diff_image) } : { mode: 'probe', ...raw.image_diff }) };
@@ -219,7 +219,7 @@ async function run(id, { root = null, options = {}, env = process.env, imageFile
 
     // ---- oracle ----
     const obs = { pages: pagesFull, planned: plannedLoads, protection: raw.protection, debug_log: growth };
-    result.oracle = oracleMod.evaluate(issue.oracle, obs, { needsLogin: issue.needs_login });
+    result.oracle = oracleMod.evaluate(issue.oracle, obs, { needsLogin: issue.needs_login, symptom: issue.symptom });
     const o = result.oracle;
     steps.push(step('oracle', 'Oracle: is the symptom present?', o.result === 'could-not-test' ? (raw.protection ? 'BLOCKED' : 'NOT_RUN') : 'PASSED',
         `symptom reproduced: ${o.result.replace(/-/g, ' ')} (${o.reason})${o.defaulted ? '; this is the generic oracle for the symptom type, because none was given' : ''}${o.result === 'no' ? '. NOT reproduced: every conclusion in this investigation stays PROBABLE_NEEDS_REVIEW or below.' : ''}`,
@@ -271,8 +271,8 @@ async function runSandbox(id, { url, stateDir, options = {}, env = process.env, 
     const o = await observeSandbox({ base, pages, vp, measure, click, stateDir, tag, login, env, options });
     if (!o.ok) return { ok: false, reason: o.reason, oracle: null, pages: [] };
     const pagesFull = o.pagesFull;
-    const oracle = oracleMod.evaluate(issue.oracle, { pages: pagesFull, planned: o.planned, protection: o.protection, sandbox: true, logged_in: !!(o.login && o.login.ok), debug_log: options.debugLog }, { needsLogin: issue.needs_login });
-    return { ok: true, oracle, status_codes: pagesFull.map(p => p.reused_status || p.status), fatal_text: pagesFull.some(p => /There has been a critical error|Fatal error|Parse error/i.test(p.text || '')), login: o.login || null, pages: pagesFull.map(({ text, ...p }) => ({ ...p, text_chars: (text || '').length })) };
+    const oracle = oracleMod.evaluate(issue.oracle, { pages: pagesFull, planned: o.planned, protection: o.protection, sandbox: true, logged_in: !!(o.login && o.login.ok), debug_log: options.debugLog }, { needsLogin: issue.needs_login, symptom: issue.symptom });
+    return { ok: true, oracle, status_codes: pagesFull.map(p => p.reused_status || p.status), fatal_text: pagesFull.some(p => /There has been a critical error|Fatal error|Parse error/i.test(p.text || '')), login: o.login || null, pages: pagesFull.map(({ text, ...p }) => ({ ...p, text_chars: (text || '').length, text_flags: oracleMod.textFlags(text) })) };
 }
 
 module.exports = { runSandbox, observeSandbox, viewportsFor, sandboxBase, absPages, run, plan, cluesFrom, logMark, logGrowth, browserReady, VIEWPORTS, DEFAULTS, cooldownFile };

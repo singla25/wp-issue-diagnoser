@@ -78,7 +78,7 @@ async function runMany(ids, { root, options = {}, env = process.env, sandboxOpti
                 const o = await observed(set);
                 if (!o.ok) { last.v = null; return 'unresolved'; }
                 const sub = o.pagesFull.filter(p => want.has(pathOf(p.url)) && vps.has(vpName(p)));
-                const res = oracleMod.evaluate(issue.oracle, { pages: sub, planned: want.size * vps.size, protection: o.protection, sandbox: true, logged_in: false }, { needsLogin: false });
+                const res = oracleMod.evaluate(issue.oracle, { pages: sub, planned: want.size * vps.size, protection: o.protection, sandbox: true, logged_in: false }, { needsLogin: false, symptom: issue.symptom });
                 last.v = { result: res.result, matches: res.matches || [], pages: sub.map(p => ({ url: p.url, viewport: vpName(p), loaded: !!p.loaded })) };
                 if (res.result === 'yes') return 'fail';
                 if (res.result === 'could-not-test') return 'unresolved';

@@ -93,7 +93,7 @@ function run(id, { root, config = null, lint = phpast.phpLint } = {}) {
     // ---- the oracle, recomputed from the stored observations (never from the stored verdict) ----
     let oracle = { recomputed: null, stored: probe && probe.oracle ? probe.oracle.result : null, agrees: null };
     if (probe && probe.oracle && Array.isArray(probe.pages) && probe.pages.length && probe.pages.every(p => p.viewport && typeof p.loaded === 'boolean')) {
-        const again = oracleLib.evaluate(issue.oracle, { pages: probe.pages.map(p => ({ console_errors: [], page_errors: [], error_responses: [], ...p })), planned: probe.planned || probe.pages.length, protection: probe.protection || null, debug_log: probe.debug_log || null }, { needsLogin: issue.needs_login });
+        const again = oracleLib.evaluate(issue.oracle, { pages: probe.pages.map(p => ({ console_errors: [], page_errors: [], error_responses: [], ...p })), planned: probe.planned || probe.pages.length, protection: probe.protection || null, debug_log: probe.debug_log || null }, { needsLogin: issue.needs_login, symptom: issue.symptom });
         oracle = { recomputed: again.result, stored: probe.oracle.result, agrees: again.result === probe.oracle.result };
         checks.push(check('oracle', oracle.agrees ? 'PASSED' : 'FAILED', oracle.agrees ? `recomputed from the stored page observations: ${again.result}` : `the stored answer was "${probe.oracle.result}" but the observations give "${again.result}"`));
     } else checks.push(check('oracle', 'NOT_RUN', probe ? 'work/probe.json holds no page observations to recompute from' : 'no live probe ran'));

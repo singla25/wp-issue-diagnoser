@@ -37,7 +37,8 @@
     "selftest:auto-preflight": "node scripts/selftest-auto-preflight.js",
     "selftest:isolation-static": "node scripts/selftest-isolation-static.js",
     "selftest:playwright": "node scripts/selftest-playwright.js",
-    "selftest:probe": "node scripts/selftest-probe.js"
+    "selftest:probe": "node scripts/selftest-probe.js",
+    "selftest:oracle-redirect": "node scripts/selftest-oracle-redirect.js"
   },
   "license": "ISC",
   "dependencies": {
