@@ -119,6 +119,16 @@ function build(ctx) {
             add('missing-function', [siteComp, ...owners].filter(Boolean), String(c.value).toLowerCase(), [{ kind: 'log', ref: c.id, text: `log: ${c.type === 'php-class-not-found' ? 'class not found' : 'call to undefined function'} ${c.value}` }],
                 { family: 'fatal', mechanism: `The log shows a call to ${c.value}, which was not defined at that moment. ${owners.length ? `It is declared in ${owners.join(', ')}, so that code was probably not loaded yet, not active, or loaded after the call.` : 'No scanned component declares it, so the plugin that should provide it may be missing or deactivated.'}` });
         }
+        // a PHP fatal in a log (memory exhausted, time limit, anything not already explained above) names its file in the "php-location" clue of the SAME log line.
+        // Before step 7 such a fatal made no hypothesis at all, so a plain crash could never be a finding. Redeclare / undefined function / class fatals are skipped here:
+        // they have their own hypotheses.
+        if (c.type === 'php-fatal') {
+            const sameLine = x => x.source.ref === c.source.ref && x.source.line === c.source.line;
+            const explained = logClues.some(x => sameLine(x) && ['php-redeclare', 'php-undefined-function', 'php-class-not-found'].includes(x.type));
+            const loc = logClues.find(x => x.type === 'php-location' && sameLine(x) && x.detail && x.detail.file);
+            const comp = !explained && loc ? toRef(require('../lib/ownership').componentOf(loc.detail.file) || '') : '';
+            if (comp) add('error-in-component', [comp], '', [{ kind: 'log', ref: c.id, text: `log: ${c.detail.level || 'fatal error'} in ${loc.detail.file}:${loc.detail.line}`, file: loc.detail.file, line: loc.detail.line }], { family: 'fatal', mechanism: `The log shows a fatal error raised in ${loc.detail.file}:${loc.detail.line}: ${String(c.value).slice(0, 140)}.` });
+        }
         if (['php-fatal', 'php-notice'].includes(c.type) && c.detail && c.detail.file && c.detail.level !== 'notice' && c.detail.level !== 'deprecated') {
             const comp = toRef(require('../lib/ownership').componentOf(c.detail.file) || '');
             if (comp) add('error-in-component', [comp], '', [{ kind: 'log', ref: c.id, text: `log: ${c.detail.level} in ${c.detail.file}:${c.detail.line}` }], { family: 'fatal', mechanism: `The log shows a ${c.detail.level} raised in ${c.detail.file}:${c.detail.line}.` });
