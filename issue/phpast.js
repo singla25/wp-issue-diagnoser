@@ -116,7 +116,7 @@ function guardNames(test) { // if ( ! function_exists( 'x' ) ) -> ['x']
 }
 
 function emptyFacts(file) {
-    return { file, parsed: false, errors: [], fallback: null, functions: [], classes: [], constants: [], hooks: [], calls: [], calls: [], shortcodes: [], rest: [], ajax: [], assets: [], localize: [], cpts: [], taxonomies: [], blocks: [], menus: [], options: [], globals: [], db: [], includes: [], registry: [], noAbspathGuard: null };
+    return { file, parsed: false, errors: [], fallback: null, functions: [], classes: [], constants: [], hooks: [], calls: [], redirects: [], calls: [], shortcodes: [], rest: [], ajax: [], assets: [], localize: [], cpts: [], taxonomies: [], blocks: [], menus: [], options: [], globals: [], db: [], includes: [], registry: [], noAbspathGuard: null };
 }
 
 // opts.watch: (lowercase name) => boolean. Plain function calls whose name it accepts are recorded in `calls` (method calls, static calls and
@@ -130,6 +130,7 @@ function analyse(source, file, opts = {}) {
     f.errors = ast.errors.slice(0, 3).map(e => ({ line: e.line || line(e) || null, message: trim(String(e.message).split('\n')[0], 140) }));
 
     const guards = []; // names guarded by an enclosing `if`
+    const fnStack = []; // the functions, methods and closures around the node being walked: { kind: 'function' | 'method' | 'closure', name, class }
     let ns = '';
     const qual = name => (ns ? `${ns}\\${name}` : name);
     const arg = (c, i) => c.arguments[i];
@@ -154,12 +155,21 @@ function analyse(source, file, opts = {}) {
         }
         if (!fn) return;
         const bare = fn.replace(/^\\/, '');
+        // redirects: wp_redirect(), wp_safe_redirect() and header( 'Location: ... ' ), with the function, method or closure they sit in (null = file scope)
+        if (bare === 'wp_redirect' || bare === 'wp_safe_redirect' || bare === 'header') {
+            const t = str(arg(c, 0)), v = t && ('value' in t ? t.value : t.prefix);
+            if (bare !== 'header' || (v && /^\s*location\s*:/i.test(v))) {
+                const target = bare === 'header' ? (v || '').replace(/^\s*location\s*:\s*/i, '') : (t && 'value' in t ? t.value : (t && t.prefix) || null);
+                const top = fnStack.length ? fnStack[fnStack.length - 1] : null;
+                f.redirects.push({ call: bare, target: target ? trim(target, 120) : null, dynamic: !(t && 'value' in t), status: bare === 'header' ? null : num(arg(c, 1), null), line: ln, in: top ? { kind: top.kind, name: top.name, class: top.class } : null });
+            }
+        }
         if (opts.watch && !bare.includes('\\')) { const lower = bare.toLowerCase(); if (opts.watch(lower)) f.calls.push({ name: lower, line: ln, guarded: guards.some(g => String(g).toLowerCase() === lower) }); }
         if (/^(add|remove)_(action|filter)$/.test(bare)) {
             const h = str(arg(c, 0));
             if (!h) return;
             const [op, type] = bare.split('_');
-            const entry = { op, type, filtered: !!h.filtered, hook: 'value' in h ? h.value : null, dynamic: !('value' in h), prefix: 'value' in h ? null : h.prefix, callback: callback(arg(c, 1)), priority: num(arg(c, 2), 10), args: op === 'add' ? num(arg(c, 3), 1) : null, line: ln };
+            const entry = { op, type, owner_class: CLASS, filtered: !!h.filtered, hook: 'value' in h ? h.value : null, dynamic: !('value' in h), prefix: 'value' in h ? null : h.prefix, callback: callback(arg(c, 1)), priority: num(arg(c, 2), 10), args: op === 'add' ? num(arg(c, 3), 1) : null, line: ln };
             f.hooks.push(entry);
             const hook = entry.hook || '', pre = entry.prefix || '';
             const a = /^wp_ajax_(nopriv_)?(.*)$/.exec(hook || pre), p = /^admin_post_(nopriv_)?(.*)$/.exec(hook || pre);
@@ -193,7 +203,7 @@ function analyse(source, file, opts = {}) {
         if (!n || typeof n !== 'object') return;
         if (Array.isArray(n)) { for (const x of n) walk(x, parentIf); return; }
         switch (n.kind) {
-            case 'method': case 'closure': case 'arrowfunc': { ARRS.push(new Map()); const savedEnv = ENV; for (const k of Object.keys(n)) if (k !== 'loc' && k !== 'leadingComments' && k !== 'trailingComments') walk(n[k], parentIf); ENV = savedEnv; ARRS.pop(); return; }
+            case 'method': case 'closure': case 'arrowfunc': { ARRS.push(new Map()); fnStack.push(n.kind === 'method' ? { kind: 'method', name: nm(n.name), class: CLASS } : { kind: 'closure', name: null, class: CLASS }); const savedEnv = ENV; for (const k of Object.keys(n)) if (k !== 'loc' && k !== 'leadingComments' && k !== 'trailingComments') walk(n[k], parentIf); ENV = savedEnv; fnStack.pop(); ARRS.pop(); return; }
             case 'assign': {
                 if (n.left && n.left.kind === 'variable' && typeof n.left.name === 'string' && n.right && n.right.kind === 'array' && n.operator === '=') ARRS[ARRS.length - 1].set(n.left.name, n.right);
                 // inside an unrolled loop, $handle = 'wp-' . $package; binds $handle for the rest of that iteration
@@ -223,7 +233,7 @@ function analyse(source, file, opts = {}) {
                 guards.push(...g); walk(n.body, n); guards.length -= g.length;
                 walk(n.alternate, parentIf); walk(n.test, parentIf); return;
             }
-            case 'function': { const name = nm(n.name); if (name) f.functions.push({ name: qual(name), line: line(n), guarded: guards.includes(name) || guards.includes(qual(name)) }); ARRS.push(new Map()); const savedEnv = ENV; for (const k of Object.keys(n)) if (k !== 'loc' && k !== 'leadingComments' && k !== 'trailingComments') walk(n[k], parentIf); ENV = savedEnv; ARRS.pop(); return; }
+            case 'function': { const name = nm(n.name); if (name) f.functions.push({ name: qual(name), line: line(n), guarded: guards.includes(name) || guards.includes(qual(name)) }); ARRS.push(new Map()); fnStack.push({ kind: 'function', name: name ? qual(name) : null, class: null }); const savedEnv = ENV; for (const k of Object.keys(n)) if (k !== 'loc' && k !== 'leadingComments' && k !== 'trailingComments') walk(n[k], parentIf); ENV = savedEnv; fnStack.pop(); ARRS.pop(); return; }
             case 'class': case 'interface': case 'trait': case 'enum': {
                 const name = nm(n.name);
                 const savedClass = CLASS; CLASS = name ? qual(name) : CLASS;

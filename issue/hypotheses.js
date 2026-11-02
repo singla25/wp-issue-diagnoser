@@ -48,7 +48,7 @@ const FAMILY_OF = { 'duplicate-declaration': 'fatal', 'syntax-error': 'fatal', '
     'library-version-conflict': 'js', 'duplicate-library': 'js', 'js-global-collision': 'js', 'jquery-api-version-mismatch': 'js', 'script-missing-dependency': 'js', 'handle-replaced': 'js', 'handle-removed': 'js', 'dependency-handle-not-registered': 'js', 'localize-object-collision': 'js',
     'css-selector-overlap': 'layout', 'template-override-outdated': 'template', 'remove-wrong-priority': 'hook', 'removes-other-component-hook': 'hook', 'hook-same-priority': 'hook', 'kb': 'cache',
     'duplicate-constant': 'config', 'duplicate-shortcode': 'hook', 'duplicate-ajax-action': 'hook', 'duplicate-rest-route': 'hook', 'duplicate-script-handle': 'js',
-    'removed-function-call': 'fatal', 'requires-php-mismatch': 'compat', 'requires-wp-mismatch': 'compat', 'tested-up-to-older': 'compat' };
+    'removed-function-call': 'fatal', 'requires-php-mismatch': 'compat', 'requires-wp-mismatch': 'compat', 'tested-up-to-older': 'compat', 'redirect-on-hook': 'redirect' };
 
 const MECH = {
     'duplicate-declaration': o => `${o.declaration.kind} ${o.declaration.name} is declared in ${o.components.join(' and ')}. When both load, PHP stops with "Cannot redeclare" and the page is blank (${o.risk}).`,
@@ -148,6 +148,19 @@ function build(ctx) {
         for (const lc of logClues) if (lc.type === 'php-undefined-function' && String(lc.value).replace(/^.*[\\:>]/, '').toLowerCase() === c.obs.function && !c.supports.some(x => x.ref === lc.id)) c.supports.push({ kind: 'log', ref: lc.id, text: `log: Call to undefined function ${lc.value}()` });
         const pc = c.components.map(probeClueOf).find(Boolean);
         if (pc) c.supports.push({ kind: 'probe', ref: pc.id, text: `live page: "${String(pc.value).slice(0, 100)}" from ${c.components.join(', ')}` });
+    }
+    // ---- redirect callers (step 5-D): THE POST-PROBE JOIN ----
+    // The static map (analysis.redirect_map, from issue/redirects.js) is built before any page is loaded. It is joined with what was OBSERVED here, because this
+    // function runs after the live probe has written its clues to evidence.json (analysis.run) and runs again after the sandbox baseline (analysis.applyBisect
+    // passes ctx.sandboxRedirect). A candidate exists only if a redirect was seen or the reporter's symptom is "redirect"; otherwise the map stays in
+    // custom-code.json. This module emits UNVERIFIED / PROBABLE_NEEDS_REVIEW at most: validate.js alone assigns CONFIRMED, REPRODUCIBLE and REJECTED_FALSE_POSITIVE.
+    const redirectClues = evidence.clues.filter(c => c.type === 'probe-redirect');
+    const redirectObserved = redirectClues.length > 0 || !!ctx.sandboxRedirect;
+    for (const o of require('./redirects').join(analysis.redirect_map || [], { observed: redirectObserved, symptom: issue.symptom, refOf })) {
+        const sup = [{ kind: 'observation', ref: o.id, text: o.message, file: o.evidence[0].file, line: o.evidence[0].line }];
+        if (redirectClues.length) sup.push({ kind: 'probe', ref: redirectClues[0].id, text: `live page: ${redirectClues[0].value}` });
+        const seen = redirectClues.length ? `The live page showed it: ${redirectClues[0].value}.` : ctx.sandboxRedirect ? 'The sandbox copy showed a redirect problem.' : 'The reported symptom is a redirect; none was observed on the probed pages.';
+        add(o.type, o.components, o.id, sup, { family: 'redirect', obs: o, mechanism: `${o.message}. ${seen}${o.common ? ' A redirect on this hook is common in legitimate plugins, so the code alone proves nothing; the observed redirect is what makes it a suspect.' : ''}` });
     }
     // ---- collisions ----
     for (const c of collide.collisions) {

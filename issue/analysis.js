@@ -51,6 +51,11 @@ function run(id, { root, config = null } = {}) {
     catch (e) { compat = { observations: [], step: { id: 'compat', label: 'Static compatibility (PHP / WordPress versions, removed functions)', status: 'FAILED', reason: e.message } }; }
     analysis.observations.push(...compat.observations);
     analysis.steps.push(compat.step);
+    // the static redirect map (who redirects, on which hook, in the same component); it is joined with what the probe saw inside hypotheses.build
+    analysis.redirect_map = require('./redirects').build(analysis);
+    analysis.steps.push({ id: 'redirect-map', label: 'Redirect callers and the hooks they run on', status: 'PASSED',
+        reason: `${analysis.redirect_map.length} redirect call(s) found in syntax-tree components; ${analysis.redirect_map.filter(e => e.context === 'hook').length} matched to a hook of the same component, ${analysis.redirect_map.filter(e => e.context !== 'hook').length} with an unknown hook context (closures, file scope, nothing registers them)`,
+        calls: analysis.redirect_map.length });
     analysis.observations.sort((a, b) => a.type.localeCompare(b.type) || a.id.localeCompare(b.id));
     analysis.steps.push({ id: 'classic-checks', label: 'Classic checks (conflicts, dependencies, themes, drop-ins, wp-config, file integrity)', status: classic.crashed.length && !classic.considered ? 'FAILED' : 'PASSED',
         reason: `${classic.considered} finding(s) considered, ${classic.observations.length} kept${classic.skipped.length ? `, ${classic.skipped.length} left out (${[...new Set(classic.skipped.map(x => x.reason))].slice(0, 3).join('; ')})` : ''}; plugin activity is unknown without WP-CLI, so these are marked "active state unknown"${classic.crashed.length ? `; crashed: ${classic.crashed.map(c => c.check).join(', ')}` : ''}`,
@@ -70,7 +75,7 @@ function run(id, { root, config = null } = {}) {
     // ---- phase F: hypotheses ----
     const hypotheses = hyp.build({ issue, evidence, analysis, index, collide, graph, kb: kbHits, description, steps: evidence.steps, featureHooks: taxonomyHooks(evidence), featureHooksVerified: taxonomyHooksVerified(evidence), reproduced: evidence.reproduced || null });
 
-    write(dir, 'work/custom-code.json', { mode: analysis.mode, message: analysis.message, policy: analysis.policy, components: analysis.components, observations: analysis.observations, templates: analysis.templates, core_handles: analysis.core_handles, steps: analysis.steps,
+    write(dir, 'work/custom-code.json', { mode: analysis.mode, message: analysis.message, policy: analysis.policy, components: analysis.components, observations: analysis.observations, templates: analysis.templates, redirect_map: analysis.redirect_map, core_handles: analysis.core_handles, steps: analysis.steps,
         facts: Object.fromEntries(Object.entries(analysis.facts).filter(([ref]) => analysis.components.find(c => c.ref === ref).depth === 'syntax-tree')) });
     write(dir, 'work/components.json', { components: index.components });
     write(dir, 'work/feature-index.json', { scoring: index.scoring, query: index.query, text_matches: index.text_matches, providers: index.providers });
@@ -92,9 +97,9 @@ function run(id, { root, config = null } = {}) {
 }
 
 // After the sandbox phase: rebuild the hypotheses with the bisection result (the strongest support) and write them again.
-function applyBisect(id, an, { bisect = null, sandboxReproduced = null } = {}) {
+function applyBisect(id, an, { bisect = null, sandboxReproduced = null, sandboxRedirect = false } = {}) {
     const dir = store.dirOf(id);
-    const h = hyp.build({ ...an.ctxForHypotheses, bisect, sandboxReproduced });
+    const h = hyp.build({ ...an.ctxForHypotheses, bisect, sandboxReproduced, sandboxRedirect });
     write(dir, 'work/hypotheses.json', h);
     an.hypotheses = h;
     return h;

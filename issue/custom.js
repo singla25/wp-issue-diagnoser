@@ -98,7 +98,7 @@ function surfaceFacts(root, comp, policy) {
 }
 
 // merge per-file facts into component facts (every entry carries its file)
-const KEYS = ['functions', 'classes', 'constants', 'hooks', 'shortcodes', 'rest', 'ajax', 'assets', 'localize', 'cpts', 'taxonomies', 'blocks', 'menus', 'options', 'globals', 'db', 'includes', 'calls'];
+const KEYS = ['functions', 'classes', 'constants', 'hooks', 'shortcodes', 'rest', 'ajax', 'assets', 'localize', 'cpts', 'taxonomies', 'blocks', 'menus', 'options', 'globals', 'db', 'includes', 'calls', 'redirects'];
 function merge(fileFacts) {
     const m = Object.fromEntries(KEYS.map(k => [k, []]));
     for (const f of fileFacts) for (const k of KEYS) for (const e of f[k] || []) m[k].push({ ...e, file: f.file, ...(f.bundled ? { bundled: true } : {}) });

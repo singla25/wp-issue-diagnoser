@@ -27,7 +27,7 @@ const KEYWORD = {
 const TYPE_KEYWORD = {
     'duplicate-shortcode': KEYWORD.shortcode, 'duplicate-rest-route': KEYWORD.rest, 'duplicate-ajax-action': KEYWORD.adds,
     'duplicate-script-handle': KEYWORD.asset, 'duplicate-constant': CALL('define'),
-    'requires-php-mismatch': /Requires PHP/i, 'requires-wp-mismatch': /Requires at least/i, 'tested-up-to-older': /Tested up to/i
+    'redirect-on-hook': CALL('wp_redirect|wp_safe_redirect|header'), 'requires-php-mismatch': /Requires PHP/i, 'requires-wp-mismatch': /Requires at least/i, 'tested-up-to-older': /Tested up to/i
 };
 const ASSET_ROLES = /^(enqueue|register|dequeue|deregister|registers replacement)$/;
 const declaration = (kind, name) => { const short = String(name).replace(/^.*\\/, '').replace(/[^\w]/g, ''); return kind === 'class' ? new RegExp(`\\b(?:class|interface|trait|enum)\\s+${short}\\b`, 'i') : new RegExp(`\\bfunction\\s+&?\\s*${short}\\s*\\(`, 'i'); };

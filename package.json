@@ -42,7 +42,8 @@
     "selftest:classic-adapter": "node scripts/selftest-classic-adapter.js",
     "selftest:issue-dups": "node scripts/selftest-issue-dups.js",
     "selftest:removed-functions": "node scripts/selftest-removed-functions.js",
-    "selftest:compat": "node scripts/selftest-compat.js"
+    "selftest:compat": "node scripts/selftest-compat.js",
+    "selftest:redirect-map": "node scripts/selftest-redirect-map.js"
   },
   "license": "ISC",
   "dependencies": {

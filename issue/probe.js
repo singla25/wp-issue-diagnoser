@@ -102,6 +102,8 @@ function cluesFrom(pages) {
         seen.set(key, c); out.push(c);
     };
     const comp = (ref, p, why) => { if (ref && ref !== 'wordpress-core') add('component-path', ref, p.url, { why }, `observed on the live page: ${why}`, p); };
+    // redirect loops, long chains and cross-host redirects (a loop leaves no loaded page, so this reads every page record)
+    for (const p of pages) for (const sign of oracleMod.redirectSigns(p)) add('probe-redirect', sign, p.url, { chain: (p.redirects || []).slice(0, 6), error: p.error ? cut(p.error, 120) : null }, sign, p);
     for (const p of pages.filter(x => x.loaded)) {
         const where = new URL(p.url).pathname;
         if (p.status >= 400) add('probe-http-status', `HTTP ${p.status} ${where}`, p.url, { status: p.status, retried: !!p.retried, first_status: p.first_status }, `the page answered HTTP ${p.status}`, p);

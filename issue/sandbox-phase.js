@@ -64,6 +64,7 @@ function makeTester({ handle, issueId, env, plugins, requires, defaultTheme, sit
         let growth = null; try { const st = fs.statSync(logFile); const fd = fs.openSync(logFile, 'r'); const len = Math.min(st.size - size, 256 * 1024), b = Buffer.alloc(Math.max(0, len)); fs.readSync(fd, b, 0, b.length, size); fs.closeSync(fd); growth = { available: true, new_text: b.toString('utf8') }; } catch { growth = { available: false, reason: 'no debug.log in the sandbox yet' }; }
         const issue = store.load(issueId);
         const res = issue.oracle.type === 'debug-log' || issue.oracle.type === 'generic' ? require('./oracle').evaluate(issue.oracle, { pages: r.pages.map(p => ({ ...p, console_errors: p.console_errors || [], page_errors: p.page_errors || [], error_responses: p.error_responses || [] })), planned: r.pages.length, sandbox: true, logged_in: !!(r.login && r.login.ok), debug_log: growth }, { needsLogin: issue.needs_login, symptom: issue.symptom }) : r.oracle;
+        if (r.pages.some(p => require('./oracle').redirectSigns(p).length)) test.redirectSeen = true;   // a redirect loop, a long chain or a cross-host redirect in the sandbox
         test.last = { result: res.result, matches: res.matches || [], pages: r.pages.map(p => ({ url: p.url, viewport: p.viewport && p.viewport.name, loaded: !!p.loaded })) };
         if (res.result === 'yes') return 'fail';
         if (res.result === 'could-not-test') return 'unresolved';
@@ -126,6 +127,7 @@ async function run(id, o) {
         // ---- does the sandbox show the symptom at all? ----
         const base = await tester({ plugins: active, theme: null, mu: null });
         out.baseline = tester.last ? { ...tester.last, active_plugins: [...active] } : null;
+        out.redirect_observed = !!tester.redirectSeen;   // only the baseline run has happened here: the sandbox as it is
         out.reproduced_in_sandbox = base === 'fail' ? 'yes' : base === 'pass' ? 'no' : 'could-not-test';
         steps.push(step('sandbox-oracle', 'Oracle in the sandbox: is the symptom present?', base === 'unresolved' ? 'NOT_RUN' : 'PASSED', `symptom reproduced in the sandbox: ${out.reproduced_in_sandbox}${base === 'pass' ? '. NOT reproduced: every hypothesis stays PROBABLE_NEEDS_REVIEW or below, nothing can be REPRODUCIBLE.' : ''}${base === 'unresolved' ? ' (the page failed in a different way, or the oracle could not be evaluated)' : ''}`, { reproduced: out.reproduced_in_sandbox }));
 
