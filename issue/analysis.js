@@ -40,6 +40,15 @@ function run(id, { root, config = null } = {}) {
     const focusNames = evidence.clues.filter(c => ['php-redeclare', 'php-undefined-function'].includes(c.type)).map(c => c.value);
     const hints = evidence.component_hints.slice(0, 8).map(h => toRef(h.component));
     const analysis = custom.analyse(root, { policy, hints, focus: { names: focusNames } });
+    // the classic checks, offline, as observations (no verdicts): selected by clue, capped, compromise exempt from the cap
+    let classic = null;
+    try { classic = require('./classic-adapter').adapt(root, { policy, issue, evidence, existing: analysis.observations }); }
+    catch (e) { classic = { observations: [], skipped: [], crashed: [{ check: 'classic-adapter', message: e.message }], considered: 0 }; }
+    analysis.observations.push(...classic.observations);
+    analysis.observations.sort((a, b) => a.type.localeCompare(b.type) || a.id.localeCompare(b.id));
+    analysis.steps.push({ id: 'classic-checks', label: 'Classic checks (conflicts, dependencies, themes, drop-ins, wp-config, file integrity)', status: classic.crashed.length && !classic.considered ? 'FAILED' : 'PASSED',
+        reason: `${classic.considered} finding(s) considered, ${classic.observations.length} kept${classic.skipped.length ? `, ${classic.skipped.length} left out (${[...new Set(classic.skipped.map(x => x.reason))].slice(0, 3).join('; ')})` : ''}; plugin activity is unknown without WP-CLI, so these are marked "active state unknown"${classic.crashed.length ? `; crashed: ${classic.crashed.map(c => c.check).join(', ')}` : ''}`,
+        kept: classic.observations.length, skipped: classic.skipped.slice(0, 20), crashed: classic.crashed });
     const text = [issue.title, issue.description, issue.since, issue.changed_before].filter(Boolean).join('\n');
     const index = indexer.build(root, analysis, evidence, { description: { title: issue.title, text } });
 

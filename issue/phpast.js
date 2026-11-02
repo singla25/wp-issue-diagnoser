@@ -111,7 +111,7 @@ function src(n) {
 }
 function guardNames(test) { // if ( ! function_exists( 'x' ) ) -> ['x']
     const out = [];
-    (function w(n) { if (!n || typeof n !== 'object') return; if (Array.isArray(n)) return n.forEach(w); if (n.kind === 'call' && ['function_exists', 'class_exists', 'interface_exists', 'trait_exists'].includes(nm(n.what))) { const s = str(n.arguments[0]); if (s && 'value' in s) out.push(s.value.replace(/^\\/, '')); } for (const k of Object.keys(n)) if (k !== 'loc') w(n[k]); })(test);
+    (function w(n) { if (!n || typeof n !== 'object') return; if (Array.isArray(n)) return n.forEach(w); if (n.kind === 'call' && ['function_exists', 'class_exists', 'interface_exists', 'trait_exists', 'defined'].includes(nm(n.what))) { const s = str(n.arguments[0]); if (s && 'value' in s) out.push(s.value.replace(/^\\/, '')); } for (const k of Object.keys(n)) if (k !== 'loc') w(n[k]); })(test);
     return out;
 }
 
@@ -177,7 +177,7 @@ function analyse(source, file) {
         else if (bare === 'register_block_type' || bare === 'register_block_type_from_metadata') { const s = str(arg(c, 0)); if (s && 'value' in s) f.blocks.push({ name: s.value, line: ln }); }
         else if (['add_menu_page', 'add_submenu_page', 'add_options_page', 'add_management_page', 'add_theme_page'].includes(bare)) { const i = bare === 'add_submenu_page' ? 2 : bare === 'add_menu_page' ? 2 : 2; const s = str(arg(c, bare === 'add_submenu_page' ? 3 : i)); if (s && 'value' in s) f.menus.push({ slug: s.value, via: bare, line: ln }); }
         else if (OPTION_FN[bare]) { const s = str(arg(c, 0)); if (s) f.options.push({ op: OPTION_FN[bare], name: 'value' in s ? s.value : null, prefix: s.prefix || null, line: ln }); }
-        else if (bare === 'define') { const s = str(arg(c, 0)); if (s && 'value' in s) f.constants.push({ name: s.value, line: ln }); }
+        else if (bare === 'define') { const s = str(arg(c, 0)); if (s && 'value' in s) f.constants.push({ name: s.value, line: ln, guarded: guards.includes(s.value) }); }   // guarded: inside if ( ! defined( 'NAME' ) )
     }
 
     const FACT_KEYS = ['functions', 'classes', 'constants', 'hooks', 'shortcodes', 'rest', 'ajax', 'assets', 'localize', 'cpts', 'taxonomies', 'blocks', 'menus', 'options', 'registry'];

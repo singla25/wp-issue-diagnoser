@@ -32,17 +32,21 @@ const W = Object.fromEntries(SCORING.map(r => [r.rule, r.points]));
 
 // kind of problem -> symptom types it normally produces ("other" accepts everything)
 const FAMILY_SYMPTOMS = {
-    bisect: ['white-screen', 'js-error', 'layout', 'form-checkout', 'login-admin', 'slow', 'wrong-content', 'other'],
+    bisect: ['white-screen', 'js-error', 'layout', 'form-checkout', 'login-admin', 'slow', 'wrong-content', 'other', 'redirect'],
     fatal: ['white-screen', 'login-admin', 'form-checkout', 'wrong-content'],
     js: ['js-error', 'layout', 'form-checkout', 'login-admin', 'slow'],
     layout: ['layout', 'js-error', 'wrong-content'],
-    hook: ['wrong-content', 'form-checkout', 'login-admin', 'js-error', 'white-screen', 'slow'],
-    cache: ['wrong-content', 'form-checkout', 'login-admin', 'slow', 'js-error', 'layout'],
-    template: ['layout', 'form-checkout', 'wrong-content', 'js-error']
+    hook: ['wrong-content', 'form-checkout', 'login-admin', 'js-error', 'white-screen', 'slow', 'redirect'],
+    cache: ['wrong-content', 'form-checkout', 'login-admin', 'slow', 'js-error', 'layout', 'redirect'],
+    template: ['layout', 'form-checkout', 'wrong-content', 'js-error'],
+    config: ['wrong-content', 'form-checkout', 'login-admin', 'redirect', 'slow', 'other'],   // PHP only warns about a second define(): never the 'fatal' family
+    compromise: ['white-screen', 'redirect', 'js-error', 'wrong-content', 'login-admin', 'other'],
+    redirect: ['redirect', 'login-admin', 'wrong-content']
 };
 const FAMILY_OF = { 'duplicate-declaration': 'fatal', 'syntax-error': 'fatal', 'missing-function': 'fatal', 'error-in-component': 'fatal', 'missing-dependency': 'fatal', 'js-error-in-component': 'js', 'failed-asset': 'js', 'bisect-minimal-set': 'bisect',
     'library-version-conflict': 'js', 'duplicate-library': 'js', 'js-global-collision': 'js', 'jquery-api-version-mismatch': 'js', 'script-missing-dependency': 'js', 'handle-replaced': 'js', 'handle-removed': 'js', 'dependency-handle-not-registered': 'js', 'localize-object-collision': 'js',
-    'css-selector-overlap': 'layout', 'template-override-outdated': 'template', 'remove-wrong-priority': 'hook', 'removes-other-component-hook': 'hook', 'hook-same-priority': 'hook', 'kb': 'cache' };
+    'css-selector-overlap': 'layout', 'template-override-outdated': 'template', 'remove-wrong-priority': 'hook', 'removes-other-component-hook': 'hook', 'hook-same-priority': 'hook', 'kb': 'cache',
+    'duplicate-constant': 'config', 'duplicate-shortcode': 'hook', 'duplicate-ajax-action': 'hook', 'duplicate-rest-route': 'hook', 'duplicate-script-handle': 'js' };
 
 const MECH = {
     'duplicate-declaration': o => `${o.declaration.kind} ${o.declaration.name} is declared in ${o.components.join(' and ')}. When both load, PHP stops with "Cannot redeclare" and the page is blank (${o.risk}).`,
@@ -55,6 +59,11 @@ const MECH = {
     'template-override-outdated': o => `${o.components[0]} overrides WooCommerce's ${o.template} at version ${o.theme_version}; the plugin's own copy is ${o.plugin_version}, so changes made in the plugin are missing from what the page uses.`,
     'syntax-error': o => `${o.evidence[0].file} does not parse (${o.message.replace(/^php -l reports a syntax error in \S+: /, '')}). PHP stops when it loads that file.`
 };
+MECH['duplicate-shortcode'] = o => `The shortcode [${o.shortcode}] is registered by ${o.components.join(' and ')}. WordPress keeps the registration that runs last, so one of them silently stops working wherever the shortcode is used.`;
+MECH['duplicate-ajax-action'] = o => `${o.components.join(' and ')} both handle the AJAX action "${o.action}"${o.nopriv ? ' (for visitors who are not logged in)' : ''}. Both handlers run for the same request, so the answer can be doubled or cut short.`;
+MECH['duplicate-rest-route'] = o => `${o.components.join(' and ')} both register the REST route /${o.route}. Only one can answer, so clients get the other's response format.`;
+MECH['duplicate-script-handle'] = o => `${o.components.join(' and ')} both register the ${o.handle_type} handle "${o.handle}" with different files. WordPress keeps the first and ignores the second, so what loads depends on plugin order.`;
+MECH['duplicate-constant'] = o => `${o.components.join(' and ')} both define the constant ${o.constant}. PHP keeps the first value and only prints a warning, so one of them runs with the other's value. This is not a crash.`;
 const COLL_MECH = {
     'library-version-conflict': c => `${c.library} is loaded in more than one version (${c.versions.join(', ')}) by ${c.components.join(', ')}; plugins attached to one copy do not exist on the other.`,
     'duplicate-library': c => `${c.library} is loaded more than once by ${c.components.join(', ')}; the second copy can replace the first one's plugins and globals.`,
@@ -64,6 +73,7 @@ const COLL_MECH = {
     'css-selector-overlap': c => `${c.components.join(' and ')} style "${c.selector}" with different values for ${c.conflicting_properties.map(p => p.property).join(', ')}; which one wins depends on load order and specificity.`
 };
 
+const NEW_DUP_TYPES = new Set(['duplicate-shortcode', 'duplicate-ajax-action', 'duplicate-rest-route', 'duplicate-script-handle', 'duplicate-constant']);
 const toRef = id => String(id).replace(/^plugin:/, '');
 const dayMs = 86400000;
 
@@ -110,9 +120,13 @@ function build(ctx) {
     // ---- from OCR / description clues: only to support existing candidates later ----
 
     // ---- observations ----
+    const clueCx = require('./clue-match').context(evidence, issue, FAMILY_SYMPTOMS);
     for (const o of analysis.observations) {
-        const fam = FAMILY_OF[o.type] || 'hook';
-        const mech = MECH[o.type] ? MECH[o.type](o) : o.message;
+        // duplicates of a shortcode / AJAX action / REST route / handle / constant are common and mostly harmless: they become a hypothesis only when
+        // custom code is involved or the report points at them (a named component, a file in a log, or a symptom this kind of problem produces)
+        if (NEW_DUP_TYPES.has(o.type) && !o.custom && !require('./clue-match').matches({ components: o.components, evidence: o.evidence, family: FAMILY_OF[o.type], severity: 'P3' }, clueCx).ok) continue;
+        const fam = o.family || FAMILY_OF[o.type] || 'hook';
+        const mech = MECH[o.type] ? MECH[o.type](o) : o.type.startsWith('classic:') ? `${o.message}. ${o.detail || ''}`.trim() : o.message;
         add(o.type, o.components, o.type === 'duplicate-declaration' ? o.declaration.name.toLowerCase() : o.id, [{ kind: 'observation', ref: o.id, text: o.message, file: o.evidence[0] && o.evidence[0].file, line: o.evidence[0] && o.evidence[0].line }], { family: fam, mechanism: mech, obs: o, custom: o.custom });
     }
     // ---- collisions ----
@@ -208,7 +222,7 @@ function build(ctx) {
         const score = round(bd.reduce((s, x) => s + x.points, 0));
         const deterministic = ['log', 'bisect', 'probe', 'observation', 'collision'].some(k => kinds.has(k));
         out.push({ id: schema.stableId('hyp', c.key), title: titleOf(c), type: c.type, family: fam, components: c.components, mechanism: c.mechanism || c.obs && c.obs.message || c.type, supports: c.supports.map(({ kind, ref, text, file, line }) => ({ kind, ref, text, file: file || null, line: line || null })), contradicts: c.contradicts,
-            score, score_breakdown: bd, status: independent.length >= 2 && deterministic ? 'PROBABLE_NEEDS_REVIEW' : 'UNVERIFIED', custom_involved: custom, kb: c.kb || [], kb_verified: c.kbHit ? c.kbHit.verified : null, kb_sources: c.kbHit ? c.kbHit.sources.map(s => s.url) : [], kb_beyond_sources: c.kbHit ? c.kbHit.beyond_sources : null,
+            class: (c.obs && c.obs.class) || null, active_state: (c.obs && c.obs.active_state) || null, severity: (c.obs && c.obs.severity) || null, score, score_breakdown: bd, status: independent.length >= 2 && deterministic ? 'PROBABLE_NEEDS_REVIEW' : 'UNVERIFIED', custom_involved: custom, kb: c.kb || [], kb_verified: c.kbHit ? c.kbHit.verified : null, kb_sources: c.kbHit ? c.kbHit.sources.map(s => s.url) : [], kb_beyond_sources: c.kbHit ? c.kbHit.beyond_sources : null,
             oracle: oracleFor(c, issue), evidence: (c.obs && c.obs.evidence) || (c.coll && c.coll.evidence) || [] });
     }
     out.sort((a, b) => b.score - a.score || a.id.localeCompare(b.id));
@@ -223,6 +237,7 @@ const round = n => Math.round(n * 100) / 100;
 function titleOf(c) {
     const comps = c.components.join(' + ');
     const t = { 'duplicate-declaration': 'Duplicate declaration', 'remove-wrong-priority': 'Hook removed at the wrong priority', 'removes-other-component-hook': 'One component removes another\'s hook', 'handle-replaced': 'Script/style handle replaced', 'handle-removed': 'Script/style handle removed', 'dependency-handle-not-registered': 'Dependency nobody registers', 'localize-object-collision': 'Same JavaScript object created twice', 'template-override-outdated': 'Outdated template override', 'syntax-error': 'Syntax error', 'missing-function': 'Missing function or class', 'error-in-component': 'Error raised in a component', 'missing-dependency': 'Missing required plugin', 'library-version-conflict': 'Library in conflicting versions', 'duplicate-library': 'Library loaded twice', 'js-global-collision': 'JavaScript global overwritten', 'jquery-api-version-mismatch': 'jQuery API not in the loaded version', 'script-missing-dependency': 'Script uses jQuery without depending on it', 'css-selector-overlap': 'Competing CSS rules', 'hook-same-priority': 'Same hook, same priority', 'js-error-in-component': 'JavaScript error raised by a component on the live page', 'failed-asset': 'A component\'s file does not load', 'bisect-minimal-set': 'Sandbox bisection: these components together cause the symptom' }[c.type];
+    if (c.type.startsWith('classic:')) return `${c.obs.message}`;
     return t ? `${t}: ${comps}` : `${c.kbHit ? c.kbHit.title : c.type}${comps ? `: ${comps}` : ''}`;
 }
 // The test that would prove or disprove it. The oracle is the reporter's (or the generic one for the symptom); the action is what to change.

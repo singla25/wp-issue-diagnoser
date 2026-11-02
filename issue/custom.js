@@ -196,7 +196,7 @@ function analyse(root, { policy, hints = [], focus = {}, discovered = components
         const unguarded = distinct.filter(d => !d.guarded);
         if (unguarded.length < 2 && !(refs.length > 1 && unguarded.length >= 1 && distinct.some(d => d.guarded))) continue;
         const name = key.slice(2), kind = key[0] === 'f' ? 'function' : 'class';
-        push({ type: 'duplicate-declaration', components: refs, custom: refs.some(r => refOf[r] && !refOf[r].inspection_only),
+        push({ type: 'duplicate-declaration', dup_key: `decl:${kind}:${name.replace(/^.*\\/, '')}`, components: refs, custom: refs.some(r => refOf[r] && !refOf[r].inspection_only),
             declaration: { kind, name }, risk: unguarded.length >= 2 ? 'fatal-if-both-load' : 'conditional (one declaration is guarded by function_exists / class_exists)',
             evidence: distinct.map(d => ({ file: d.file, line: d.line, component: d.ref, guarded: d.guarded, bundled: d.bundled })), message: `${kind} ${name}() is declared in ${distinct.length} places` });
     }
@@ -261,6 +261,42 @@ function analyse(root, { policy, hints = [], focus = {}, discovered = components
     for (const [name, list] of [...objs].sort((a, b) => a[0].localeCompare(b[0]))) {
         const refs = [...new Set(list.map(l => l.ref))];
         if (refs.length > 1) push({ type: 'localize-object-collision', components: refs, custom: refs.some(r => !refOf[r].inspection_only), object: name, evidence: list.map(l => ({ file: l.file, line: l.line, component: l.ref })), message: `JavaScript object "${name}" is created by ${refs.length} components` });
+    }
+
+    // ---- the same name registered by two components: shortcode, AJAX action, REST route, script/style handle, constant ----
+    // The facts come from the syntax tree for custom code, themes and the components the evidence names, and from the regex surface for the rest
+    // (which has no constants and no script sources). Every observation carries `dup_key` so the classic adapter does not report the same thing twice,
+    // and `trusted`: true when at least one side was read with the syntax tree. Nothing here is a verdict.
+    const dupGroups = (items, keyOf) => { const m = new Map(); for (const it of items) { const k = keyOf(it); if (k === null || k === undefined || k === '') continue; if (!m.has(k)) m.set(k, []); m.get(k).push(it); } return [...m].sort((a, b) => String(a[0]).localeCompare(String(b[0]))); };
+    const isAst = ref => refOf[ref] && refOf[ref].depth === 'syntax-tree';
+    const sites = (list) => list.filter((d, i) => list.findIndex(x => x.file === d.file && x.line === d.line && x.ref === d.ref) === i).map(d => ({ file: d.file, line: d.line, component: d.ref }));
+    const pushDup = (type, name, list, extra, message) => {
+        const refs = [...new Set(list.map(d => d.ref))].sort();
+        if (refs.length < 2) return;
+        push({ type, components: refs, custom: refs.some(r => refOf[r] && !refOf[r].inspection_only), trusted: refs.some(isAst), dup_key: `${type}:${String(name).toLowerCase()}`, name, ...extra, evidence: sites(list), message });
+    };
+    const factsOf = (key, pick) => Object.entries(result.facts).flatMap(([ref, m]) => (m[key] || []).map(e => ({ ...pick(e), ref, file: e.file, line: e.line })));
+    for (const [tag, list] of dupGroups(factsOf('shortcodes', e => ({ name: e.tag })), d => String(d.name).toLowerCase()))
+        pushDup('duplicate-shortcode', tag, list, { shortcode: tag }, `shortcode [${tag}] is registered by ${[...new Set(list.map(d => d.ref))].join(' and ')}: the one loaded last replaces the other`);
+    for (const [key, list] of dupGroups(factsOf('ajax', e => ({ name: `${e.action}${e.nopriv ? '|nopriv' : ''}`, action: e.action, nopriv: !!e.nopriv, dynamic: !!e.dynamic })).filter(d => !d.dynamic), d => d.name))
+        pushDup('duplicate-ajax-action', key, list, { action: list[0].action, nopriv: list[0].nopriv }, `AJAX action "${list[0].action}"${list[0].nopriv ? ' (nopriv)' : ''} has a handler in ${[...new Set(list.map(d => d.ref))].join(' and ')}: both run for the same request`);
+    for (const [key, list] of dupGroups(factsOf('rest', e => ({ name: e.route ? `${e.namespace}/${String(e.route).replace(/^\/+/, '')}` : null })), d => d.name && String(d.name).toLowerCase()))
+        pushDup('duplicate-rest-route', key, list, { route: key }, `REST route /${key} is registered by ${[...new Set(list.map(d => d.ref))].join(' and ')}`);
+    // constants: only the syntax tree records them; a definition inside if ( ! defined( 'NAME' ) ) is a guard
+    for (const [name, list] of dupGroups(factsOf('constants', e => ({ name: e.name, guarded: !!e.guarded })), d => d.name)) {
+        const unguarded = list.filter(d => !d.guarded);
+        if (new Set(unguarded.map(d => d.ref)).size < 2) continue;
+        pushDup('duplicate-constant', name, unguarded, { constant: name, risk: 'warning-only' }, `constant ${name} is defined by ${[...new Set(unguarded.map(d => d.ref))].join(' and ')}: PHP keeps the first value and only warns, so one of them runs with the other's value`);
+    }
+    // script / style handles: two components that each REGISTER the same handle with a file; WordPress ignores the second one
+    // the file a registration points at, as far as the code says: a full URL, else the folder it is relative to (plugins_url( 'x.js', __FILE__ ) is
+    // relative to the folder of THAT file, so the same relative name in two plugins is two different files)
+    const srcKey = a => (!a.src ? null : a.src.url ? a.src.url : a.src.rel !== null && a.src.rel !== undefined ? `${a.src.base || ''}|${a.src.base === 'file-dir' ? path.posix.dirname(a.file || '') : ''}|${a.src.rel}` : (a.src.raw && a.src.raw !== 'dynamic' ? a.src.raw : null));
+    const regs = Object.entries(result.facts).flatMap(([ref, m]) => m.assets.filter(a => (a.op === 'register' || a.op === 'enqueue') && a.src && srcKey(a)).map(a => ({ ref, file: a.file, line: a.line, handle: String(a.handle).toLowerCase(), type: a.type, src: srcKey(a) })));
+    for (const [key, list] of dupGroups(regs, d => `${d.type}:${d.handle}`)) {
+        const [type, handle] = [key.split(':')[0], key.slice(key.indexOf(':') + 1)];
+        if (corehandles.has(core, type, handle) || new Set(list.map(d => d.ref)).size < 2 || new Set(list.map(d => d.src)).size < 2) continue;
+        pushDup('duplicate-script-handle', handle, list, { handle, handle_type: type }, `the ${type} handle "${handle}" is registered by ${[...new Set(list.map(d => d.ref))].join(' and ')} with different files: WordPress keeps the first and silently ignores the second`);
     }
 
     // theme template overrides older than the plugin's own template

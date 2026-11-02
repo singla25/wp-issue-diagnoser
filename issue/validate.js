@@ -23,12 +23,20 @@ const KEYWORD = {
     shortcode: CALL('add_shortcode'),
     rest: CALL('register_rest_route')
 };
+// one entry per observation type that custom.js adds in step 5 (the scanner records shortcodes, AJAX hooks, REST routes, assets and define())
+const TYPE_KEYWORD = {
+    'duplicate-shortcode': KEYWORD.shortcode, 'duplicate-rest-route': KEYWORD.rest, 'duplicate-ajax-action': KEYWORD.adds,
+    'duplicate-script-handle': KEYWORD.asset, 'duplicate-constant': CALL('define')
+};
 const ASSET_ROLES = /^(enqueue|register|dequeue|deregister|registers replacement)$/;
 const declaration = (kind, name) => { const short = String(name).replace(/^.*\\/, '').replace(/[^\w]/g, ''); return kind === 'class' ? new RegExp(`\\b(?:class|interface|trait|enum)\\s+${short}\\b`, 'i') : new RegExp(`\\bfunction\\s+&?\\s*${short}\\s*\\(`, 'i'); };
 
 // -> the regex the cited line must match, or null when this evidence has no checkable construct
 function keywordFor(h, ev) {
     if (h.type === 'duplicate-declaration' && h.declaration) return declaration(h.declaration.kind, h.declaration.name);
+    // step 5: the cross-component comparisons and the classic adapter. A pattern comes from checks/integrity.js (the tool's own data), never from the site.
+    if (TYPE_KEYWORD[h.type]) return TYPE_KEYWORD[h.type];
+    if (h.class === 'compromise' && h.pattern && h.pattern.source) { try { return new RegExp(h.pattern.source, h.pattern.flags || ''); } catch { return null; } }
     if (ev.role === 'removes') return KEYWORD.removes;
     if (ev.role === 'adds') return KEYWORD.adds;
     if (ev.role === 'declares' && h.callback) return declaration('function', h.callback);
@@ -131,7 +139,15 @@ function run(id, { root, config = null, lint = phpast.phpLint } = {}) {
             hchecks.push(check('bisect', bisectOk ? 'PASSED' : 'FAILED', bisectOk ? `work/bisect.json: [${cause.plugins.join(', ')}] is a minimal set and the sandbox reproduced the symptom` : 'work/bisect.json does not hold a minimal cause matching this hypothesis, or the symptom was not reproduced in the sandbox'));
             if (!bisectOk) kinds.delete('bisect');
         }
-        const deterministic = [...kinds].filter(k => DETERMINISTIC.has(k));
+        // a duplicate declaration that is fatal when both load: if EVERY cited site is re-read and still declares the name, the two sites are two
+        // independent deterministic supports. One site (or a site that failed) is not enough.
+        const siteKinds = [];
+        if (h.type === 'duplicate-declaration' && /^fatal/.test(h.risk || '') && files.length >= 2 && good.length === files.length && new Set(good.map(f => `${f.file}:${f.found_line || f.line}`)).size >= 2) {
+            siteKinds.push('declaration-site-1', 'declaration-site-2');
+            hchecks.push(check('declaration-sites', 'PASSED', `all ${good.length} cited declarations were re-read and each still declares ${h.declaration && h.declaration.name}`));
+            notes.push('both declaration sites were re-read and verified: they count as two deterministic supports');
+        }
+        const deterministic = [...kinds].filter(k => DETERMINISTIC.has(k)).concat(siteKinds);
         // ---- the verdict ----
         let status = h.status;
         if (bisectOk) status = 'REPRODUCIBLE';
@@ -139,6 +155,8 @@ function run(id, { root, config = null, lint = phpast.phpLint } = {}) {
         else if (bad.length) { status = h.status === 'UNVERIFIED' ? 'UNVERIFIED' : 'PROBABLE_NEEDS_REVIEW'; notes.push(`${bad.length} of ${files.length} cited location(s) failed re-verification, so it cannot be CONFIRMED`); }
         else if (deterministic.length >= 2 && (good.length > 0 || kinds.has('log') || kinds.has('probe'))) status = 'CONFIRMED';
         else if (h.status === 'UNVERIFIED' || h.status === 'PROBABLE_NEEDS_REVIEW') status = deterministic.length ? 'PROBABLE_NEEDS_REVIEW' : 'UNVERIFIED';
+        // a static match of a malware pattern is evidence of the pattern, not proof of a compromise: at most "needs review" (the gate always shows it)
+        if (h.class === 'compromise' && status === 'CONFIRMED') { status = 'PROBABLE_NEEDS_REVIEW'; notes.push('compromise findings are never CONFIRMED from a pattern match alone; a person must look at the file'); }
         if (status === 'CONFIRMED' && symptom === 'no') { status = 'PROBABLE_NEEDS_REVIEW'; notes.push('the symptom was NOT reproduced on the probed pages / in the sandbox, so static agreement alone is not enough to confirm it'); }
         if (status === 'REPRODUCIBLE' && symptom === 'no') status = 'PROBABLE_NEEDS_REVIEW';
         if (oracle.agrees === false && ['CONFIRMED', 'REPRODUCIBLE'].includes(status)) { status = 'PROBABLE_NEEDS_REVIEW'; notes.push('the stored oracle answer did not match its recomputation'); }
@@ -152,4 +170,4 @@ function run(id, { root, config = null, lint = phpast.phpLint } = {}) {
     return result;
 }
 
-module.exports = { KEYWORD, keywordFor, CALL, declaration, verifyEvidence, run, policyFor };
+module.exports = { KEYWORD, TYPE_KEYWORD, keywordFor, CALL, declaration, verifyEvidence, run, policyFor };

@@ -181,4 +181,4 @@ async function run(ctx) {
     return [...localPatterns(ctx), ...nulled(ctx), ...await core(ctx), ...await plugins(ctx)];
 }
 
-module.exports = { run, PATTERNS };
+module.exports = { run, PATTERNS, localPatterns };   // localPatterns: the offline part, used by issue/classic-adapter.js

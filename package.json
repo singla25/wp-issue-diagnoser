@@ -38,7 +38,9 @@
     "selftest:isolation-static": "node scripts/selftest-isolation-static.js",
     "selftest:playwright": "node scripts/selftest-playwright.js",
     "selftest:probe": "node scripts/selftest-probe.js",
-    "selftest:oracle-redirect": "node scripts/selftest-oracle-redirect.js"
+    "selftest:oracle-redirect": "node scripts/selftest-oracle-redirect.js",
+    "selftest:classic-adapter": "node scripts/selftest-classic-adapter.js",
+    "selftest:issue-dups": "node scripts/selftest-issue-dups.js"
   },
   "license": "ISC",
   "dependencies": {
