@@ -69,7 +69,8 @@
     "selftest:gate": "node scripts/selftest-gate.js",
     "selftest:gate-output": "node scripts/selftest-gate-output.js",
     "selftest:plugin-guard": "node scripts/selftest-plugin-guard.js",
-    "selftest:sandbox-failure": "node scripts/selftest-sandbox-failure.js"
+    "selftest:sandbox-failure": "node scripts/selftest-sandbox-failure.js",
+    "selftest:sandbox-copy-names": "node scripts/selftest-sandbox-copy-names.js"
   },
   "license": "ISC",
   "dependencies": {

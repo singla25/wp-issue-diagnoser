@@ -81,6 +81,19 @@ function pluginFolders(dir) {
 }
 
 // o: { root, options: { sandbox, dump, exportDb, keepRealData, neutralisePayments, withUploads, maxSizeMb, keepSandbox, maxLoads, maxMinutes, noBisect }, analysis, env }
+// An activation that stops with "Failed to open stream" / "Failed opening required" on a file: is that file in the ORIGINAL site but not in the copy? Then the copy step
+// dropped it, and the report says so instead of leaving the reader to blame the plugin. Read-only on the original; null when it cannot be told.
+function missingFromCopy(stderr, originalRoot, copyRoot) {
+    const text = String(stderr);
+    if (!originalRoot || !/(No such file or directory|Failed opening required)/i.test(text)) return null;
+    for (const m of text.matchAll(/\/var\/www\/html\/(wp-content\/[^'"\s:)(]+)/g)) {
+        const rel = m[1];
+        if (rel.split('/').includes('..')) continue;
+        try { if (fs.lstatSync(path.join(originalRoot, rel)).isFile() && !fs.existsSync(path.join(copyRoot, rel))) return rel; } catch { /* not in the original either */ }
+    }
+    return null;
+}
+
 async function run(id, o) {
     const issue = store.load(id), dir = store.dirOf(id), opt = o.options || {}, steps = [];
     const out = { steps, bisect: null, sandbox: null, reproduced_in_sandbox: null };
@@ -129,7 +142,8 @@ async function run(id, o) {
         // A failed activation is NOT "the symptom did not appear": without the site's plugins the page proves nothing. No baseline, no bisection, and
         // reproduced_in_sandbox stays null, which every later stage reads as "no sandbox evidence" (same as a run without --sandbox).
         if (actFailed) {
-            out.could_not_run = `the plugins of your site could not be switched on in it: ${actFailed.slice(0, 160)}`;
+            const lost = missingFromCopy(actFailed, o.root, path.join(handle.dir, 'site'));
+            out.could_not_run = `the plugins of your site could not be switched on in it: ${actFailed.slice(0, 160)}${lost ? `. The file ${lost} exists in your site but was not in the copy, so this is a copy problem, not a problem in your plugin` : ''}`;
             steps.push(step('sandbox-oracle', 'Oracle in the sandbox: is the symptom present?', 'NOT_RUN', `not run: ${out.could_not_run}. This is no evidence either way; the verdict is the one a run without the sandbox gives.`));
             steps.push(step('bisect', 'Bisection', 'NOT_RUN', 'the sandbox could not activate the plugins, so there is nothing to bisect'));
             throw Object.assign(new Error('sandbox could not activate the plugins'), { pgSkip: true });   // jumps to the teardown below; nothing else runs
@@ -165,4 +179,4 @@ async function run(id, o) {
     return done();
 }
 
-module.exports = { run, makeTester, makeApplier, pluginFolders, names, step };
+module.exports = { run, missingFromCopy, makeTester, makeApplier, pluginFolders, names, step };
