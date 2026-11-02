@@ -17,6 +17,7 @@ const ownership = require('../lib/ownership');
 const schema = require('../lib/schema');
 const phpast = require('./phpast');
 const surface = require('./surface');
+const compat = require('./compat');
 const corehandles = require('./corehandles');
 
 const MAX_FILES = 2500;
@@ -59,7 +60,7 @@ function deepFacts(root, comp, policy, { onlyCustomFiles, capped }) {
         if (st.size > phpast.MAX_BYTES) { stats.too_big++; continue; }
         if (capped && (out.length >= INSPECT_MAX_FILES || stats.bytes + st.size > INSPECT_MAX_BYTES)) { stats.truncated = true; break; }
         stats.bytes += st.size;
-        const f = phpast.analyse(fs.readFileSync(abs, 'utf8'), rel);
+        const f = phpast.analyse(fs.readFileSync(abs, 'utf8'), rel, { watch: compat.watch });
         if (f.parsed) stats.parsed++;
         else {
             stats.failed++;
@@ -88,7 +89,7 @@ function surfaceFacts(root, comp, policy) {
         // Registrations built in a loop over a static array (WooCommerce's shortcode table) are invisible to the regex scanner. Files that
         // look like that get the syntax tree, which resolves such arrays; every other file keeps the cheap regex surface.
         if (LOOP_REGISTRATION.test(text)) {
-            const f = phpast.analyse(text, siteRel(root, abs));
+            const f = phpast.analyse(text, siteRel(root, abs), { watch: compat.watch });
             if (f.parsed) { f.targeted_tree = true; targeted++; out.push(f); continue; }
         }
         out.push(surface.scan(text, siteRel(root, abs), scanByRel.get(relInComp)));
@@ -97,7 +98,7 @@ function surfaceFacts(root, comp, policy) {
 }
 
 // merge per-file facts into component facts (every entry carries its file)
-const KEYS = ['functions', 'classes', 'constants', 'hooks', 'shortcodes', 'rest', 'ajax', 'assets', 'localize', 'cpts', 'taxonomies', 'blocks', 'menus', 'options', 'globals', 'db', 'includes'];
+const KEYS = ['functions', 'classes', 'constants', 'hooks', 'shortcodes', 'rest', 'ajax', 'assets', 'localize', 'cpts', 'taxonomies', 'blocks', 'menus', 'options', 'globals', 'db', 'includes', 'calls'];
 function merge(fileFacts) {
     const m = Object.fromEntries(KEYS.map(k => [k, []]));
     for (const f of fileFacts) for (const k of KEYS) for (const e of f[k] || []) m[k].push({ ...e, file: f.file, ...(f.bundled ? { bundled: true } : {}) });
@@ -161,6 +162,7 @@ function analyse(root, { policy, hints = [], focus = {}, discovered = components
         let updated = null; try { updated = new Date(Math.max(...[mainAbs, path.join(c.dir, 'style.css'), path.join(c.dir, 'readme.txt')].filter(f => fs.existsSync(f)).map(f => fs.statSync(f).mtimeMs))).toISOString(); } catch { /* unreadable */ }
         result.components.push({
             implied: [...impliedMap.values()].sort((a, b) => a.slug.localeCompare(b.slug)), parent_theme: c.template || null, updated_at: updated,
+            requires_php: c.requiresPhp || null, requires_wp: c.requiresWp || null, tested_up_to: compat.testedUpTo(c), main_file: c.kind === 'dropin' ? rel : c.single ? rel : `${rel}/${c.main}`,
             ref: c.ref, kind: c.kind, slug: c.slug, name: c.name || c.slug, version: c.version || null, description: c.description || null, requires_plugins: c.requiresPlugins || [],
             path: rel, ownership: own.owner, ownership_reason: own.reason, depth: deep ? 'syntax-tree' : 'surface', inspection_only: !custom, files: r.stats,
             counts: Object.fromEntries(KEYS.filter(k => merged[k].length).map(k => [k, merged[k].length]))

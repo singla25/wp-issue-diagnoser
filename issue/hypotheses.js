@@ -41,12 +41,14 @@ const FAMILY_SYMPTOMS = {
     template: ['layout', 'form-checkout', 'wrong-content', 'js-error'],
     config: ['wrong-content', 'form-checkout', 'login-admin', 'redirect', 'slow', 'other'],   // PHP only warns about a second define(): never the 'fatal' family
     compromise: ['white-screen', 'redirect', 'js-error', 'wrong-content', 'login-admin', 'other'],
-    redirect: ['redirect', 'login-admin', 'wrong-content']
+    redirect: ['redirect', 'login-admin', 'wrong-content'],
+    compat: ['white-screen', 'login-admin', 'form-checkout', 'wrong-content', 'js-error', 'redirect', 'other']
 };
 const FAMILY_OF = { 'duplicate-declaration': 'fatal', 'syntax-error': 'fatal', 'missing-function': 'fatal', 'error-in-component': 'fatal', 'missing-dependency': 'fatal', 'js-error-in-component': 'js', 'failed-asset': 'js', 'bisect-minimal-set': 'bisect',
     'library-version-conflict': 'js', 'duplicate-library': 'js', 'js-global-collision': 'js', 'jquery-api-version-mismatch': 'js', 'script-missing-dependency': 'js', 'handle-replaced': 'js', 'handle-removed': 'js', 'dependency-handle-not-registered': 'js', 'localize-object-collision': 'js',
     'css-selector-overlap': 'layout', 'template-override-outdated': 'template', 'remove-wrong-priority': 'hook', 'removes-other-component-hook': 'hook', 'hook-same-priority': 'hook', 'kb': 'cache',
-    'duplicate-constant': 'config', 'duplicate-shortcode': 'hook', 'duplicate-ajax-action': 'hook', 'duplicate-rest-route': 'hook', 'duplicate-script-handle': 'js' };
+    'duplicate-constant': 'config', 'duplicate-shortcode': 'hook', 'duplicate-ajax-action': 'hook', 'duplicate-rest-route': 'hook', 'duplicate-script-handle': 'js',
+    'removed-function-call': 'fatal', 'requires-php-mismatch': 'compat', 'requires-wp-mismatch': 'compat', 'tested-up-to-older': 'compat' };
 
 const MECH = {
     'duplicate-declaration': o => `${o.declaration.kind} ${o.declaration.name} is declared in ${o.components.join(' and ')}. When both load, PHP stops with "Cannot redeclare" and the page is blank (${o.risk}).`,
@@ -64,6 +66,10 @@ MECH['duplicate-ajax-action'] = o => `${o.components.join(' and ')} both handle 
 MECH['duplicate-rest-route'] = o => `${o.components.join(' and ')} both register the REST route /${o.route}. Only one can answer, so clients get the other's response format.`;
 MECH['duplicate-script-handle'] = o => `${o.components.join(' and ')} both register the ${o.handle_type} handle "${o.handle}" with different files. WordPress keeps the first and ignores the second, so what loads depends on plugin order.`;
 MECH['duplicate-constant'] = o => `${o.components.join(' and ')} both define the constant ${o.constant}. PHP keeps the first value and only prints a warning, so one of them runs with the other's value. This is not a crash.`;
+MECH['removed-function-call'] = o => `${o.components.join(' and ')} calls ${o.function}(), which was removed in PHP ${o.removed_in}. On PHP ${o.removed_in} or newer the call stops PHP with "Call to undefined function ${o.function}()". Checked ${o.php_label}.`;
+MECH['requires-php-mismatch'] = o => `${o.components.join(' and ')} says it needs PHP ${o.requires}; checked ${o.php_label}. A plugin run on an older PHP than it was written for can fail on load. This is the plugin's own statement, not an observed failure.`;
+MECH['requires-wp-mismatch'] = o => `${o.components.join(' and ')} says it needs WordPress ${o.requires}; this site runs ${o.wp_version}. It may use functions this WordPress does not have. This is the plugin's own statement, not an observed failure.`;
+MECH['tested-up-to-older'] = o => `${o.components.join(' and ')} was last tested with WordPress ${o.tested}; this site runs ${o.wp_version}. Newer WordPress versions can change behaviour a plugin relies on. A reminder, not a fault.`;
 const COLL_MECH = {
     'library-version-conflict': c => `${c.library} is loaded in more than one version (${c.versions.join(', ')}) by ${c.components.join(', ')}; plugins attached to one copy do not exist on the other.`,
     'duplicate-library': c => `${c.library} is loaded more than once by ${c.components.join(', ')}; the second copy can replace the first one's plugins and globals.`,
@@ -73,6 +79,7 @@ const COLL_MECH = {
     'css-selector-overlap': c => `${c.components.join(' and ')} style "${c.selector}" with different values for ${c.conflicting_properties.map(p => p.property).join(', ')}; which one wins depends on load order and specificity.`
 };
 
+const ADVISORY_TYPES = new Set(['removed-function-call', 'requires-php-mismatch', 'requires-wp-mismatch', 'tested-up-to-older']);
 const NEW_DUP_TYPES = new Set(['duplicate-shortcode', 'duplicate-ajax-action', 'duplicate-rest-route', 'duplicate-script-handle', 'duplicate-constant']);
 const toRef = id => String(id).replace(/^plugin:/, '');
 const dayMs = 86400000;
@@ -121,13 +128,26 @@ function build(ctx) {
 
     // ---- observations ----
     const clueCx = require('./clue-match').context(evidence, issue, FAMILY_SYMPTOMS);
+    const bisectComps = new Set(((ctx.bisect && ctx.bisect.causes) || []).flatMap(c => c.plugins.map(toRef)));
+    const probeClueOf = comp => evidence.clues.find(c => c.source.kind === 'probe' && c.detail && c.detail.component && toRef(c.detail.component) === comp);
+    const probeComps = new Set(evidence.clues.filter(c => c.source.kind === 'probe' && c.detail && c.detail.component).map(c => toRef(c.detail.component)));
     for (const o of analysis.observations) {
         // duplicates of a shortcode / AJAX action / REST route / handle / constant are common and mostly harmless: they become a hypothesis only when
         // custom code is involved or the report points at them (a named component, a file in a log, or a symptom this kind of problem produces)
+        // advisories (versions in headers, calls to removed functions) stay in custom-code.json unless a clue implicates the component
+        if (o.advisory && !o.components.some(c => clueCx.named.has(c) || bisectComps.has(c) || probeComps.has(c))) continue;
         if (NEW_DUP_TYPES.has(o.type) && !o.custom && !require('./clue-match').matches({ components: o.components, evidence: o.evidence, family: FAMILY_OF[o.type], severity: 'P3' }, clueCx).ok) continue;
         const fam = o.family || FAMILY_OF[o.type] || 'hook';
         const mech = MECH[o.type] ? MECH[o.type](o) : o.type.startsWith('classic:') ? `${o.message}. ${o.detail || ''}`.trim() : o.message;
         add(o.type, o.components, o.type === 'duplicate-declaration' ? o.declaration.name.toLowerCase() : o.id, [{ kind: 'observation', ref: o.id, text: o.message, file: o.evidence[0] && o.evidence[0].file, line: o.evidence[0] && o.evidence[0].line }], { family: fam, mechanism: mech, obs: o, custom: o.custom });
+    }
+    // a removed-function advisory is corroborated by a log fatal that names the function ("Call to undefined function each()"), or by a probe observation
+    // from the same component (the bisection attaches its own support further down)
+    for (const c of cands.values()) {
+        if (!c.obs || c.obs.type !== 'removed-function-call') continue;
+        for (const lc of logClues) if (lc.type === 'php-undefined-function' && String(lc.value).replace(/^.*[\\:>]/, '').toLowerCase() === c.obs.function && !c.supports.some(x => x.ref === lc.id)) c.supports.push({ kind: 'log', ref: lc.id, text: `log: Call to undefined function ${lc.value}()` });
+        const pc = c.components.map(probeClueOf).find(Boolean);
+        if (pc) c.supports.push({ kind: 'probe', ref: pc.id, text: `live page: "${String(pc.value).slice(0, 100)}" from ${c.components.join(', ')}` });
     }
     // ---- collisions ----
     for (const c of collide.collisions) {
@@ -221,11 +241,13 @@ function build(ctx) {
         if (fam === 'fatal' && logPassed && !anyFatalInLog && !bestOf('log').length) { c.contradicts.push({ kind: 'log', text: 'the log was read and contains no fatal error' }); bd.push({ rule: 'contradiction', points: W.contradiction, why: 'the log was read and contains no fatal error' }); }
         const score = round(bd.reduce((s, x) => s + x.points, 0));
         const deterministic = ['log', 'bisect', 'probe', 'observation', 'collision'].some(k => kinds.has(k));
+        // advisory: a version number or a call that has not been seen failing. A removed-function call stops being advisory when a log, a probe observation or the bisection backs it.
+        const advisory = !!(c.obs && c.obs.advisory) && !(c.obs.type === 'removed-function-call' && ['log', 'probe', 'bisect'].some(k => kinds.has(k)));
         out.push({ id: schema.stableId('hyp', c.key), title: titleOf(c), type: c.type, family: fam, components: c.components, mechanism: c.mechanism || c.obs && c.obs.message || c.type, supports: c.supports.map(({ kind, ref, text, file, line }) => ({ kind, ref, text, file: file || null, line: line || null })), contradicts: c.contradicts,
-            class: (c.obs && c.obs.class) || null, active_state: (c.obs && c.obs.active_state) || null, severity: (c.obs && c.obs.severity) || null, score, score_breakdown: bd, status: independent.length >= 2 && deterministic ? 'PROBABLE_NEEDS_REVIEW' : 'UNVERIFIED', custom_involved: custom, kb: c.kb || [], kb_verified: c.kbHit ? c.kbHit.verified : null, kb_sources: c.kbHit ? c.kbHit.sources.map(s => s.url) : [], kb_beyond_sources: c.kbHit ? c.kbHit.beyond_sources : null,
+            advisory: advisory, class: (c.obs && c.obs.class) || null, active_state: (c.obs && c.obs.active_state) || null, severity: (c.obs && c.obs.severity) || null, score, score_breakdown: bd, status: !advisory && independent.length >= 2 && deterministic ? 'PROBABLE_NEEDS_REVIEW' : 'UNVERIFIED', custom_involved: custom, kb: c.kb || [], kb_verified: c.kbHit ? c.kbHit.verified : null, kb_sources: c.kbHit ? c.kbHit.sources.map(s => s.url) : [], kb_beyond_sources: c.kbHit ? c.kbHit.beyond_sources : null,
             oracle: oracleFor(c, issue), evidence: (c.obs && c.obs.evidence) || (c.coll && c.coll.evidence) || [] });
     }
-    out.sort((a, b) => b.score - a.score || a.id.localeCompare(b.id));
+    out.sort((a, b) => (a.advisory ? 1 : 0) - (b.advisory ? 1 : 0) || b.score - a.score || a.id.localeCompare(b.id));   // an advisory never outranks a real hypothesis
     // a hypothesis nothing but a weak index/description mention supports is not worth a place in the short list
     const eligible = out.filter(h => h.supports.some(s => ['log', 'bisect', 'probe', 'observation', 'collision', 'kb-verified', 'kb-unverified', 'graph-relevant', 'graph-relevant-unverified'].includes(s.kind)));
     const rep = ctx.reproduced && ctx.reproduced.result !== 'could-not-test' ? ctx.reproduced : (ctx.sandboxReproduced ? { result: ctx.sandboxReproduced, reason: 'sandbox', type: 'sandbox' } : ctx.reproduced || null);

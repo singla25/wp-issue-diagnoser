@@ -116,10 +116,12 @@ function guardNames(test) { // if ( ! function_exists( 'x' ) ) -> ['x']
 }
 
 function emptyFacts(file) {
-    return { file, parsed: false, errors: [], fallback: null, functions: [], classes: [], constants: [], hooks: [], shortcodes: [], rest: [], ajax: [], assets: [], localize: [], cpts: [], taxonomies: [], blocks: [], menus: [], options: [], globals: [], db: [], includes: [], registry: [], noAbspathGuard: null };
+    return { file, parsed: false, errors: [], fallback: null, functions: [], classes: [], constants: [], hooks: [], calls: [], calls: [], shortcodes: [], rest: [], ajax: [], assets: [], localize: [], cpts: [], taxonomies: [], blocks: [], menus: [], options: [], globals: [], db: [], includes: [], registry: [], noAbspathGuard: null };
 }
 
-function analyse(source, file) {
+// opts.watch: (lowercase name) => boolean. Plain function calls whose name it accepts are recorded in `calls` (method calls, static calls and
+// namespaced calls never are), each with `guarded`: the call sits inside an if whose test mentions function_exists( 'same name' ), in either polarity.
+function analyse(source, file, opts = {}) {
     const f = emptyFacts(file);
     ENV = null; ARRS = [new Map()]; CLASS = null;
     let ast;
@@ -152,6 +154,7 @@ function analyse(source, file) {
         }
         if (!fn) return;
         const bare = fn.replace(/^\\/, '');
+        if (opts.watch && !bare.includes('\\')) { const lower = bare.toLowerCase(); if (opts.watch(lower)) f.calls.push({ name: lower, line: ln, guarded: guards.some(g => String(g).toLowerCase() === lower) }); }
         if (/^(add|remove)_(action|filter)$/.test(bare)) {
             const h = str(arg(c, 0));
             if (!h) return;

@@ -40,7 +40,9 @@
     "selftest:probe": "node scripts/selftest-probe.js",
     "selftest:oracle-redirect": "node scripts/selftest-oracle-redirect.js",
     "selftest:classic-adapter": "node scripts/selftest-classic-adapter.js",
-    "selftest:issue-dups": "node scripts/selftest-issue-dups.js"
+    "selftest:issue-dups": "node scripts/selftest-issue-dups.js",
+    "selftest:removed-functions": "node scripts/selftest-removed-functions.js",
+    "selftest:compat": "node scripts/selftest-compat.js"
   },
   "license": "ISC",
   "dependencies": {

@@ -73,6 +73,15 @@ function render() {
         for (const x of (r ? r.evidence : [])) L.push(`    - ${x.found ? 'FOUND' : 'MISSING'} (${x.role}) \`${esc(x.claim)}\` at ${x.url}${x.excerpt ? `: "${esc(quote(x.excerpt)).slice(0, 220)}"` : ''}`);
         L.push('');
     }
+    // ---- removed functions (data/removed-wp-functions.json) ----
+    const rf = fs.existsSync(path.join(__dirname, '..', 'data', 'removed-wp-functions.json')) ? load('removed-wp-functions.json') : { entries: [] };
+    L.push('---', '', '## Appendix: removed functions (`data/removed-wp-functions.json`)', '',
+        'Used by `issue/compat.js` to say that a component calls a function that no longer exists. An entry with *Verified: no* is NEVER matched. The claim phrase is what the cited page must contain; the note says how it was checked. These entries are not yet part of `guard:verify-knowledge`, so the claim phrases were read by hand.', '',
+        '| Entry | Kind | Functions | Removed in | Verified | Claim phrase | Source |', '|---|---|---|---|---|---|---|');
+    for (const e of rf.entries) L.push(`| \`${e.id}\` | ${e.kind} | ${esc([...(e.match.exact || []), ...(e.match.prefix ? [`${e.match.prefix}*${e.match.except && e.match.except.length ? ` (not ${e.match.except.join(', ')})` : ''}`] : [])].map(x => `\`${x}\``).join(', '))} | ${e.kind === 'php' ? 'PHP' : 'WordPress'} ${esc(e.removed_in)} | ${e.verified ? 'yes' : '**no**'} | \`${esc(e.claim)}\` | <${e.source.url}> |`);
+    L.push('');
+    for (const e of rf.entries) L.push(`- \`${e.id}\`: ${esc(e.verified_note || '')}`);
+    L.push('');
     return L.join('\n');
 }
 

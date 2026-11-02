@@ -45,6 +45,12 @@ function run(id, { root, config = null } = {}) {
     try { classic = require('./classic-adapter').adapt(root, { policy, issue, evidence, existing: analysis.observations }); }
     catch (e) { classic = { observations: [], skipped: [], crashed: [{ check: 'classic-adapter', message: e.message }], considered: 0 }; }
     analysis.observations.push(...classic.observations);
+    // static compatibility: advisory observations (versions in headers, calls to removed functions); they become hypotheses only with a clue
+    let compat = null;
+    try { compat = require('./compat').run(root, analysis, { issue }); }
+    catch (e) { compat = { observations: [], step: { id: 'compat', label: 'Static compatibility (PHP / WordPress versions, removed functions)', status: 'FAILED', reason: e.message } }; }
+    analysis.observations.push(...compat.observations);
+    analysis.steps.push(compat.step);
     analysis.observations.sort((a, b) => a.type.localeCompare(b.type) || a.id.localeCompare(b.id));
     analysis.steps.push({ id: 'classic-checks', label: 'Classic checks (conflicts, dependencies, themes, drop-ins, wp-config, file integrity)', status: classic.crashed.length && !classic.considered ? 'FAILED' : 'PASSED',
         reason: `${classic.considered} finding(s) considered, ${classic.observations.length} kept${classic.skipped.length ? `, ${classic.skipped.length} left out (${[...new Set(classic.skipped.map(x => x.reason))].slice(0, 3).join('; ')})` : ''}; plugin activity is unknown without WP-CLI, so these are marked "active state unknown"${classic.crashed.length ? `; crashed: ${classic.crashed.map(c => c.check).join(', ')}` : ''}`,

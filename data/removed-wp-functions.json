@@ -1,0 +1,56 @@
+{
+  "_about": "PHP and WordPress functions that no longer exist in a given version, for issue/compat.js. Same style as known-conflicts.json: every entry has a source URL and a claim phrase that the cited page must contain. An entry with \"verified\": false is NEVER matched by compat.js. Only functions that are really gone are listed, not merely deprecated ones (WordPress's get_currentuserinfo is deprecated but still defined, so it is not here). No WordPress-level entry is verified yet, so none is listed. The claim phrases below were read by hand on 2026-11-02; `npm run guard:verify-knowledge` is not extended to this file yet.",
+  "schema": 1,
+  "entries": [
+    {
+      "id": "php-each",
+      "kind": "php",
+      "match": { "exact": ["each"] },
+      "removed_in": "8.0",
+      "source": { "url": "https://www.php.net/manual/en/function.each.php", "title": "PHP manual: each()" },
+      "claim": "REMOVED as of PHP 8.0.0",
+      "verified": true,
+      "verified_note": "phrase found on the page on 2026-11-02: \"This function has been DEPRECATED as of PHP 7.2.0, and REMOVED as of PHP 8.0.0.\""
+    },
+    {
+      "id": "php-create-function",
+      "kind": "php",
+      "match": { "exact": ["create_function"] },
+      "removed_in": "8.0",
+      "source": { "url": "https://www.php.net/manual/en/function.create-function.php", "title": "PHP manual: create_function()" },
+      "claim": "REMOVED as of PHP 8.0.0",
+      "verified": true,
+      "verified_note": "phrase found on the page on 2026-11-02: \"This function has been DEPRECATED as of PHP 7.2.0, and REMOVED as of PHP 8.0.0.\""
+    },
+    {
+      "id": "php-mysql",
+      "kind": "php",
+      "match": { "prefix": "mysql_", "except": ["mysql_to_rfc3339"] },
+      "removed_in": "7.0",
+      "source": { "url": "https://www.php.net/manual/en/book.mysql.php", "title": "PHP manual: Original MySQL API" },
+      "claim": "has been removed as of PHP 7.0.0",
+      "verified": true,
+      "verified_note": "phrase found on the page on 2026-11-02: \"This extension is deprecated as of PHP 5.5.0, and has been removed as of PHP 7.0.0.\" mysql_to_rfc3339() is excepted: it is a WordPress function, not part of the removed extension."
+    },
+    {
+      "id": "php-ereg",
+      "kind": "php",
+      "match": { "exact": ["ereg", "eregi", "ereg_replace", "eregi_replace"] },
+      "removed_in": "7.0",
+      "source": { "url": "https://www.php.net/manual/en/migration70.incompatible.php", "title": "PHP manual: Backward incompatible changes in PHP 7.0" },
+      "claim": "All ereg functions were removed",
+      "verified": true,
+      "verified_note": "phrase found on the PHP 7.0 migration guide on 2026-11-02 (the version is the guide's); the per-function manual pages (function.ereg.php) answered 404."
+    },
+    {
+      "id": "php-split",
+      "kind": "php",
+      "match": { "exact": ["split", "spliti"] },
+      "removed_in": "7.0",
+      "source": { "url": "https://www.php.net/manual/en/function.split.php", "title": "PHP manual: split() (page no longer exists)" },
+      "claim": "removed as of PHP 7.0.0",
+      "verified": false,
+      "verified_note": "NOT verified: function.split.php answered 404 on 2026-11-02 and no PHP manual page that could be fetched states that split() was removed (the 7.0 migration guide mentions it only as str_split()). compat.js never matches an unverified entry."
+    }
+  ]
+}

@@ -677,3 +677,23 @@ Each setting lists what the admin screen calls it, the stored key (only when a p
     - FOUND (key) `'name' => 'e_optimized_css_files'` at https://plugins.svn.wordpress.org/elementor/tags/4.3.5/core/experiments/manager.php: "ctive' => true, 'minimum_installation_version' => '3.30.0', ], ] ); $this->add_feature( [ 'name' => 'e_optimized_css_files', 'title' => esc_html__( 'Optimized CSS Files', 'elementor' ), 'tag' => esc_html__( 'Perfo"
     - FOUND (label) `Keeps external CSS files available and consistent for sites behind page caching or a CDN` at https://plugins.svn.wordpress.org/elementor/tags/4.3.5/core/experiments/manager.php: "ntor' ), 'tag' => esc_html__( 'Performance', 'elementor' ), 'description' => esc_html__( 'Keeps external CSS files available and consistent for sites behind page caching or a CDN.', 'elementor' ), 'release_status' => sel"
     - FOUND (key) `OPTION_PREFIX = 'elementor_experiment-'` at https://plugins.svn.wordpress.org/elementor/tags/4.3.5/core/experiments/manager.php: "ACTIVE = 'active'; const STATE_INACTIVE = 'inactive'; const TYPE_HIDDEN = 'hidden'; const OPTION_PREFIX = 'elementor_experiment-'; private $states; private $release_statuses; private $features; /** * Add Feature * * Eac"
+
+---
+
+## Appendix: removed functions (`data/removed-wp-functions.json`)
+
+Used by `issue/compat.js` to say that a component calls a function that no longer exists. An entry with *Verified: no* is NEVER matched. The claim phrase is what the cited page must contain; the note says how it was checked. These entries are not yet part of `guard:verify-knowledge`, so the claim phrases were read by hand.
+
+| Entry | Kind | Functions | Removed in | Verified | Claim phrase | Source |
+|---|---|---|---|---|---|---|
+| `php-each` | php | `each` | PHP 8.0 | yes | `REMOVED as of PHP 8.0.0` | <https://www.php.net/manual/en/function.each.php> |
+| `php-create-function` | php | `create_function` | PHP 8.0 | yes | `REMOVED as of PHP 8.0.0` | <https://www.php.net/manual/en/function.create-function.php> |
+| `php-mysql` | php | `mysql_* (not mysql_to_rfc3339)` | PHP 7.0 | yes | `has been removed as of PHP 7.0.0` | <https://www.php.net/manual/en/book.mysql.php> |
+| `php-ereg` | php | `ereg`, `eregi`, `ereg_replace`, `eregi_replace` | PHP 7.0 | yes | `All ereg functions were removed` | <https://www.php.net/manual/en/migration70.incompatible.php> |
+| `php-split` | php | `split`, `spliti` | PHP 7.0 | **no** | `removed as of PHP 7.0.0` | <https://www.php.net/manual/en/function.split.php> |
+
+- `php-each`: phrase found on the page on 2026-11-02: "This function has been DEPRECATED as of PHP 7.2.0, and REMOVED as of PHP 8.0.0."
+- `php-create-function`: phrase found on the page on 2026-11-02: "This function has been DEPRECATED as of PHP 7.2.0, and REMOVED as of PHP 8.0.0."
+- `php-mysql`: phrase found on the page on 2026-11-02: "This extension is deprecated as of PHP 5.5.0, and has been removed as of PHP 7.0.0." mysql_to_rfc3339() is excepted: it is a WordPress function, not part of the removed extension.
+- `php-ereg`: phrase found on the PHP 7.0 migration guide on 2026-11-02 (the version is the guide's); the per-function manual pages (function.ereg.php) answered 404.
+- `php-split`: NOT verified: function.split.php answered 404 on 2026-11-02 and no PHP manual page that could be fetched states that split() was removed (the 7.0 migration guide mentions it only as str_split()). compat.js never matches an unverified entry.

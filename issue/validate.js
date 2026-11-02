@@ -26,7 +26,8 @@ const KEYWORD = {
 // one entry per observation type that custom.js adds in step 5 (the scanner records shortcodes, AJAX hooks, REST routes, assets and define())
 const TYPE_KEYWORD = {
     'duplicate-shortcode': KEYWORD.shortcode, 'duplicate-rest-route': KEYWORD.rest, 'duplicate-ajax-action': KEYWORD.adds,
-    'duplicate-script-handle': KEYWORD.asset, 'duplicate-constant': CALL('define')
+    'duplicate-script-handle': KEYWORD.asset, 'duplicate-constant': CALL('define'),
+    'requires-php-mismatch': /Requires PHP/i, 'requires-wp-mismatch': /Requires at least/i, 'tested-up-to-older': /Tested up to/i
 };
 const ASSET_ROLES = /^(enqueue|register|dequeue|deregister|registers replacement)$/;
 const declaration = (kind, name) => { const short = String(name).replace(/^.*\\/, '').replace(/[^\w]/g, ''); return kind === 'class' ? new RegExp(`\\b(?:class|interface|trait|enum)\\s+${short}\\b`, 'i') : new RegExp(`\\bfunction\\s+&?\\s*${short}\\s*\\(`, 'i'); };
@@ -36,6 +37,7 @@ function keywordFor(h, ev) {
     if (h.type === 'duplicate-declaration' && h.declaration) return declaration(h.declaration.kind, h.declaration.name);
     // step 5: the cross-component comparisons and the classic adapter. A pattern comes from checks/integrity.js (the tool's own data), never from the site.
     if (TYPE_KEYWORD[h.type]) return TYPE_KEYWORD[h.type];
+    if (h.type === 'removed-function-call' && h.function) return CALL(String(h.function).replace(/[^\w]/g, ''));
     if (h.class === 'compromise' && h.pattern && h.pattern.source) { try { return new RegExp(h.pattern.source, h.pattern.flags || ''); } catch { return null; } }
     if (ev.role === 'removes') return KEYWORD.removes;
     if (ev.role === 'adds') return KEYWORD.adds;
@@ -155,6 +157,9 @@ function run(id, { root, config = null, lint = phpast.phpLint } = {}) {
         else if (bad.length) { status = h.status === 'UNVERIFIED' ? 'UNVERIFIED' : 'PROBABLE_NEEDS_REVIEW'; notes.push(`${bad.length} of ${files.length} cited location(s) failed re-verification, so it cannot be CONFIRMED`); }
         else if (deterministic.length >= 2 && (good.length > 0 || kinds.has('log') || kinds.has('probe'))) status = 'CONFIRMED';
         else if (h.status === 'UNVERIFIED' || h.status === 'PROBABLE_NEEDS_REVIEW') status = deterministic.length ? 'PROBABLE_NEEDS_REVIEW' : 'UNVERIFIED';
+        // an advisory (a version header, or a removed-function call nothing has corroborated) is never CONFIRMED or REPRODUCIBLE. One that a log fatal,
+        // a probe observation or the bisection backs has advisory: false from hypotheses.js and takes the normal path above.
+        if (h.advisory && ['CONFIRMED', 'REPRODUCIBLE'].includes(status)) { status = 'PROBABLE_NEEDS_REVIEW'; notes.push('advisory: nothing has been seen failing because of it, so it is never CONFIRMED'); }
         // a static match of a malware pattern is evidence of the pattern, not proof of a compromise: at most "needs review" (the gate always shows it)
         if (h.class === 'compromise' && status === 'CONFIRMED') { status = 'PROBABLE_NEEDS_REVIEW'; notes.push('compromise findings are never CONFIRMED from a pattern match alone; a person must look at the file'); }
         if (status === 'CONFIRMED' && symptom === 'no') { status = 'PROBABLE_NEEDS_REVIEW'; notes.push('the symptom was NOT reproduced on the probed pages / in the sandbox, so static agreement alone is not enough to confirm it'); }
