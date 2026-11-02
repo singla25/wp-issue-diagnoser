@@ -47,11 +47,11 @@ function build(analysis) {
 }
 
 // -> observations for hypotheses.js. observed: a probe or the sandbox saw a redirect. symptom: the issue's symptom.
-function join(map, { observed = false, symptom = null, refOf = {} } = {}) {
+function join(map, { observed = false, symptom = null, reported = false, refOf = {} } = {}) {
     const out = [];
     for (const e of map) {
         if (e.context !== 'hook') continue;
-        if (!observed && !(symptom === 'redirect' && !e.common)) continue;      // common hooks are a clue, not a finding, unless a redirect was seen
+        if (!observed && !((symptom === 'redirect' || reported) && !e.common)) continue;      // common hooks are a clue, not a finding, unless a redirect was seen
         const hooks = e.hooks.map(h => `${h.hook}${h.priority === null || h.priority === undefined ? '' : ' @' + h.priority}`).join(', ');
         const c = refOf[e.component];
         out.push({ type: 'redirect-on-hook', components: [e.component], custom: !!c && !c.inspection_only, observed: !!observed, common: e.common, hook: e.hooks[0].hook, hooks: e.hooks, call: e.call, target: e.target,

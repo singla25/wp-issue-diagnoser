@@ -156,7 +156,7 @@ function build(ctx) {
     // custom-code.json. This module emits UNVERIFIED / PROBABLE_NEEDS_REVIEW at most: validate.js alone assigns CONFIRMED, REPRODUCIBLE and REJECTED_FALSE_POSITIVE.
     const redirectClues = evidence.clues.filter(c => c.type === 'probe-redirect');
     const redirectObserved = redirectClues.length > 0 || !!ctx.sandboxRedirect;
-    for (const o of require('./redirects').join(analysis.redirect_map || [], { observed: redirectObserved, symptom: issue.symptom, refOf })) {
+    for (const o of require('./redirects').join(analysis.redirect_map || [], { observed: redirectObserved, symptom: issue.symptom, reported: !!(((issue.questions || {}).asked || {}).redirect && !(((issue.questions || {}).asked || {}).redirect.skipped)), refOf })) {
         const sup = [{ kind: 'observation', ref: o.id, text: o.message, file: o.evidence[0].file, line: o.evidence[0].line }];
         if (redirectClues.length) sup.push({ kind: 'probe', ref: redirectClues[0].id, text: `live page: ${redirectClues[0].value}` });
         const seen = redirectClues.length ? `The live page showed it: ${redirectClues[0].value}.` : ctx.sandboxRedirect ? 'The sandbox copy showed a redirect problem.' : 'The reported symptom is a redirect; none was observed on the probed pages.';

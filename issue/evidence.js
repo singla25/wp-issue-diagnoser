@@ -32,7 +32,7 @@ function componentHints(list) {
     return [...m.values()].map(e => ({ component: e.component, score: e.score, sources: [...e.sources].sort() })).sort((a, b) => b.score - a.score || a.component.localeCompare(b.component));
 }
 
-async function run(id, { root = null, maxLogBytes, recognizer = ocr.recognize, probeOptions = {}, probeEnv = process.env } = {}) {
+async function run(id, { root = null, maxLogBytes, recognizer = ocr.recognize, probeOptions = {}, probeEnv = process.env, beforeProbe = null } = {}) {
     const issue = store.load(id), dir = store.dirOf(id);
     const steps = [], all = [], notices = [];
     const addNotices = (text, src) => notices.push(...clues.notices(text, src));
@@ -106,6 +106,14 @@ async function run(id, { root = null, maxLogBytes, recognizer = ocr.recognize, p
             ? stepOf('logs', 'debug.log / error_log', 'PASSED', tzNote || null, { files: logResult.files.map(f => f.ref), entries: logResult.entries.length, window_from: since, timezone_assumed: assumed, timezone_unknown: unknown })
             : stepOf('logs', 'debug.log / error_log', 'NOT_RUN', `no debug.log or error_log found under ${path.basename(root)} (WP_DEBUG_LOG may be off): this is not evidence that nothing went wrong`));
         for (const p of logResult.problems) steps.push(stepOf('logs-file', `Log file ${p.split(':')[0]}`, 'SKIPPED', p));
+    }
+
+    // ---- follow-up questions that need the clues so far (OCR, logs, description) and can still change what the probe loads (symptom, oracle, pages, screen size).
+    // The hook may update the issue through the store; the issue is re-read so nothing it saved is overwritten by this function. ----
+    if (beforeProbe) {
+        const extra = await beforeProbe({ clues: clues.sortClues(all) });
+        if (extra && extra.probeOptions) Object.assign(probeOptions, extra.probeOptions);
+        Object.assign(issue, store.load(id));
     }
 
     // ---- live probe, oracle, "is the original public", screenshot comparison (read-only, governed; see probe.js) ----
