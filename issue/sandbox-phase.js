@@ -84,7 +84,7 @@ function pluginFolders(dir) {
 async function run(id, o) {
     const issue = store.load(id), dir = store.dirOf(id), opt = o.options || {}, steps = [];
     const out = { steps, bisect: null, sandbox: null, reproduced_in_sandbox: null };
-    const done = () => { if (o.noWrite) return out; try { fs.writeFileSync(path.join(dir, 'work', 'sandbox.json'), JSON.stringify({ steps, sandbox: out.sandbox, reproduced_in_sandbox: out.reproduced_in_sandbox, baseline: out.baseline || null, redirect_observed: !!out.redirect_observed }, null, 2) + '\n', { mode: 0o600 }); } catch { /* work folder missing */ } return out; };
+    const done = () => { if (o.noWrite) return out; try { fs.writeFileSync(path.join(dir, 'work', 'sandbox.json'), JSON.stringify({ steps, sandbox: out.sandbox, could_not_run: out.could_not_run || undefined, reproduced_in_sandbox: out.reproduced_in_sandbox, baseline: out.baseline || null, redirect_observed: !!out.redirect_observed }, null, 2) + '\n', { mode: 0o600 }); } catch { /* work folder missing */ } return out; };
     if (!opt.sandbox) { steps.push(step('sandbox', 'Sandbox (throwaway copy in Docker)', 'NOT_RUN', 'not requested: add --sandbox (needs Docker and a local copy of the site)')); return done(); }
     if (!o.root) { steps.push(step('sandbox', 'Sandbox (throwaway copy in Docker)', 'NOT_RUN', 'a local copy of the site (--root) is needed')); return done(); }
     const pf = sandbox.preflight(o.sandboxOptions || {});
@@ -104,8 +104,9 @@ async function run(id, o) {
         const comps = o.analysis ? o.analysis.components : [];
         // the plugins are those of the COPY itself (folders with a plugin header), plus whatever the analysis named: never an empty set by accident
         const slugs = new Set([...comps.filter(c => c.kind === 'plugin').map(c => c.slug), ...pluginFolders(path.join(handle.dir, 'site', 'wp-content', 'plugins'))]);
+        let actFailed = null;   // the plugins of the site could not be switched on: the sandbox does not match the site, so it gives NO evidence either way
         const fresh = handle.steps.find(s => s.id === 'database' && /fresh WordPress install/.test(s.reason || ''));
-        if (fresh) { const all = [...slugs].sort(); if (all.length) { const r = handle.wp.run(['plugin', 'activate', ...all]); if (!r.ok) steps.push(step('sandbox-activate', 'Sandbox: activate the plugins of the copy', 'FAILED', r.stderr.trim().split('\n')[0])); } }
+        if (fresh) { const all = [...slugs].sort(); if (all.length) { const r = handle.wp.run(['plugin', 'activate', ...all]); if (!r.ok) { actFailed = r.stderr.trim().split('\n')[0]; steps.push(step('sandbox-activate', 'Sandbox: activate the plugins of the copy', 'FAILED', actFailed)); } } }
         const active = names(handle.wp.run(['plugin', 'list', '--status=active', '--field=name'])).filter(p => slugs.has(p) || true).sort();
         const requires = {};
         for (const p of active) { const c = comps.find(x => x.kind === 'plugin' && x.slug === p); if (!c) continue; requires[p] = [...new Set([...(c.requires_plugins || []), ...(c.implied || []).filter(i => !i.soft).map(i => i.slug)])].filter(d => active.includes(d) && d !== p).sort(); }
@@ -125,6 +126,14 @@ async function run(id, o) {
         const tester = makeTester({ handle, issueId: id, env, plugins: active, requires, defaultTheme, siteTheme, muAll, login, options: { viewports: opt.viewports, probePages: opt.probePages }, log: m => steps.push(step('sandbox-note', 'Sandbox note', 'PASSED', m)) });
 
         // ---- does the sandbox show the symptom at all? ----
+        // A failed activation is NOT "the symptom did not appear": without the site's plugins the page proves nothing. No baseline, no bisection, and
+        // reproduced_in_sandbox stays null, which every later stage reads as "no sandbox evidence" (same as a run without --sandbox).
+        if (actFailed) {
+            out.could_not_run = `the plugins of your site could not be switched on in it: ${actFailed.slice(0, 160)}`;
+            steps.push(step('sandbox-oracle', 'Oracle in the sandbox: is the symptom present?', 'NOT_RUN', `not run: ${out.could_not_run}. This is no evidence either way; the verdict is the one a run without the sandbox gives.`));
+            steps.push(step('bisect', 'Bisection', 'NOT_RUN', 'the sandbox could not activate the plugins, so there is nothing to bisect'));
+            throw Object.assign(new Error('sandbox could not activate the plugins'), { pgSkip: true });   // jumps to the teardown below; nothing else runs
+        }
         const base = await tester({ plugins: active, theme: null, mu: null });
         out.baseline = tester.last ? { ...tester.last, active_plugins: [...active] } : null;
         out.redirect_observed = !!tester.redirectSeen;   // only the baseline run has happened here: the sandbox as it is
@@ -143,8 +152,10 @@ async function run(id, o) {
         } else if (base === 'fail') steps.push(step('bisect', 'Bisection', 'NOT_RUN', 'switched off with --no-bisect'));
         else steps.push(step('bisect', 'Bisection', 'NOT_RUN', base === 'pass' ? 'the symptom is not present in the sandbox, so there is nothing to bisect' : 'the symptom could not be evaluated in the sandbox'));
     } catch (e) {
+        if (e.pgSkip) { /* already reported above: no sandbox evidence */ } else {
         steps.push(step('sandbox', 'Sandbox (throwaway copy in Docker)', e.name === 'SandboxRefusal' || e.name === 'SandboxUnavailable' ? 'BLOCKED' : 'FAILED', e.message.replace(/\s*\n\s*/g, ' ').slice(0, 600)));
         if (!steps.some(s => s.id === 'bisect')) steps.push(step('bisect', 'Bisection', 'NOT_RUN', 'the sandbox did not start'));
+        }
     } finally {
         if (handle && !opt.keepSandbox) {
             const rep = handle.destroy();

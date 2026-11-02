@@ -115,7 +115,7 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
     for (const x of split.advisories) x.type_text = TYPE_TEXT[x.label];
     f.findings = split.findings;
     f.advisories = split.advisories;
-    f.summary = summaryMod.summarise(split, { ran, verbose });
+    f.summary = summaryMod.summarise(split, { ran: { ...ran, sandboxFailed: (sbx && sbx.could_not_run) || null }, verbose });
     f.gate = { enabled: true, verbose: !!verbose, ran, counts: split.counts, rejected: split.rejected };
     // the options of the fix plan get their own undo text
     for (const r of f.resolution) { const plan = planOf.get(r.hypothesis), rb = rollbackMod.rollbackFor(plan); r.options.forEach((o, i) => { o.undo = rb.options[i] ? rb.options[i].undo : null; }); }

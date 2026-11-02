@@ -42,6 +42,7 @@ function summarise(split, { ran = {}, verbose = false } = {}) {
     }
     const nothingRan = !ran.probe && !ran.sandbox;
     if (nothingRan) lines.push(NO_CHECK);
+    if (ran.sandboxFailed) lines.push(`Note: the sandbox test could not run, and this is no evidence either way: ${String(ran.sandboxFailed).replace(/[.\s]+$/, "")}.`);
     if (nothingRan && !causes.length && !compromise.length && !adv.length) lines.push(NOT_HEALTHY);
     return { headline, lines, text: lines.join('\n'), counts: split.counts, compromise_sentence: compromise.length ? COMPROMISE_SENTENCE : null };
 }
