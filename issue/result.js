@@ -41,7 +41,8 @@ function build(id, { validation, plans, dir, gate = false, verbose = false }) {
     }));
     const planOf = new Map(plans.map(p => [p.hypothesis, p]));
     const sbx = W('sandbox.json'), bis = W('bisect.json'), ev = W('evidence.json'), probe = W('probe.json');
-    const steps = [...((ev && ev.steps) || []), ...((sbx && sbx.steps) || [])].map(s => ({ id: s.id, label: s.label, status: s.status, reason: s.reason || null }));
+    const intakeW = W('intake.json');   // written only by the plugin-guard wizard (lib/wizard.js): what was copied / read / not read
+    const steps = [...((intakeW && intakeW.steps) || []), ...((ev && ev.steps) || []), ...((sbx && sbx.steps) || [])].map(s => ({ id: s.id, label: s.label, status: s.status, reason: s.reason || null }));
     // ---- what the page shows besides the verdict: the report as written, the components involved, the graph slice, the rest ----
     const sl = W('sl.json') || { nodes: [], edges: [], also_found: {} }, comps = (W('components.json') || { components: [] }).components, fidx = W('feature-index.json') || { providers: [] };
     const roles = new Map();

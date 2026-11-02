@@ -2,12 +2,33 @@
   "name": "wordpress-dev-agent-plugin-guard",
   "version": "0.3.0",
   "private": true,
+  "bin": {
+    "plugin-guard": "scripts/plugin-guard.js"
+  },
+  "files": [
+    "scripts/plugin-guard.js",
+    "scripts/guard.js",
+    "scripts/setup-ocr.js",
+    "scripts/setup-sandbox.js",
+    "scripts/verify-knowledge.js",
+    "guard.js",
+    "lib/",
+    "issue/",
+    "probe/",
+    "checks/",
+    "agents/",
+    "data/",
+    "!data/ocr/*.traineddata",
+    "THIRD-PARTY.md",
+    "README.md"
+  ],
   "description": "Read-only WordPress plugin interdependency, conflict and exposure analysis with generated fix patches",
   "engines": {
     "node": ">=20.12"
   },
   "scripts": {
     "guard": "node scripts/guard.js",
+    "plugin-guard": "node scripts/plugin-guard.js",
     "selftest": "node scripts/selftest.js",
     "selftest:agents": "node scripts/selftest-agents.js",
     "selftest:html": "node scripts/selftest-html.js",
@@ -46,7 +67,8 @@
     "selftest:redirect-map": "node scripts/selftest-redirect-map.js",
     "selftest:questions": "node scripts/selftest-questions.js",
     "selftest:gate": "node scripts/selftest-gate.js",
-    "selftest:gate-output": "node scripts/selftest-gate-output.js"
+    "selftest:gate-output": "node scripts/selftest-gate-output.js",
+    "selftest:plugin-guard": "node scripts/selftest-plugin-guard.js"
   },
   "license": "ISC",
   "dependencies": {
