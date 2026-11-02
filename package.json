@@ -45,7 +45,8 @@
     "selftest:compat": "node scripts/selftest-compat.js",
     "selftest:redirect-map": "node scripts/selftest-redirect-map.js",
     "selftest:questions": "node scripts/selftest-questions.js",
-    "selftest:gate": "node scripts/selftest-gate.js"
+    "selftest:gate": "node scripts/selftest-gate.js",
+    "selftest:gate-output": "node scripts/selftest-gate-output.js"
   },
   "license": "ISC",
   "dependencies": {

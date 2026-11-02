@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:">
+<title>Issue report</title><style>:root{--bg:#f6f7f9;--card:#fff;--ink:#1d2330;--muted:#4f5868;--line:#c9ced8;--accent:#1d4f91;--ok:#1e6b3a;--warn:#7a5200;--bad:#a12020;--info:#374151;--focus:#0b57d0;--add:#14532d;--addbg:#e3f4e8;--del:#7f1d1d;--delbg:#fbe9e9}
+@media (prefers-color-scheme:dark){:root{--bg:#12151b;--card:#1b2029;--ink:#e6e9ef;--muted:#b3bccb;--line:#3a4352;--accent:#8ab4f8;--ok:#7ee0a0;--warn:#f2cc60;--bad:#ff9a92;--info:#c4ccd9;--focus:#8ab4f8;--add:#9be7b4;--addbg:#14301f;--del:#ffb4ae;--delbg:#3a1a1a}}
+*{box-sizing:border-box}html{font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}body{margin:0;background:var(--bg);color:var(--ink)}
+main{max-width:1000px;margin:0 auto;padding:16px}h1{font-size:1.5rem;margin:.2em 0;overflow-wrap:anywhere}h2{font-size:1.2rem;margin:1.6em 0 .5em;border-bottom:1px solid var(--line);padding-bottom:4px}h3{font-size:1rem;margin:1em 0 .3em;overflow-wrap:anywhere}
+.meta{color:var(--muted);overflow-wrap:anywhere;margin:.2em 0}a{color:var(--accent)}code,pre{font:.85em/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:10px 0}
+.verdict{border-left:8px solid var(--warn)}.verdict[data-tone=ok]{border-left-color:var(--ok)}.verdict[data-tone=bad]{border-left-color:var(--bad)}
+.verdict .label{font-size:1.3rem;font-weight:700}.pill{display:inline-block;font-size:.75rem;font-weight:700;border:1px solid currentColor;border-radius:99px;padding:1px 9px;margin:0 4px 2px 0;white-space:nowrap}
+.p-ok{color:var(--ok)}.p-warn{color:var(--warn)}.p-bad{color:var(--bad)}.p-info{color:var(--info)}
+dl{display:grid;grid-template-columns:170px 1fr;gap:4px 12px;margin:8px 0 0}dt{color:var(--muted)}dd{margin:0;overflow-wrap:anywhere}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);font-size:.9rem}th,td{border-bottom:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top;overflow-wrap:anywhere}th{color:var(--muted);font-weight:600}
+.scroll{overflow-x:auto;max-width:100%}
+.reported{white-space:pre-wrap;overflow-wrap:anywhere}.thumbs{display:flex;flex-wrap:wrap;gap:10px;margin:8px 0}
+.thumb{padding:0;border:1px solid var(--line);background:var(--card);border-radius:6px;cursor:zoom-in;max-width:100%}.thumb img{display:block;max-width:180px;max-height:140px;border-radius:6px}
+dialog{max-width:96vw;max-height:94vh;overflow:auto;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px}dialog img{max-width:100%;height:auto;display:block}::backdrop{background:rgba(0,0,0,.6)}
+button{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:6px;padding:6px 10px;min-height:36px;cursor:pointer}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+details{margin:6px 0}summary{cursor:pointer;padding:4px 0}.ocr{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px}
+svg.graph{width:100%;height:auto;max-height:420px;background:var(--card);border:1px solid var(--line);border-radius:8px}
+svg.graph .edge{stroke:var(--muted);stroke-width:1.6;fill:none}svg.graph .edge.e-dash{stroke-dasharray:6 4}svg.graph .edge.e-dot{stroke-dasharray:1.5 4;stroke-linecap:round}
+svg.graph .node circle{fill:var(--card);stroke:var(--accent);stroke-width:2.5}svg.graph .node.seed circle{stroke-width:5}svg.graph .node.sel circle{fill:var(--accent)}svg.graph .node text{fill:var(--ink);font-size:11px;text-anchor:middle;pointer-events:none}svg.graph .node.sel text{fill:var(--bg)}
+svg.graph .node:focus-visible{outline:none}svg.graph .node:focus-visible circle{stroke:var(--focus);stroke-width:6}
+.opt{border:1px solid var(--line);border-radius:8px;background:var(--card);padding:10px 12px;margin:8px 0}.opt h4{margin:0 0 4px;font-size:.95rem;overflow-wrap:anywhere}
+pre.diff,pre.code{margin:6px 0;overflow-x:auto;max-width:100%;border:1px solid var(--line);border-radius:6px;background:var(--bg);padding:6px 0}pre.diff span,pre.code span{display:block;padding:0 10px;white-space:pre}
+pre.diff .add{color:var(--add);background:var(--addbg)}pre.diff .del{color:var(--del);background:var(--delbg)}pre.diff .hdr{color:var(--muted)}
+ul.v{margin:4px 0;padding-left:20px}ul.v li{overflow-wrap:anywhere}.empty{padding:16px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:8px;background:var(--card)}
+nav.toc{display:flex;flex-wrap:wrap;gap:6px 14px;margin:8px 0}.small{font-size:.85rem;color:var(--muted)}
+input[type=search]{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:6px;padding:6px 8px;min-height:36px;width:100%}label{display:block;color:var(--muted);font-size:.85rem;margin:6px 0 2px}
+@media (max-width:600px){dl{grid-template-columns:1fr}dt{margin-top:6px}main{padding:12px}}
+.note-strong{margin:8px 0}
+</style></head>
+<body><main>
+<h1 id="title"></h1>
+<p class="meta" id="meta"></p>
+<nav class="toc" id="toc" aria-label="Sections"></nav>
+<div id="content"></div>
+</main>
+<script type="application/json" id="pg-data">{"findings":{"schema":1,"generator":"plugin-guard issue mode","generated_at":"<TIME>","issue":{"id":"<ISSUE>","title":"Gate output fixture","symptom":"white-screen","environment":"local","oracle":{"type":"http-5xx","value":null,"defaulted":true},"pages":["/"],"needs_login":false},"verdict":{"label":"Probable cause","confidence":"medium-high","symptom_reproduced":"could-not-test","notes":[]},"hypotheses":[{"id":"hyp-21c30c3d7d","title":"Duplicate declaration: plugin-a + plugin-b","status":"CONFIRMED","score":11.5,"advisory":false,"class":null,"active_state":null,"family":"fatal","components":["plugin-a","plugin-b"],"mechanism":"function my_helper is declared in plugin-a and plugin-b. When both load, PHP stops with \"Cannot redeclare\" and the page is blank (fatal-if-both-load).","supports":[{"kind":"log","ref":"clue-af9cb229c8","text":"log: Cannot redeclare my_helper() (seen 1x, last <TIME>)","file":"PHP Fatal error: Cannot redeclare my_helper() (previously declared in <ROOT>/wp-content/plugins/plugin-a/plugin-a.php:5) in <ROOT>/wp-content/plugins/plugin-b/plugin-b.php on lin","line":null},{"kind":"observation","ref":"obs-53ff13fef9","text":"function my_helper() is declared in 2 places","file":"wp-content/plugins/plugin-a/plugin-a.php","line":8}],"contradicts":[],"score_breakdown":[{"rule":"support:log","points":3,"why":"a log line (parsed, certain) names it (1)"},{"rule":"support:observation","points":2.5,"why":"the code analysis found the construct, with file and line (1)"},{"rule":"independent-sources","points":1.5,"why":"2 kinds of source agree: log, observation"},{"rule":"stack:error-site","points":3,"why":"the logged error was raised in plugin-b"},{"rule":"custom","points":1.5,"why":"custom code involved: plugin-b"}],"oracle":{"oracle":{"type":"http-5xx","value":null,"generic":true},"action":{"do":"deactivate","components":["plugin-a","plugin-b"],"then":"run the oracle"},"needs_sandbox":true,"text":"In a throwaway copy: deactivate plugin-a and plugin-b one at a time and together, then run the oracle (generic oracle for this symptom). If the symptom disappears only then, this hypothesis is confirmed; if it stays, it is rejected."},"checks":[{"id":"evidence:wp-content/plugins/plugin-a/plugin-a.php:8","status":"PASSED","reason":"construct found at line 8"},{"id":"evidence:wp-content/plugins/plugin-b/plugin-b.php:8","status":"PASSED","reason":"construct found at line 8"},{"id":"support:log","status":"PASSED","reason":"the log clue is still in evidence.json"},{"id":"php-l:wp-content/plugins/plugin-a/plugin-a.php","status":"PASSED","reason":"no syntax error"},{"id":"php-l:wp-content/plugins/plugin-b/plugin-b.php","status":"PASSED","reason":"no syntax error"},{"id":"declaration-sites","status":"PASSED","reason":"all 2 cited declarations were re-read and each still declares my_helper"}],"validation_notes":["both declaration sites were re-read and verified: they count as two deterministic supports"],"independent_kinds":["log","observation"],"ownership":[{"file":"wp-content/plugins/plugin-a/plugin-a.php","owner":"unknown"},{"file":"wp-content/plugins/plugin-b/plugin-b.php","owner":"custom"}],"fix_eligible":false,"kb_verified":null,"kb_sources":[]}],"resolution":[{"hypothesis":"hyp-21c30c3d7d","options":[{"type":"human","who":"needs-a-human","title":"wp-content/plugins/plugin-a/plugin-a.php:8","detail":"no automatic patch: not custom code (unknown: not inside any customPaths entry: ownership is not assumed (a plugin name or location does not prove it is custom). Add it to customPaths to allow fix tasks.)","verification":[]},{"type":"patch","who":"send-to-claude-code","title":"Wrap function my_helper() in a function_exists() guard","detail":"my_helper is declared here and also elsewhere; if both files load, PHP stops with \"Cannot redeclare\". The guard makes the first one that loads win. It does NOT decide which copy should win: that is a decision for the owner (see the other resolution options). Note that a guarded function is defined when the line runs, not at compile time.","file":"wp-content/plugins/plugin-b/plugin-b.php","line":8,"generator":"function-guard","diff":"--- a/wp-content/plugins/plugin-b/plugin-b.php\n+++ b/wp-content/plugins/plugin-b/plugin-b.php\n@@ -5,8 +5,10 @@\n  */\n defined( 'ABSPATH' ) || exit;\n \n-function my_helper( $x ) {\n-\treturn $x . 'b';\n+if ( ! function_exists( 'my_helper' ) ) {\n+\tfunction my_helper( $x ) {\n+\t\treturn $x . 'b';\n+\t}\n }\n add_filter( 'the_title', 'my_helper' );\n \n","verification":[{"id":"diff-applies","status":"PASSED","reason":"the diff applies cleanly to the original text and gives exactly the new text"},{"id":"php-l","status":"PASSED","reason":"the patched file has no syntax error"},{"id":"scanner-rerun","status":"PASSED","reason":"the PHP scanner no longer reports the problem in the patched text"}],"verified":true,"not_verified":["The oracle has not been re-run with this patch applied; that happens in `issue retest` (against a fixed copy or the sandbox)."]},{"type":"plugin","who":"needs-a-human","title":"Deactivate, replace or update Plugin A","detail":"Switching off Plugin A 1.0.0 would stop: whatever it provides (no feature in the table maps to it; read its description: none). Of the two plugins that declare the same name, deactivate the one whose features you need least, or ask its author to prefix the name.","plugin":"plugin-a","lost_features":[],"verification":[],"not_verified":["Which plugin to deactivate is a decision for the site owner; Plugin Guard does not make it."]},{"type":"plugin","who":"needs-a-human","title":"Deactivate, replace or update Plugin B","detail":"Switching off Plugin B 1.0.0 would stop: whatever it provides (no feature in the table maps to it; read its description: none). Of the two plugins that declare the same name, deactivate the one whose features you need least, or ask its author to prefix the name.","plugin":"plugin-b","lost_features":[],"verification":[],"not_verified":["Which plugin to deactivate is a decision for the site owner; Plugin Guard does not make it."]}]}],"validation":{"checks":[{"id":"oracle","status":"NOT_RUN","reason":"work/probe.json holds no page observations to recompute from"}],"oracle":{"recomputed":null,"stored":"could-not-test","agrees":null}},"timeline":[{"id":"description","label":"Description and taxonomy","status":"PASSED","reason":null},{"id":"ocr","label":"OCR of screenshots","status":"NOT_RUN","reason":"no screenshots were attached"},{"id":"logs","label":"debug.log / error_log","status":"PASSED","reason":null},{"id":"live-probe","label":"Live page probe","status":"NOT_RUN","reason":"the live probe was switched off (--no-probe)"},{"id":"original-public","label":"Are the originals of the screenshots public?","status":"NOT_RUN","reason":"no screenshot came from inside the WordPress folder"},{"id":"oracle","label":"Oracle: is the symptom present?","status":"NOT_RUN","reason":"symptom reproduced: could not test (the live probe was switched off (--no-probe))"},{"id":"image-diff","label":"Screenshot comparison (expected vs actual)","status":"NOT_RUN","reason":"no image pair was given: name two screenshots expected-\u003cname\u003e and actual-\u003cname\u003e (or baseline-/before- and broken-/after-) to compare them"}],"sandbox":null,"bisect":null,"probe":{"planned":null,"oracle":{"result":"could-not-test","reason":"the live probe was switched off (--no-probe)","matches":[]}},"notices":[],"reported":{"description":"White screen after activating Plugin B","since":null,"changed_before":null,"pages":["/"],"url":"http://127.0.0.1:9/","images":[]},"components":[{"ref":"plugin-a","name":"Plugin A","kind":"plugin","version":"1.0.0","ownership":"third-party","roles":[],"in_hypotheses":["Duplicate declaration: plugin-a + plugin-b"],"evidence":[]},{"ref":"plugin-b","name":"Plugin B","kind":"plugin","version":"1.0.0","ownership":"custom","roles":[],"in_hypotheses":["Duplicate declaration: plugin-a + plugin-b"],"evidence":[]}],"graph":{"nodes":[],"edges":[],"dropped":0},"also_found":{"observations":[],"collisions":[]},"retests":[],"limits":["A hypothesis is CONFIRMED only when at least two independent deterministic sources agree after re-checking the code; it is REPRODUCIBLE only when the sandbox reproduced the symptom and the bisection found a minimal set. Neither is proof that the code change below fixes it: only `issue retest` can set FIXED_VERIFIED.","Patch generators exist for four patterns only: removal at the wrong hook priority, a missing function_exists / class_exists guard, a custom copy replacing a WordPress core script or style, and a dependency on a handle nobody registers. Everything else is \"needs a human\".","Only custom code (the customPaths allowlist) is ever named in a code task. Core, vendor, third-party and unknown-owner code is not.","Settings suggestions come from the knowledge base in words; exact option names are not stored, so they are guidance and were not applied in the sandbox.","Plugin Guard never edits the site. Patches and shims are files in this report for a person (or a separate Claude Code session) to review and apply on a copy."],"counts":{"REPRODUCIBLE":0,"CONFIRMED":1,"PROBABLE_NEEDS_REVIEW":0,"UNVERIFIED":0,"FIXED_VERIFIED":0,"REJECTED_FALSE_POSITIVE":0},"finding_ids":["fnd-e76c60325c"]},"images":[]}</script>
+<script>'use strict';
+// Client script of issue.html. Built from ONE embedded JSON object. Every piece of text goes in through textContent / setAttribute only,
+// nothing is parsed as markup, nothing is evaluated and nothing is fetched. Text from the site, logs, screenshots or the reporter is data.
+(function () {
+    var D = JSON.parse(document.getElementById('pg-data').textContent), F = D.findings;
+    var NS = 'http://www.w3.org/2000/svg';
+    function el(t, a, k) { var e = document.createElement(t); if (a) for (var n in a) { if (n === 'text') e.textContent = a[n]; else e.setAttribute(n, a[n]); } (k || []).forEach(function (c) { if (c != null) e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); }); return e; }
+    function sv(t, a, k) { var e = document.createElementNS(NS, t); if (a) for (var n in a) { if (n === 'text') e.textContent = a[n]; else e.setAttribute(n, a[n]); } (k || []).forEach(function (c) { if (c) e.appendChild(c); }); return e; }
+    function sec(id, title) { var s = el('section', { 'aria-labelledby': id + '-h', id: id }); s.appendChild(el('h2', { id: id + '-h', text: title })); document.getElementById('content').appendChild(s); return s; }
+    function pill(text, tone) { return el('span', { class: 'pill p-' + (tone || 'info'), text: text }); }
+    function field(dl, k, v) { if (v == null || v === '' || (Array.isArray(v) && !v.length)) return; dl.appendChild(el('dt', { text: k })); var dd = el('dd'); if (Array.isArray(v)) { var ul = el('ul', { class: 'v' }); v.forEach(function (x) { ul.appendChild(el('li', { text: String(x) })); }); dd.appendChild(ul); } else dd.textContent = String(v); dl.appendChild(dd); }
+    function first(s) { var m = /^(.+?[.!?])(\s|$)/.exec(String(s || '')); return m ? m[1] : String(s || ''); }
+    function tone(st) { return { CONFIRMED: 'ok', REPRODUCIBLE: 'ok', FIXED_VERIFIED: 'ok', PROBABLE_NEEDS_REVIEW: 'warn', UNVERIFIED: 'warn', REJECTED_FALSE_POSITIVE: 'info' }[st] || 'info'; }
+    var WHO = { 'you-can-do-this': 'You can do this', 'send-to-claude-code': 'Send to Claude Code', 'needs-a-human': 'Needs a human' };
+    var live = F.hypotheses.filter(function (h) { return h.status !== 'REJECTED_FALSE_POSITIVE'; });
+    var optsOf = function (hid) { var r = F.resolution.filter(function (x) { return x.hypothesis === hid; })[0]; return r ? r.options : []; };
+
+    // ---------------------------------------------------------------- header
+    document.getElementById('title').textContent = F.issue.title;
+    document.getElementById('meta').textContent = 'Issue ' + F.issue.id + ' · symptom ' + F.issue.symptom + ' · environment ' + F.issue.environment + ' · generated ' + F.generated_at;
+    var toc = document.getElementById('toc');
+
+    // ---------------------------------------------------------------- 1. verdict
+    var s1 = sec('verdict', 'Verdict'), v = F.verdict, top = live[0] || null;
+    var vc = el('div', { class: 'card verdict', 'data-tone': /Fixed|Reproduced/.test(v.label) ? 'ok' : v.label === 'Could not test' ? 'bad' : 'warn' });
+    vc.appendChild(el('div', { class: 'label', text: v.label }));
+    vc.appendChild(el('p', { class: 'meta', text: 'Confidence: ' + v.confidence + ' · symptom reproduced: ' + v.symptom_reproduced }));
+    var dl1 = el('dl');
+    field(dl1, 'Cause', top ? first(top.title + '. ' + top.mechanism) + ' [' + top.status.replace(/_/g, ' ') + ']' : 'No hypothesis survived validation.');
+    var all = F.resolution.reduce(function (a, r) { return a.concat(r.options); }, []);
+    var best = all.filter(function (o) { return o.verified_in_sandbox === true; })[0] || all.filter(function (o) { return o.type === 'patch' || o.type === 'shim'; })[0] || all.filter(function (o) { return o.type === 'settings'; })[0] || null;
+    var cands = all.filter(function (o) { return o.test_to_choose; });
+    if (cands.length && !all.some(function (o) { return o.verified_in_sandbox === true; })) field(dl1, 'Fix', 'Not decided: ' + cands.length + ' candidate shim orders, test to choose (' + cands.map(function (c) { return c.candidate; }).join(' | ') + '). Run with --sandbox to find out which one works.');
+    else field(dl1, 'Fix', best ? best.title + (best.verified_in_sandbox === true ? ' (VERIFIED IN SANDBOX)' : ' (not verified in the sandbox)') : 'No safe automatic fix: a person has to decide (see the resolution options).');
+    var did = F.timeline.filter(function (t) { return t.status === 'PASSED'; }).length, notDone = F.timeline.filter(function (t) { return t.status !== 'PASSED'; });
+    field(dl1, 'Tested', did + ' step(s) ran' + (F.sandbox ? '; sandbox reproduction: ' + F.sandbox.reproduced_in_sandbox : '; no sandbox') + (F.bisect ? '; bisection: ' + F.bisect.status : '') + (F.retests.length ? '; ' + F.retests.length + ' retest(s)' : ''));
+    field(dl1, 'Not tested', notDone.map(function (t) { return t.label + ' (' + t.status + (t.reason ? ': ' + String(t.reason).slice(0, 140) : '') + ')'; }));
+    (v.notes || []).forEach(function (n) { vc.appendChild(el('p', { class: 'note-strong', role: 'note' }, [pill('NOT A PLUGIN CONFLICT', 'bad'), el('strong', { text: ' ' + n })])); });
+    vc.appendChild(dl1); s1.appendChild(vc);
+    if (F.notices && F.notices.length) s1.appendChild(el('div', { class: 'card', role: 'note' }, [pill('INFO', 'info'), el('span', { text: F.notices.length + ' piece(s) of text looked like markup, a command, a path trick or an instruction. They are shown as plain text and were not acted on.' })]));
+    if (F.sandbox && F.sandbox.summary) s1.appendChild(el('div', { class: 'card', role: 'note' }, [pill('SANDBOX LIMIT', 'warn'), el('span', { text: F.sandbox.summary.notice + ' ' + F.sandbox.summary.recommendation })]));
+
+    // ---------------------------------------------------------------- 2. as reported
+    var s2 = sec('reported', 'The issue as reported'), R = F.reported;
+    s2.appendChild(el('p', { class: 'reported', text: R.description || '(no description)' }));
+    var dl2 = el('dl'); field(dl2, 'Since', R.since); field(dl2, 'Changed before', R.changed_before); field(dl2, 'Pages', R.pages); field(dl2, 'Address', R.url); s2.appendChild(dl2);
+    var dlg = el('dialog', { 'aria-label': 'Screenshot' }), dimg = el('img', { alt: '' }), closeB = el('button', { type: 'button', text: 'Close' }), lastBtn = null;
+    dlg.appendChild(closeB); dlg.appendChild(dimg); document.body.appendChild(dlg);
+    closeB.addEventListener('click', function () { dlg.close(); }); dlg.addEventListener('close', function () { if (lastBtn) lastBtn.focus(); });
+    if (R.images.length) {
+        s2.appendChild(el('h3', { text: 'Screenshots from the developer' }));
+        var th = el('div', { class: 'thumbs' });
+        R.images.forEach(function (im) {
+            var emb = D.images.filter(function (x) { return x.name === im.name; })[0];
+            var box = el('div');
+            if (emb && emb.uri) { var b = el('button', { type: 'button', class: 'thumb', 'aria-label': 'Open screenshot ' + im.name + ' larger' }, [el('img', { src: emb.uri, alt: 'Screenshot ' + im.name })]); b.addEventListener('click', function () { lastBtn = b; dimg.setAttribute('src', emb.uri); dimg.setAttribute('alt', 'Screenshot ' + im.name); dlg.showModal(); }); box.appendChild(b); }
+            else box.appendChild(el('p', { class: 'small', text: 'Screenshot ' + im.name + ' is not embedded' + (emb && emb.note ? ': ' + emb.note : '') + '.' }));
+            box.appendChild(el('div', { class: 'small', text: im.name + (im.width ? ' · ' + im.width + '×' + im.height : '') }));
+            var d = el('details'); d.appendChild(el('summary', { text: 'Text read by OCR (may contain mistakes)' }));
+            d.appendChild(el('div', { class: 'ocr', text: im.ocr_text ? im.ocr_text : 'No text was read from this image.' })); box.appendChild(d);
+            th.appendChild(box);
+        });
+        s2.appendChild(th);
+    }
+
+    // ---------------------------------------------------------------- 3. components
+    var s3 = sec('components', 'Involved components');
+    if (!F.components.length) s3.appendChild(el('div', { class: 'empty', text: 'No component could be tied to this report.' }));
+    else {
+        var sc = el('div', { class: 'scroll' }), tb = el('table'); tb.appendChild(el('thead', null, [el('tr', null, ['Component', 'Role in this feature', 'Version', 'Ownership', 'Evidence'].map(function (h) { return el('th', { scope: 'col', text: h }); }))]));
+        var tbd = el('tbody');
+        F.components.forEach(function (c) { tbd.appendChild(el('tr', null, [el('td', { text: c.name + ' (' + c.ref + ')' }), el('td', { text: (c.roles.concat(c.in_hypotheses.map(function (t) { return 'in hypothesis: ' + t; }))).join('; ') || '—' }), el('td', { text: c.version || '—' }), el('td', { text: c.ownership }), el('td', { text: c.evidence.join(', ') || '—' })])); });
+        tb.appendChild(tbd); sc.appendChild(tb); s3.appendChild(sc);
+    }
+
+    // ---------------------------------------------------------------- 4. graph (inline SVG, drawn here)
+    var s4 = sec('graph', 'Dependency and conflict graph for this issue'), G = F.graph;
+    if (!G.nodes.length) s4.appendChild(el('div', { class: 'empty', text: 'The slice around this issue holds no components.' }));
+    else {
+        var W = 360, H = 360, cx = 180, cy = 180, r = G.nodes.length === 1 ? 0 : 128, pos = {};
+        G.nodes.forEach(function (n, i) { var a = -Math.PI / 2 + (2 * Math.PI * i) / G.nodes.length; pos[n.ref] = { x: Math.round(cx + r * Math.cos(a)), y: Math.round(cy + r * Math.sin(a)) }; });
+        var svg = sv('svg', { class: 'graph', viewBox: '0 0 ' + W + ' ' + H, role: 'group', 'aria-label': 'Graph of ' + G.nodes.length + ' components and ' + G.edges.length + ' relations. The same information is listed as text below the graph.' });
+        var kinds = {}; G.edges.forEach(function (e) { var k = e.type.split(':')[0]; if (!(k in kinds)) kinds[k] = Object.keys(kinds).length; });
+        G.edges.forEach(function (e) { var a = pos[e.from], b = pos[e.to]; if (!a || !b) return; var cls = 'edge' + (kinds[e.type.split(':')[0]] % 3 === 1 ? ' e-dash' : kinds[e.type.split(':')[0]] % 3 === 2 ? ' e-dot' : ''); svg.appendChild(sv('line', { class: cls, x1: a.x, y1: a.y, x2: b.x, y2: b.y }, [sv('title', { text: e.from + ' — ' + e.type + ' — ' + e.to + ': ' + e.why })])); });
+        var info = el('div', { class: 'card', id: 'node-info', role: 'status', 'aria-live': 'polite' }); info.textContent = 'Select a component (click, or Tab then Enter) to see why it is in the graph.';
+        var nodeEls = {};
+        function show(ref) {
+            Object.keys(nodeEls).forEach(function (k) { nodeEls[k].setAttribute('class', 'node' + (G.nodes.filter(function (n) { return n.ref === k; })[0].distance === 0 ? ' seed' : '') + (k === ref ? ' sel' : '')); nodeEls[k].setAttribute('aria-pressed', k === ref ? 'true' : 'false'); });
+            var n = G.nodes.filter(function (x) { return x.ref === ref; })[0], why = G.edges.filter(function (e) { return e.from === ref || e.to === ref; });
+            info.textContent = ''; info.appendChild(el('strong', { text: ref })); info.appendChild(el('p', { class: 'small', text: n.distance === 0 ? 'A starting point: the report, the log or a hypothesis points at it directly.' : 'Reached ' + n.distance + ' relation(s) away from a starting point.' }));
+            var ul = el('ul', { class: 'v' }); why.forEach(function (e) { ul.appendChild(el('li', { text: (e.from === ref ? 'with ' + e.to : 'with ' + e.from) + ' — ' + e.type + ': ' + e.why })); }); if (!why.length) ul.appendChild(el('li', { text: 'No relation inside this slice.' })); info.appendChild(ul);
+        }
+        G.nodes.forEach(function (n) {
+            var p = pos[n.ref], g = sv('g', { class: 'node' + (n.distance === 0 ? ' seed' : ''), tabindex: '0', role: 'button', 'aria-pressed': 'false', 'aria-label': 'Component ' + n.ref }, [sv('circle', { cx: p.x, cy: p.y, r: 26 }), sv('text', { x: p.x, y: p.y + 4, text: n.ref.length > 11 ? n.ref.slice(0, 10) + '…' : n.ref })]);
+            g.addEventListener('click', function () { show(n.ref); }); g.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); show(n.ref); } });
+            nodeEls[n.ref] = g; svg.appendChild(g);
+        });
+        s4.appendChild(svg); s4.appendChild(info);
+        var dt = el('details'); dt.appendChild(el('summary', { text: 'Text alternative: all ' + G.edges.length + ' relation(s)' }));
+        var ul2 = el('ul', { class: 'v' }); G.edges.forEach(function (e) { ul2.appendChild(el('li', { text: e.from + ' — ' + e.type + ' — ' + e.to + ': ' + e.why })); }); if (!G.edges.length) ul2.appendChild(el('li', { text: 'No relations.' }));
+        dt.appendChild(ul2); s4.appendChild(dt); if (G.dropped) s4.appendChild(el('p', { class: 'small', text: G.dropped + ' further relation(s) were left out of the slice (kept in work/slice.json).' }));
+    }
+
+    // ---------------------------------------------------------------- 5. timeline
+    var s5 = sec('timeline', 'Investigation timeline'), ol = el('ol', { class: 'v' });
+    F.timeline.forEach(function (t) { ol.appendChild(el('li', null, [pill(t.status, t.status === 'PASSED' ? 'ok' : t.status === 'FAILED' || t.status === 'BLOCKED' ? 'bad' : 'warn'), el('strong', { text: t.label }), t.reason ? el('span', { text: ': ' + t.reason }) : null])); });
+    if (!F.timeline.length) s5.appendChild(el('div', { class: 'empty', text: 'No step was recorded.' })); else s5.appendChild(ol);
+
+    // ---------------------------------------------------------------- 6. bisect log
+    var s6 = sec('bisect', 'Bisect log'), B = F.bisect;
+    if (!B) s6.appendChild(el('div', { class: 'empty', text: 'The bisection did not run (it needs --sandbox and a reproduced symptom).' }));
+    else {
+        if (B.symptom_without_plugins) s6.appendChild(el('p', { class: 'note-strong', role: 'note' }, [pill('NOT A PLUGIN CONFLICT', 'bad'), el('strong', { text: ' The symptom is present with every plugin switched off.' })]));
+        s6.appendChild(el('p', { text: 'Status ' + B.status + ': ' + (B.causes.map(function (c) { return '[' + c.plugins.join(', ') + ']' + (c.minimal ? '' : ' (not proven minimal)'); }).join(' and ') || 'no plugin set') + '. ' + B.loads + ' page load(s), ' + B.cache_hits + ' answered from the cache' + (B.capped ? '; STOPPED by the ' + B.capped + ' cap' : '') + '. The full text is in work/bisect.log.' }));
+        var sc6 = el('div', { class: 'scroll' }), t6 = el('table'); t6.appendChild(el('thead', null, [el('tr', null, ['#', 'Active plugins', 'Theme', 'Must-use', 'Result', 'Why'].map(function (h) { return el('th', { scope: 'col', text: h }); }))]));
+        var b6 = el('tbody'); (B.tests || []).forEach(function (t) { b6.appendChild(el('tr', null, [el('td', { text: String(t.n) }), el('td', { text: t.plugins.join(', ') || '(none)' }), el('td', { text: t.theme === null ? 'site theme' : t.theme }), el('td', { text: t.mu === null ? 'all' : t.mu.join(', ') || '(none)' }), el('td', { text: t.result === 'fail' ? 'symptom present' : t.result === 'pass' ? 'symptom absent' : 'could not tell' }), el('td', { text: t.why || '' })])); });
+        t6.appendChild(b6); sc6.appendChild(t6); s6.appendChild(sc6);
+    }
+
+    // ---------------------------------------------------------------- 7. resolution options
+    var s7 = sec('resolution', 'Resolution options');
+    if (!live.length) s7.appendChild(el('div', { class: 'empty', text: 'There is nothing to resolve: no hypothesis survived validation.' }));
+    live.forEach(function (h) {
+        s7.appendChild(el('h3', { text: h.title })); s7.appendChild(el('p', null, [pill(h.status.replace(/_/g, ' '), tone(h.status)), el('span', { class: 'small', text: ' score ' + h.score + ' · ' + h.independent_kinds.join(', ') })]));
+        var det = el('details'); det.appendChild(el('summary', { text: 'Why this status (' + h.checks.length + ' check(s) re-run by the validator)' }));
+        var cl = el('ul', { class: 'v' }); h.checks.forEach(function (c) { cl.appendChild(el('li', { text: c.status + ' ' + c.id + ': ' + c.reason })); }); h.validation_notes.forEach(function (n) { cl.appendChild(el('li', { text: 'note: ' + n })); }); det.appendChild(cl); s7.appendChild(det);
+        optsOf(h.id).forEach(function (o) {
+            var box = el('div', { class: 'opt' });
+            box.appendChild(el('h4', { text: o.title })); box.appendChild(el('div', null, [pill(WHO[o.who] || o.who, o.who === 'needs-a-human' ? 'warn' : 'info'), pill(o.type, 'info'), o.test_to_choose ? pill('TEST TO CHOOSE', 'warn') : o.verified_in_sandbox === true ? pill('VERIFIED IN SANDBOX', 'ok') : o.verified_in_sandbox === false ? pill('TESTED IN SANDBOX: DID NOT HELP', 'bad') : (o.type === 'patch' || o.type === 'shim') ? pill('NOT VERIFIED IN SANDBOX', 'warn') : null]));
+            box.appendChild(el('p', { text: o.detail || '' }));
+            if (o.diff) { var pre = el('pre', { class: 'diff', tabindex: '0', 'aria-label': 'Patch for ' + (o.file || '') }); o.diff.replace(/\n$/, '').split('\n').forEach(function (ln) { pre.appendChild(el('span', { class: ln[0] === '+' && ln.slice(0, 3) !== '+++' ? 'add' : ln[0] === '-' && ln.slice(0, 3) !== '---' ? 'del' : /^(---|\+\+\+|@@)/.test(ln) ? 'hdr' : '', text: ln || ' ' })); }); box.appendChild(pre); }
+            if (o.php) { var pp = el('pre', { class: 'code', tabindex: '0', 'aria-label': 'Must-use plugin ' + (o.file || '') }); o.php.replace(/\n$/, '').split('\n').forEach(function (ln) { pp.appendChild(el('span', { text: ln || ' ' })); }); box.appendChild(pp); }
+            if (o.setting) { var d3 = el('dl'); field(d3, 'Label', o.setting.label); field(d3, 'Where', o.setting.admin_path); field(d3, 'Stored key', o.setting.stored_key); field(d3, 'Read in', o.setting.verified_against); field(d3, 'Installed', (o.installed_version || 'unknown') + ' (' + (o.version_status || 'unknown') + ')'); box.appendChild(d3); }
+            var vu = el('ul', { class: 'v' });
+            (o.verification || []).forEach(function (x) { vu.appendChild(el('li', { text: x.status + ' ' + x.id + ': ' + x.reason })); });
+            if (o.sandbox_verification) vu.appendChild(el('li', { text: 'SANDBOX ' + o.sandbox_verification.status + ': ' + o.sandbox_verification.reason }));
+            (o.not_verified || []).forEach(function (x) { vu.appendChild(el('li', { text: 'NOT verified: ' + x })); });
+            if (vu.childNodes.length) box.appendChild(vu);
+            s7.appendChild(box);
+        });
+    });
+
+    // ---------------------------------------------------------------- 8. also found
+    var s8 = sec('also', 'Also found, not related to this issue'), A = F.also_found, n8 = A.observations.length + A.collisions.length;
+    var d8 = el('details'); d8.appendChild(el('summary', { text: n8 + ' item(s) found elsewhere in the site that the slice around this issue did not reach' }));
+    var u8 = el('ul', { class: 'v' }); A.observations.concat(A.collisions).forEach(function (x) { u8.appendChild(el('li', { text: '[' + x.type + '] ' + x.message })); }); if (!n8) u8.appendChild(el('li', { text: 'Nothing else was found.' })); d8.appendChild(u8); s8.appendChild(d8);
+
+    // ---------------------------------------------------------------- 9. retests
+    var s9 = sec('retests', 'Retest history');
+    if (!F.retests.length) s9.appendChild(el('div', { class: 'empty', text: 'No retest yet. After applying a fix to a copy, run: issue retest ' + F.issue.id }));
+    else { var sc9 = el('div', { class: 'scroll' }), t9 = el('table'); t9.appendChild(el('thead', null, [el('tr', null, ['#', 'When', 'Where', 'Result', 'FIXED_VERIFIED', 'Detail'].map(function (h) { return el('th', { scope: 'col', text: h }); }))]));
+        var b9 = el('tbody'); F.retests.forEach(function (r) { b9.appendChild(el('tr', null, [el('td', { text: String(r.n) }), el('td', { text: r.at }), el('td', { text: r.where }), el('td', { text: r.verdict }), el('td', { text: r.fixed_verified ? 'yes' : 'no' }), el('td', { text: r.reason })])); }); t9.appendChild(b9); sc9.appendChild(t9); s9.appendChild(sc9); }
+
+    var s10 = sec('limits', 'Limits'), l10 = el('ul', { class: 'v' }); F.limits.forEach(function (x) { l10.appendChild(el('li', { text: x })); }); s10.appendChild(l10);
+    // navigation
+    ['verdict:Verdict', 'reported:As reported', 'components:Components', 'graph:Graph', 'timeline:Timeline', 'bisect:Bisect', 'resolution:Resolution', 'also:Also found', 'retests:Retests', 'limits:Limits'].forEach(function (p) { var q = p.split(':'); toc.appendChild(el('a', { href: '#' + q[0], text: q[1] })); });
+})();
+</script>
+</body></html>

@@ -93,7 +93,7 @@ function adapt(root, { policy, issue = {}, evidence = {}, existing = [], activeP
         const involved = components.filter(c => ctx.bySlug.has(c));
         const inactiveOnly = activePlugins && involved.length && involved.every(c => { const x = ctx.bySlug.get(c); return x.kind === 'plugin' && !x.active; });
         const obs = { type: `classic:${f.rule}`, classic_rule: f.rule, severity: f.severity, class: compromise ? 'compromise' : 'conflict', family: compromise ? 'compromise' : TAKEN[f.rule].family,
-            components: [...new Set(components)].sort(), custom: false, evidence: evidenceList, message: f.title, detail: f.detail, active_state: activePlugins ? (inactiveOnly ? 'inactive' : 'active') : 'unknown',
+            components: [...new Set(components)].sort(), custom: false, evidence: evidenceList, message: f.title, detail: compromise ? 'This is a pattern match, not proof. Have a person look at the file before anything is changed.' : f.detail, active_state: activePlugins ? (inactiveOnly ? 'inactive' : 'active') : 'unknown',
             ...(compromise ? { pattern: patternOf(f.rule) } : {}), classic_id: f.id, key: f.key || '' };
         if (inactiveOnly) { skipped.push({ rule: f.rule, title: f.title, reason: 'it involves only inactive plugins' }); continue; }
         const m = clueMatch.matches({ components: obs.components, evidence: obs.evidence, severity: f.severity, family: obs.family }, cx);

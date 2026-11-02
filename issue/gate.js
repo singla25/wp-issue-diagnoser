@@ -17,8 +17,15 @@ const { label } = require('./conflict-type');
 const { cause } = require('./cause');
 const ownership = require('../lib/ownership');
 
-const ESTABLISHED = new Set(['CONFIRMED', 'REPRODUCIBLE']);
+const ESTABLISHED = new Set(['CONFIRMED', 'REPRODUCIBLE', 'FIXED_VERIFIED']);   // FIXED_VERIFIED can only follow one of the other two (issue retest)
 const FATAL_CLUES = new Set(['php-fatal', 'php-redeclare', 'php-undefined-function', 'php-class-not-found', 'wp-critical-error']);
+// the reason an advisory was not shown, in plain words (reports print these)
+const REASON_TEXT = {
+    advisory: 'flagged as an advisory: nothing has been seen failing because of it',
+    'reported-not-observed': 'reported, but no redirect was observed on the site',
+    'not-established': 'not confirmed',
+    'not-breaking': 'confirmed, but no effect on the site was seen'
+};
 const REQUEST_AREAS = /login|wp-json|\/checkout|\/cart|admin-ajax|wc-ajax/i;
 
 const clueIndex = clues => new Map((clues || []).map(c => [c.id, c]));
@@ -110,7 +117,7 @@ function split(hyps, ctx = {}) {
         const base = { id: h.id, type: h.type, title: h.title, status: h.status, label: lab.label, label_candidates: lab.candidates, cause: plain, components: h.components || [], class: h.class || null,
             severity: h.severity || null, evidence: h.evidence || [], mechanism: h.mechanism || null, ownership: h.ownership || null, fix_eligible: !!h.fix_eligible, active_state: h.active_state || null };
         if (!h.advisory && established && (compromise || because.length)) {
-            findings.push({ ...base, established: compromise ? 'compromise' : h.status, breaking_because: because, shown_because: compromise ? 'compromise signs are always shown' : 'established and breaking' });
+            findings.push({ ...base, established: compromise ? 'compromise' : h.status, log_only: because.length > 0 && because.every(b => b.kind === 'log'), breaking_because: because, shown_because: compromise ? 'compromise signs are always shown' : 'established and breaking' });
             continue;
         }
         const reasons = [];
@@ -119,7 +126,7 @@ function split(hyps, ctx = {}) {
         if (!established) reasons.push('not-established');
         if (established && !because.length && h.type !== 'redirect-on-hook') reasons.push('not-breaking');
         const primary = reasons[0] || 'not-breaking';
-        advisories.push({ ...base, why_not_shown: { primary, all: reasons }, breaking_evidence: because, backed_by_log: !established ? logBacked : [] });
+        advisories.push({ ...base, why_not_shown: { primary, all: reasons, text: REASON_TEXT[primary] }, breaking_evidence: because, backed_by_log: !established ? logBacked : [] });
     }
     const order = (a, b) => (a.label === 'compromise' ? 0 : 1) - (b.label === 'compromise' ? 0 : 1) || String(a.id).localeCompare(String(b.id));
     findings.sort(order);
@@ -127,4 +134,4 @@ function split(hyps, ctx = {}) {
     return { findings, advisories, rejected, counts: { findings: findings.length, advisories: advisories.length, rejected, backed_by_log: advisories.filter(a => a.backed_by_log.length).length } };
 }
 
-module.exports = { split, oracleBreaking, fatalFile, FATAL_CLUES, ESTABLISHED, REQUEST_AREAS };
+module.exports = { split, oracleBreaking, fatalFile, FATAL_CLUES, ESTABLISHED, REQUEST_AREAS, REASON_TEXT };

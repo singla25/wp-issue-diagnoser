@@ -84,7 +84,7 @@ function pluginFolders(dir) {
 async function run(id, o) {
     const issue = store.load(id), dir = store.dirOf(id), opt = o.options || {}, steps = [];
     const out = { steps, bisect: null, sandbox: null, reproduced_in_sandbox: null };
-    const done = () => { if (o.noWrite) return out; try { fs.writeFileSync(path.join(dir, 'work', 'sandbox.json'), JSON.stringify({ steps, sandbox: out.sandbox, reproduced_in_sandbox: out.reproduced_in_sandbox, baseline: out.baseline || null }, null, 2) + '\n', { mode: 0o600 }); } catch { /* work folder missing */ } return out; };
+    const done = () => { if (o.noWrite) return out; try { fs.writeFileSync(path.join(dir, 'work', 'sandbox.json'), JSON.stringify({ steps, sandbox: out.sandbox, reproduced_in_sandbox: out.reproduced_in_sandbox, baseline: out.baseline || null, redirect_observed: !!out.redirect_observed }, null, 2) + '\n', { mode: 0o600 }); } catch { /* work folder missing */ } return out; };
     if (!opt.sandbox) { steps.push(step('sandbox', 'Sandbox (throwaway copy in Docker)', 'NOT_RUN', 'not requested: add --sandbox (needs Docker and a local copy of the site)')); return done(); }
     if (!o.root) { steps.push(step('sandbox', 'Sandbox (throwaway copy in Docker)', 'NOT_RUN', 'a local copy of the site (--root) is needed')); return done(); }
     const pf = sandbox.preflight(o.sandboxOptions || {});

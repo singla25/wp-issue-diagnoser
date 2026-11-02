@@ -30,7 +30,7 @@ function verdict(val, retests, bis) {
     return { label, confidence, symptom_reproduced: sym, notes };
 }
 
-function build(id, { validation, plans, dir }) {
+function build(id, { validation, plans, dir, gate = false, verbose = false }) {
     const issue = store.load(id), W = f => readJson(path.join(dir, 'work', f)), R = f => readJson(path.join(dir, 'result', f));
     const retests = R('retests.json') || [];
     const lastFixed = retests.filter(r => r.fixed_verified).pop();
@@ -76,6 +76,7 @@ function build(id, { validation, plans, dir }) {
         limits: LIMITS
     };
     f.counts = Object.fromEntries(ORDER.concat(['REJECTED_FALSE_POSITIVE']).map(s => [s, hyps.filter(h => h.status === s).length]));
+    if (gate) applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixed });
     // stable id for every hypothesis comes from hypotheses.js (a hash of its key); findings get the same id so reruns line up
     f.finding_ids = hyps.map(h => schema.stableId('fnd', id.replace(/^iss-.*/, 'issue'), h.id));
     return f;
@@ -88,6 +89,76 @@ const LIMITS = [
     'Settings suggestions come from the knowledge base in words; exact option names are not stored, so they are guidance and were not applied in the sandbox.',
     'Plugin Guard never edits the site. Patches and shims are files in this report for a person (or a separate Claude Code session) to review and apply on a copy.'
 ];
+
+// ---------------------------------------------------------------- the gate (step 7b): only with { gate: true }; without it nothing below runs and the output is unchanged
+const gateMod = require('./gate'), summaryMod = require('./summary'), rollbackMod = require('./rollback'), ctMod = require('./conflict-type');
+const TYPE_TEXT = {
+    'plugin-plugin': 'two plugins clash', 'theme-plugin': 'your theme and a plugin clash', hook: 'two parts of the site act on the same WordPress step',
+    'plugin-core-php': 'a problem involving PHP or WordPress itself', 'environment-server': 'a limit or a setting of your hosting', compromise: 'possible compromise signs', unclassified: 'a single plugin, theme or file'
+};
+function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixed }) {
+    const cc = W('custom-code.json') || { observations: [] }, comps = (W('components.json') || { components: [] }).components || [];
+    const obsById = new Map((cc.observations || []).map(o => [o.id, o]));
+    const names = {}, kinds = {};
+    for (const c of comps) { names[c.ref] = c.name || c.slug; if (c.slug) names[c.slug] = c.name || c.slug; kinds[c.ref] = c.kind === 'theme' ? 'theme' : c.kind === 'mu' ? 'mu' : 'plugin'; }
+    const ran = { probe: !!(probe && (probe.pages || []).some(p => p.loaded)), sandbox: !!(sbx && sbx.reproduced_in_sandbox !== null && sbx.reproduced_in_sandbox !== undefined) };
+    const ctx = {
+        clues: (ev && ev.clues) || [], oracleType: f.issue.oracle && f.issue.oracle.type, names, kinds,
+        obsOf: h => { const s = (h.supports || []).find(x => x.kind === 'observation'); return s ? obsById.get(s.ref) : null; },
+        sandbox: { ran: ran.sandbox, reproduced: sbx ? sbx.reproduced_in_sandbox : null, matches: (sbx && sbx.baseline && sbx.baseline.matches) || [], redirectObserved: !!(sbx && sbx.redirect_observed) },
+        probe: { ran: ran.probe }
+    };
+    const hyps = validation.hypotheses.map(h => (lastFixed && lastFixed.hypothesis === h.id ? { ...h, status: 'FIXED_VERIFIED' } : h));
+    const split = gateMod.split(hyps, ctx);
+    for (const x of split.findings) { x.type_text = TYPE_TEXT[x.label]; x.rollback = rollbackMod.rollbackFor(planOf.get(x.id)); }
+    for (const x of split.advisories) x.type_text = TYPE_TEXT[x.label];
+    f.findings = split.findings;
+    f.advisories = split.advisories;
+    f.summary = summaryMod.summarise(split, { ran, verbose });
+    f.gate = { enabled: true, verbose: !!verbose, ran, counts: split.counts, rejected: split.rejected };
+    // the options of the fix plan get their own undo text
+    for (const r of f.resolution) { const plan = planOf.get(r.hypothesis), rb = rollbackMod.rollbackFor(plan); r.options.forEach((o, i) => { o.undo = rb.options[i] ? rb.options[i].undo : null; }); }
+    // the verdict follows the gate: a hypothesis that is not established and breaking is not a "probable cause" of anything shown here
+    if (f.verdict.label !== 'Fixed and verified') {
+        const causes = split.findings.filter(x => x.label !== 'compromise');
+        f.verdict = { ...f.verdict, label: causes.length ? (causes.every(x => x.log_only) ? 'Confirmed cause found in your logs' : 'Confirmed breaking cause found') : 'No confirmed breaking cause was found',
+            confidence: causes.length ? (causes.some(x => x.status === 'REPRODUCIBLE') ? 'high' : 'medium-high') : 'none' };
+    }
+}
+const shown = f => new Set((f.findings || []).map(x => x.id));
+const refLine = e => `${e.file}${e.line ? `:${e.line}` : ''}`;
+
+function gateMarkdown(f) {
+    const L = [];
+    L.push(`# Issue report: ${esc(f.issue.title)}`, '', `Issue ${code(f.issue.id)} · symptom ${code(f.issue.symptom)} · environment ${code(f.issue.environment)}`, '');
+    L.push('## Summary', '', ...f.summary.lines.map(l => (l.startsWith('  •') ? `- ${esc(l.replace(/^\s*•\s*/, ''))}` : esc(l))), '');
+    L.push(`## Findings (${f.findings.length})`, '');
+    if (!f.findings.length) L.push('_None: nothing passed the gate (established AND seen to break the site)._', '');
+    f.findings.forEach((x, i) => {
+        L.push(`### ${i + 1}. ${esc(x.cause.replace(/^./, c => c.toUpperCase()))}`, '', `- Kind of problem: ${esc(x.type_text)} (${code(x.label)})`, `- Status: ${code(x.status)} · shown because: ${esc(x.shown_because)}`);
+        const ev = (x.evidence || []).filter(e => e.file).slice(0, 4).map(refLine);
+        if (ev.length) L.push(`- Where: ${ev.map(code).join(', ')}`);
+        for (const b of x.breaking_because || []) L.push(`- Seen: ${esc(b.reason)}`);
+        L.push(`- How to undo: ${esc(x.rollback.intro)}`);
+        for (const o of x.rollback.options) L.push(`    - ${esc(o.title)}: ${esc(o.undo)}`);
+        L.push('');
+    });
+    if (f.gate.verbose) {
+        L.push(`## Advisories (${f.advisories.length})`, '', '_Possible causes that were not confirmed, or not seen to break the site. They are listed so nothing disappears._', '');
+        if (!f.advisories.length) L.push('_None._', '');
+        for (const a of f.advisories) {
+            L.push(`- **${esc(a.cause.replace(/^./, c => c.toUpperCase()))}** — not shown because it is ${esc(a.why_not_shown.text)}${a.why_not_shown.all.length > 1 ? ` (also: ${a.why_not_shown.all.slice(1).map(esc).join(', ')})` : ''}. Kind: ${esc(a.type_text)}. Status ${code(a.status)}.`);
+            for (const b of a.backed_by_log || []) L.push(`    - A log error names ${code(b.file)}${b.component ? ` (plugin ${esc(b.component)})` : ''}.`);
+        }
+        L.push('');
+    }
+    L.push('## What was checked', '');
+    for (const s of f.timeline) L.push(`- ${s.status} ${esc(s.label)}${s.reason ? `: ${esc(s.reason).slice(0, 200)}` : ''}`);
+    L.push('', '## Limits', '');
+    for (const l of f.limits) L.push(`- ${esc(l)}`);
+    L.push('');
+    return L.join('\n');
+}
 
 function markdown(f) {
     const L = [];
@@ -159,8 +230,8 @@ function tasks(f, { root, policy }) {
     return { markdown: L.join('\n'), count: items.length };
 }
 
-function write(id, { validation, plans, dir, root, policy }) {
-    const f = build(id, { validation, plans, dir });
+function write(id, { validation, plans, dir, root, policy, gate = false, verbose = false }) {
+    const f = build(id, { validation, plans, dir, gate, verbose });
     const R = (...p) => path.join(dir, 'result', ...p);
     fs.mkdirSync(R('patches', 'shims'), { recursive: true, mode: 0o700 });
     for (const old of fs.readdirSync(R('patches'))) if (/\.(diff)$/.test(old)) fs.rmSync(R('patches', old));
@@ -168,14 +239,15 @@ function write(id, { validation, plans, dir, root, policy }) {
         if (o.diff) fs.writeFileSync(R('patches', `${path.basename(o.file)}.${o.generator}.diff`), o.diff, { mode: 0o600 });
         if (o.php) fs.writeFileSync(R('patches', 'shims', o.file), o.php, { mode: 0o600 });
     }
-    const t = tasks(f, { root, policy });
+    // with the gate on (and no --verbose) tasks are written only for what is shown: nobody is asked to patch an unconfirmed possibility
+    const t = tasks(gate && !verbose ? { ...f, resolution: f.resolution.filter(r => shown(f).has(r.hypothesis)) } : f, { root, policy });
     fs.writeFileSync(R('findings.json'), JSON.stringify(f, null, 2) + '\n', { mode: 0o600 });
     const issueHtml = require('../lib/issue-html');
     fs.writeFileSync(R('issue.html'), issueHtml.build(f, issueHtml.embedImages(dir, store.load(id).images)), { mode: 0o600 });
     try { require('./index-page').write(); } catch { /* the index is a convenience; the issue's own files are written */ }
-    fs.writeFileSync(R('ISSUE-REPORT.md'), markdown(f), { mode: 0o600 });
+    fs.writeFileSync(R('ISSUE-REPORT.md'), gate ? gateMarkdown(f) : markdown(f), { mode: 0o600 });
     fs.writeFileSync(R('tasks.md'), t.markdown, { mode: 0o600 });
     return { findings: f, tasks: t.count, dir: R() };
 }
 
-module.exports = { write, build, markdown, tasks, verdict, LIMITS, NOT_PLUGIN };
+module.exports = { write, build, markdown, gateMarkdown, tasks, verdict, LIMITS, NOT_PLUGIN };

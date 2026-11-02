@@ -1,0 +1,80 @@
+# Issue report: Gate output fixture
+
+Issue `<ISSUE>` · symptom `white-screen` · environment `local`
+
+## Verdict
+
+**Probable cause** (confidence: medium-high). Symptom reproduced: `could-not-test`.
+
+Most likely cause: Duplicate declaration: plugin-a + plugin-b (CONFIRMED). function my_helper is declared in plugin-a and plugin-b. When both load, PHP stops with "Cannot redeclare" and the page is blank (fatal-if-both-load).
+
+## Hypotheses
+
+### Duplicate declaration: plugin-a + plugin-b — CONFIRMED (score 11.5)
+
+function my_helper is declared in plugin-a and plugin-b. When both load, PHP stops with "Cannot redeclare" and the page is blank (fatal-if-both-load).
+
+- Supported by: log `PHP Fatal error: Cannot redeclare my_helper() (previously declared in <ROOT>/wp-content/plugins/plugin-a/plugin-a.php:5) in <ROOT>/wp-content/plugins/plugin-b/plugin-b.php on lin`, observation `wp-content/plugins/plugin-a/plugin-a.php:8`
+- Independently re-checked sources: log, observation
+- PASSED evidence:wp-content/plugins/plugin-a/plugin-a.php:8: construct found at line 8
+- PASSED evidence:wp-content/plugins/plugin-b/plugin-b.php:8: construct found at line 8
+- PASSED support:log: the log clue is still in evidence.json
+- PASSED php-l:wp-content/plugins/plugin-a/plugin-a.php: no syntax error
+- PASSED php-l:wp-content/plugins/plugin-b/plugin-b.php: no syntax error
+- PASSED declaration-sites: all 2 cited declarations were re-read and each still declares my_helper
+- note: both declaration sites were re-read and verified: they count as two deterministic supports
+
+## Resolution options
+
+### For: Duplicate declaration: plugin-a + plugin-b
+
+- **[needs-a-human] human: wp-content/plugins/plugin-a/plugin-a.php:8** — no automatic patch: not custom code (unknown: not inside any customPaths entry: ownership is not assumed (a plugin name or location does not prove it is custom). Add it to customPaths to allow fix tasks.)
+- **[send-to-claude-code] patch: Wrap function my_helper() in a function_exists() guard** — my_helper is declared here and also elsewhere; if both files load, PHP stops with "Cannot redeclare". The guard makes the first one that loads win. It does NOT decide which copy should win: that is a decision for the owner (see the other resolution options). Note that a guarded function is defined when the line runs, not at compile time.
+    - PASSED diff-applies: the diff applies cleanly to the original text and gives exactly the new text
+    - PASSED php-l: the patched file has no syntax error
+    - PASSED scanner-rerun: the PHP scanner no longer reports the problem in the patched text
+    - NOT verified: The oracle has not been re-run with this patch applied; that happens in 'issue retest' (against a fixed copy or the sandbox).
+
+```diff
+--- a/wp-content/plugins/plugin-b/plugin-b.php
++++ b/wp-content/plugins/plugin-b/plugin-b.php
+@@ -5,8 +5,10 @@
+  */
+ defined( 'ABSPATH' ) || exit;
+ 
+-function my_helper( $x ) {
+-	return $x . 'b';
++if ( ! function_exists( 'my_helper' ) ) {
++	function my_helper( $x ) {
++		return $x . 'b';
++	}
+ }
+ add_filter( 'the_title', 'my_helper' );
+```
+
+- **[needs-a-human] plugin: Deactivate, replace or update Plugin A** — Switching off Plugin A 1.0.0 would stop: whatever it provides (no feature in the table maps to it; read its description: none). Of the two plugins that declare the same name, deactivate the one whose features you need least, or ask its author to prefix the name.
+    - NOT verified: Which plugin to deactivate is a decision for the site owner; Plugin Guard does not make it.
+- **[needs-a-human] plugin: Deactivate, replace or update Plugin B** — Switching off Plugin B 1.0.0 would stop: whatever it provides (no feature in the table maps to it; read its description: none). Of the two plugins that declare the same name, deactivate the one whose features you need least, or ask its author to prefix the name.
+    - NOT verified: Which plugin to deactivate is a decision for the site owner; Plugin Guard does not make it.
+
+## Timeline
+
+- PASSED Description and taxonomy
+- NOT_RUN OCR of screenshots: no screenshots were attached
+- PASSED debug.log / error_log
+- NOT_RUN Live page probe: the live probe was switched off (--no-probe)
+- NOT_RUN Are the originals of the screenshots public?: no screenshot came from inside the WordPress folder
+- NOT_RUN Oracle: is the symptom present?: symptom reproduced: could not test (the live probe was switched off (--no-probe))
+- NOT_RUN Screenshot comparison (expected vs actual): no image pair was given: name two screenshots expected-&lt;name&gt; and actual-&lt;name&gt; (or baseline-/before- and broken-/after-) to compare them
+
+## Retest history
+
+_No retest yet._ After applying a fix to a copy, run `issue retest <ISSUE>`.
+
+## Limits
+
+- A hypothesis is CONFIRMED only when at least two independent deterministic sources agree after re-checking the code; it is REPRODUCIBLE only when the sandbox reproduced the symptom and the bisection found a minimal set. Neither is proof that the code change below fixes it: only 'issue retest' can set FIXED_VERIFIED.
+- Patch generators exist for four patterns only: removal at the wrong hook priority, a missing function_exists / class_exists guard, a custom copy replacing a WordPress core script or style, and a dependency on a handle nobody registers. Everything else is "needs a human".
+- Only custom code (the customPaths allowlist) is ever named in a code task. Core, vendor, third-party and unknown-owner code is not.
+- Settings suggestions come from the knowledge base in words; exact option names are not stored, so they are guidance and were not applied in the sandbox.
+- Plugin Guard never edits the site. Patches and shims are files in this report for a person (or a separate Claude Code session) to review and apply on a copy.

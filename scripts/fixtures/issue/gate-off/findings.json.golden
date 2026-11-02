@@ -1,0 +1,358 @@
+{
+  "schema": 1,
+  "generator": "plugin-guard issue mode",
+  "generated_at": "<TIME>",
+  "issue": {
+    "id": "<ISSUE>",
+    "title": "Gate output fixture",
+    "symptom": "white-screen",
+    "environment": "local",
+    "oracle": {
+      "type": "http-5xx",
+      "value": null,
+      "defaulted": true
+    },
+    "pages": [
+      "/"
+    ],
+    "needs_login": false
+  },
+  "verdict": {
+    "label": "Probable cause",
+    "confidence": "medium-high",
+    "symptom_reproduced": "could-not-test",
+    "notes": []
+  },
+  "hypotheses": [
+    {
+      "id": "hyp-21c30c3d7d",
+      "title": "Duplicate declaration: plugin-a + plugin-b",
+      "status": "CONFIRMED",
+      "score": 11.5,
+      "advisory": false,
+      "class": null,
+      "active_state": null,
+      "family": "fatal",
+      "components": [
+        "plugin-a",
+        "plugin-b"
+      ],
+      "mechanism": "function my_helper is declared in plugin-a and plugin-b. When both load, PHP stops with \"Cannot redeclare\" and the page is blank (fatal-if-both-load).",
+      "supports": [
+        {
+          "kind": "log",
+          "ref": "clue-af9cb229c8",
+          "text": "log: Cannot redeclare my_helper() (seen 1x, last <TIME>)",
+          "file": "PHP Fatal error: Cannot redeclare my_helper() (previously declared in <ROOT>/wp-content/plugins/plugin-a/plugin-a.php:5) in <ROOT>/wp-content/plugins/plugin-b/plugin-b.php on lin",
+          "line": null
+        },
+        {
+          "kind": "observation",
+          "ref": "obs-53ff13fef9",
+          "text": "function my_helper() is declared in 2 places",
+          "file": "wp-content/plugins/plugin-a/plugin-a.php",
+          "line": 8
+        }
+      ],
+      "contradicts": [],
+      "score_breakdown": [
+        {
+          "rule": "support:log",
+          "points": 3,
+          "why": "a log line (parsed, certain) names it (1)"
+        },
+        {
+          "rule": "support:observation",
+          "points": 2.5,
+          "why": "the code analysis found the construct, with file and line (1)"
+        },
+        {
+          "rule": "independent-sources",
+          "points": 1.5,
+          "why": "2 kinds of source agree: log, observation"
+        },
+        {
+          "rule": "stack:error-site",
+          "points": 3,
+          "why": "the logged error was raised in plugin-b"
+        },
+        {
+          "rule": "custom",
+          "points": 1.5,
+          "why": "custom code involved: plugin-b"
+        }
+      ],
+      "oracle": {
+        "oracle": {
+          "type": "http-5xx",
+          "value": null,
+          "generic": true
+        },
+        "action": {
+          "do": "deactivate",
+          "components": [
+            "plugin-a",
+            "plugin-b"
+          ],
+          "then": "run the oracle"
+        },
+        "needs_sandbox": true,
+        "text": "In a throwaway copy: deactivate plugin-a and plugin-b one at a time and together, then run the oracle (generic oracle for this symptom). If the symptom disappears only then, this hypothesis is confirmed; if it stays, it is rejected."
+      },
+      "checks": [
+        {
+          "id": "evidence:wp-content/plugins/plugin-a/plugin-a.php:8",
+          "status": "PASSED",
+          "reason": "construct found at line 8"
+        },
+        {
+          "id": "evidence:wp-content/plugins/plugin-b/plugin-b.php:8",
+          "status": "PASSED",
+          "reason": "construct found at line 8"
+        },
+        {
+          "id": "support:log",
+          "status": "PASSED",
+          "reason": "the log clue is still in evidence.json"
+        },
+        {
+          "id": "php-l:wp-content/plugins/plugin-a/plugin-a.php",
+          "status": "PASSED",
+          "reason": "no syntax error"
+        },
+        {
+          "id": "php-l:wp-content/plugins/plugin-b/plugin-b.php",
+          "status": "PASSED",
+          "reason": "no syntax error"
+        },
+        {
+          "id": "declaration-sites",
+          "status": "PASSED",
+          "reason": "all 2 cited declarations were re-read and each still declares my_helper"
+        }
+      ],
+      "validation_notes": [
+        "both declaration sites were re-read and verified: they count as two deterministic supports"
+      ],
+      "independent_kinds": [
+        "log",
+        "observation"
+      ],
+      "ownership": [
+        {
+          "file": "wp-content/plugins/plugin-a/plugin-a.php",
+          "owner": "unknown"
+        },
+        {
+          "file": "wp-content/plugins/plugin-b/plugin-b.php",
+          "owner": "custom"
+        }
+      ],
+      "fix_eligible": false,
+      "kb_verified": null,
+      "kb_sources": []
+    }
+  ],
+  "resolution": [
+    {
+      "hypothesis": "hyp-21c30c3d7d",
+      "options": [
+        {
+          "type": "human",
+          "who": "needs-a-human",
+          "title": "wp-content/plugins/plugin-a/plugin-a.php:8",
+          "detail": "no automatic patch: not custom code (unknown: not inside any customPaths entry: ownership is not assumed (a plugin name or location does not prove it is custom). Add it to customPaths to allow fix tasks.)",
+          "verification": []
+        },
+        {
+          "type": "patch",
+          "who": "send-to-claude-code",
+          "title": "Wrap function my_helper() in a function_exists() guard",
+          "detail": "my_helper is declared here and also elsewhere; if both files load, PHP stops with \"Cannot redeclare\". The guard makes the first one that loads win. It does NOT decide which copy should win: that is a decision for the owner (see the other resolution options). Note that a guarded function is defined when the line runs, not at compile time.",
+          "file": "wp-content/plugins/plugin-b/plugin-b.php",
+          "line": 8,
+          "generator": "function-guard",
+          "diff": "--- a/wp-content/plugins/plugin-b/plugin-b.php\n+++ b/wp-content/plugins/plugin-b/plugin-b.php\n@@ -5,8 +5,10 @@\n  */\n defined( 'ABSPATH' ) || exit;\n \n-function my_helper( $x ) {\n-\treturn $x . 'b';\n+if ( ! function_exists( 'my_helper' ) ) {\n+\tfunction my_helper( $x ) {\n+\t\treturn $x . 'b';\n+\t}\n }\n add_filter( 'the_title', 'my_helper' );\n \n",
+          "verification": [
+            {
+              "id": "diff-applies",
+              "status": "PASSED",
+              "reason": "the diff applies cleanly to the original text and gives exactly the new text"
+            },
+            {
+              "id": "php-l",
+              "status": "PASSED",
+              "reason": "the patched file has no syntax error"
+            },
+            {
+              "id": "scanner-rerun",
+              "status": "PASSED",
+              "reason": "the PHP scanner no longer reports the problem in the patched text"
+            }
+          ],
+          "verified": true,
+          "not_verified": [
+            "The oracle has not been re-run with this patch applied; that happens in `issue retest` (against a fixed copy or the sandbox)."
+          ]
+        },
+        {
+          "type": "plugin",
+          "who": "needs-a-human",
+          "title": "Deactivate, replace or update Plugin A",
+          "detail": "Switching off Plugin A 1.0.0 would stop: whatever it provides (no feature in the table maps to it; read its description: none). Of the two plugins that declare the same name, deactivate the one whose features you need least, or ask its author to prefix the name.",
+          "plugin": "plugin-a",
+          "lost_features": [],
+          "verification": [],
+          "not_verified": [
+            "Which plugin to deactivate is a decision for the site owner; Plugin Guard does not make it."
+          ]
+        },
+        {
+          "type": "plugin",
+          "who": "needs-a-human",
+          "title": "Deactivate, replace or update Plugin B",
+          "detail": "Switching off Plugin B 1.0.0 would stop: whatever it provides (no feature in the table maps to it; read its description: none). Of the two plugins that declare the same name, deactivate the one whose features you need least, or ask its author to prefix the name.",
+          "plugin": "plugin-b",
+          "lost_features": [],
+          "verification": [],
+          "not_verified": [
+            "Which plugin to deactivate is a decision for the site owner; Plugin Guard does not make it."
+          ]
+        }
+      ]
+    }
+  ],
+  "validation": {
+    "checks": [
+      {
+        "id": "oracle",
+        "status": "NOT_RUN",
+        "reason": "work/probe.json holds no page observations to recompute from"
+      }
+    ],
+    "oracle": {
+      "recomputed": null,
+      "stored": "could-not-test",
+      "agrees": null
+    }
+  },
+  "timeline": [
+    {
+      "id": "description",
+      "label": "Description and taxonomy",
+      "status": "PASSED",
+      "reason": null
+    },
+    {
+      "id": "ocr",
+      "label": "OCR of screenshots",
+      "status": "NOT_RUN",
+      "reason": "no screenshots were attached"
+    },
+    {
+      "id": "logs",
+      "label": "debug.log / error_log",
+      "status": "PASSED",
+      "reason": null
+    },
+    {
+      "id": "live-probe",
+      "label": "Live page probe",
+      "status": "NOT_RUN",
+      "reason": "the live probe was switched off (--no-probe)"
+    },
+    {
+      "id": "original-public",
+      "label": "Are the originals of the screenshots public?",
+      "status": "NOT_RUN",
+      "reason": "no screenshot came from inside the WordPress folder"
+    },
+    {
+      "id": "oracle",
+      "label": "Oracle: is the symptom present?",
+      "status": "NOT_RUN",
+      "reason": "symptom reproduced: could not test (the live probe was switched off (--no-probe))"
+    },
+    {
+      "id": "image-diff",
+      "label": "Screenshot comparison (expected vs actual)",
+      "status": "NOT_RUN",
+      "reason": "no image pair was given: name two screenshots expected-<name> and actual-<name> (or baseline-/before- and broken-/after-) to compare them"
+    }
+  ],
+  "sandbox": null,
+  "bisect": null,
+  "probe": {
+    "planned": null,
+    "oracle": {
+      "result": "could-not-test",
+      "reason": "the live probe was switched off (--no-probe)",
+      "matches": []
+    }
+  },
+  "notices": [],
+  "reported": {
+    "description": "White screen after activating Plugin B",
+    "since": null,
+    "changed_before": null,
+    "pages": [
+      "/"
+    ],
+    "url": "http://127.0.0.1:9/",
+    "images": []
+  },
+  "components": [
+    {
+      "ref": "plugin-a",
+      "name": "Plugin A",
+      "kind": "plugin",
+      "version": "1.0.0",
+      "ownership": "third-party",
+      "roles": [],
+      "in_hypotheses": [
+        "Duplicate declaration: plugin-a + plugin-b"
+      ],
+      "evidence": []
+    },
+    {
+      "ref": "plugin-b",
+      "name": "Plugin B",
+      "kind": "plugin",
+      "version": "1.0.0",
+      "ownership": "custom",
+      "roles": [],
+      "in_hypotheses": [
+        "Duplicate declaration: plugin-a + plugin-b"
+      ],
+      "evidence": []
+    }
+  ],
+  "graph": {
+    "nodes": [],
+    "edges": [],
+    "dropped": 0
+  },
+  "also_found": {
+    "observations": [],
+    "collisions": []
+  },
+  "retests": [],
+  "limits": [
+    "A hypothesis is CONFIRMED only when at least two independent deterministic sources agree after re-checking the code; it is REPRODUCIBLE only when the sandbox reproduced the symptom and the bisection found a minimal set. Neither is proof that the code change below fixes it: only `issue retest` can set FIXED_VERIFIED.",
+    "Patch generators exist for four patterns only: removal at the wrong hook priority, a missing function_exists / class_exists guard, a custom copy replacing a WordPress core script or style, and a dependency on a handle nobody registers. Everything else is \"needs a human\".",
+    "Only custom code (the customPaths allowlist) is ever named in a code task. Core, vendor, third-party and unknown-owner code is not.",
+    "Settings suggestions come from the knowledge base in words; exact option names are not stored, so they are guidance and were not applied in the sandbox.",
+    "Plugin Guard never edits the site. Patches and shims are files in this report for a person (or a separate Claude Code session) to review and apply on a copy."
+  ],
+  "counts": {
+    "REPRODUCIBLE": 0,
+    "CONFIRMED": 1,
+    "PROBABLE_NEEDS_REVIEW": 0,
+    "UNVERIFIED": 0,
+    "FIXED_VERIFIED": 0,
+    "REJECTED_FALSE_POSITIVE": 0
+  },
+  "finding_ids": [
+    "fnd-e76c60325c"
+  ]
+}
