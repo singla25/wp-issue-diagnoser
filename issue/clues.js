@@ -85,4 +85,15 @@ function notices(text, source) {
 
 const sortClues = list => list.slice().sort((a, b) => RANK[a.confidence] - RANK[b.confidence] || a.type.localeCompare(b.type) || a.value.localeCompare(b.value) || a.source.ref.localeCompare(b.source.ref) || (a.source.line || 0) - (b.source.line || 0));
 
-module.exports = { extract, notices, sortClues, sitePath, tidy, RANK };
+// The php-location clue of the SAME log entry as `clue`. A clue's source.line is the line inside its entry's own text, so two entries of one log share ref + line; the
+// per-entry log facts (level, count, last_seen) set in evidence.js tell them apart, and the clue's own text must contain the file when it can be compared.
+function locationOf(clue, clues) {
+    if (!clue || !clue.source) return null;
+    const meta = x => JSON.stringify((x.detail && x.detail.log) || null);
+    const same = (clues || []).filter(x => x.type === 'php-location' && x.source && x.source.ref === clue.source.ref && x.source.line === clue.source.line && x.detail && x.detail.file);
+    const entry = same.filter(x => meta(x) === meta(clue));
+    const pool = entry.length ? entry : same;
+    return pool.find(x => String(clue.snippet || '').includes(x.detail.file)) || pool[0] || null;
+}
+
+module.exports = { locationOf, extract, notices, sortClues, sitePath, tidy, RANK };

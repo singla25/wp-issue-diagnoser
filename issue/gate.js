@@ -34,7 +34,7 @@ const clueIndex = clues => new Map((clues || []).map(c => [c.id, c]));
 function fatalFile(clue, clues) {
     if (!clue || !FATAL_CLUES.has(clue.type)) return null;
     if (clue.detail && clue.detail.file) return clue.detail.file;
-    const loc = (clues || []).find(x => x.type === 'php-location' && x.source && clue.source && x.source.ref === clue.source.ref && x.source.line === clue.source.line && x.detail && x.detail.file);
+    const loc = require('./clues').locationOf(clue, clues);
     return loc ? loc.detail.file : null;
 }
 const componentOfFile = f => { const c = ownership.componentOf(f || ''); return c ? c.replace(/^plugin:/, '') : null; };

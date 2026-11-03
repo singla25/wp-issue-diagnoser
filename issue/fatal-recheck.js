@@ -99,7 +99,7 @@ function recheck({ h, clues, root, probe, issue, intake, components = [], sandbo
     const byId = new Map((clues || []).map(c => [c.id, c]));
     const clue = logSupport && byId.get(logSupport.ref);
     if (!clue || clue.type !== 'php-class-not-found') return null;
-    const loc = (clues || []).find(x => x.type === 'php-location' && x.source && x.source.ref === clue.source.ref && x.source.line === clue.source.line && x.detail && x.detail.file);
+    const loc = require('./clues').locationOf(clue, clues);
     if (!loc) return null;
     const cls = clue.value, file = loc.detail.file, line = loc.detail.line;
     const fileKind = kindOfFile(file);
@@ -145,7 +145,7 @@ function recheck({ h, clues, root, probe, issue, intake, components = [], sandbo
     const namespaced = cls.replace(/^\\/, '').includes('\\') || PROVIDERS.some(p => p.kind === 'theme' && p.re.test(cls));
     if (sound) {
         const php = intake && Number(intake.php_skipped) > 0 ? intake : null;
-        const failedParse = components.filter(c => c.files && (c.files.failed > 0 || c.files.truncated)).map(c => c.ref);
+        const failedParse = components.filter(c => c.files && (c.files.failed > 0 || c.files.lint_broken > 0)).map(c => c.ref)   // a file the code analysis could not parse; its own file cap (`truncated`) does not matter here: the definition search below reads every file itself;
         if (!namespaced) res.blocked = 'the class has no namespace, so it may be built into PHP or WordPress, which the copy does not contain';
         else if (php) res.blocked = `could not check all code: the copy left out ${intake.php_skipped} PHP file(s) (${(intake.php_skipped_examples || []).slice(0, 3).join(', ')})`;
         else if (failedParse.length) res.blocked = `could not check all code: ${failedParse.slice(0, 3).join(', ')} could not be fully parsed`;

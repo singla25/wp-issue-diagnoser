@@ -41,7 +41,7 @@ function build(root, o = {}) {
 // the stages of `issue investigate --gate`; prep(dir, issue) may write work files (probe.json, intake.json, sandbox.json) before validation
 async function run(name, o = {}, prep = null) {
     const root = path.join(tmp, name, 'wp'); build(root, o);
-    const config = path.join(root, 'plugin-guard.config.json'); fs.writeFileSync(config, JSON.stringify({}));
+    const config = path.join(root, 'plugin-guard.config.json'); fs.writeFileSync(config, JSON.stringify(o.config || {}));
     const issue = store.create({ title: 'Critical error', description: 'The site shows a critical error', symptom: 'white-screen', environment: 'local', url: 'http://127.0.0.1:9/', root, pages: ['/'] });
     await evidence.run(issue.id, { root, probeOptions: { probe: false } });
     analysis.run(issue.id, { root, config });
@@ -91,6 +91,9 @@ const intakeJson = o => (dir) => fs.writeFileSync(path.join(dir, 'work', 'intake
     const brokenParse = await run('b-parse', {}, (dir) => { const f = path.join(dir, 'work', 'custom-code.json'); const j = JSON.parse(fs.readFileSync(f, 'utf8')); j.components[0].files = { total: 3, parsed: 2, failed: 1 }; fs.writeFileSync(f, JSON.stringify(j)); });
     ok(brokenParse.h.status !== 'CONFIRMED' && /could not be fully parsed/.test(brokenParse.chk('class-undefined').reason), 'a component that failed to parse blocks rule B');
 
+    const capped = await run('b-capped', {}, (dir) => { const f = path.join(dir, 'work', 'custom-code.json'); const j = JSON.parse(fs.readFileSync(f, 'utf8')); j.components[0].files = { total: 900, parsed: 800, failed: 0, lint_broken: 0, truncated: true }; fs.writeFileSync(f, JSON.stringify(j)); });
+    ok(capped.h.status === 'CONFIRMED', 'the code analysis\'s own file cap (truncated, 0 failed) does not block rule B: the definition search reads every file itself');
+
     group('Rule A: the fatal is fresh and the live page answered 5xx');
     const NOW = '2026-11-02T13:11:38.000Z', FRESH = '02-Nov-2026 12:30:00';
     const a = await run('a-fresh', { elementor: 'defines', at: FRESH }, probe5xx(NOW));
@@ -124,6 +127,15 @@ const intakeJson = o => (dir) => fs.writeFileSync(path.join(dir, 'work', 'intake
     const pp = await run('p-pluginplugin', { file: 'wp-content/plugins/addon/widgets/a.php', cls: 'WooCommerce\\Admin\\Foo', line: '$c = new \\WooCommerce\\Admin\\Foo();', extra: r => { w(r, 'wp-content/plugins/addon/addon.php', '<?php\n/**\n * Plugin Name: Addon\n * Version: 1\n */\n'); w(r, 'wp-content/plugins/woocommerce/woocommerce.php', '<?php\n/**\n * Plugin Name: WooCommerce\n * Version: 9.1.0\n */\n'); } });
     ok(pp.h.status === 'CONFIRMED' && pp.f.findings[0] && pp.f.findings[0].label === 'plugin-plugin' && /The plugin file wp-content\/plugins\/addon\/widgets\/a\.php:48 calls the class WooCommerce\\Admin\\Foo, which WooCommerce 9\.1\.0 does not contain/.test(pp.text), 'a plugin file calling a WooCommerce class: label plugin-plugin');
     ok(fr.providerOf('ET_Builder_Module', [{ slug: 'divi', kind: 'theme', name: 'Divi', version: '4.0' }], null).slug === 'divi' && fr.providerOf('Yoast\\WP\\SEO\\X', [], null).slug === 'wordpress-seo' && fr.providerOf('ACF\\Foo', [], null).slug === 'advanced-custom-fields' && fr.providerOf('Automattic\\WooCommerce\\Utilities\\X', [], null).slug === 'woocommerce', 'the fixed map: ET_ -> divi, Yoast\\WP -> wordpress-seo, ACF\\ -> advanced-custom-fields, Automattic\\WooCommerce\\ -> woocommerce');
+
+    group('the fatal is not pushed off the short list, and a same-named class elsewhere is not its owner');
+    const crowd = await run('crowd', { config: { customPaths: Array.from({ length: 8 }, (_, i) => `wp-content/plugins/dup-${i + 1}a`).concat(Array.from({ length: 8 }, (_, i) => `wp-content/plugins/dup-${i + 1}b`)) }, extra: r => { for (let i = 1; i <= 8; i++) for (const side of ['a', 'b']) w(r, `wp-content/plugins/dup-${i}${side}/dup-${i}${side}.php`, `<?php\n/**\n * Plugin Name: Dup ${i}${side}\n * Version: 1\n */\nfunction shared_fn_${i}() { return 1; }\n`); for (let i = 1; i <= 6; i++) fs.appendFileSync(path.join(r, 'wp-content/debug.log'), `[02-Nov-2026 12:0${i}:00 UTC] PHP Fatal error:  Cannot redeclare shared_fn_${i}() (previously declared in ${r}/wp-content/plugins/dup-${i}a/dup-${i}a.php:6) in ${r}/wp-content/plugins/dup-${i}b/dup-${i}b.php on line 6\n`); w(r, 'wp-content/plugins/other/other.php', '<?php\n/**\n * Plugin Name: Other\n * Version: 1\n */\nnamespace Acme\\Widgets;\nclass Color {}\n'); } });
+    const hy = JSON.parse(fs.readFileSync(path.join(crowd.dir, 'work', 'hypotheses.json'), 'utf8'));
+    const fatalPos = hy.hypotheses.findIndex(x => x.type === 'missing-function');
+    ok(hy.considered > 8 && hy.hypotheses.slice(0, 5).every(x => x.type !== 'missing-function' && x.score >= hy.hypotheses[fatalPos].score) && fatalPos >= 5 && hy.hypotheses.length <= 8, `with ${hy.considered} hypotheses the log-backed fatal (score ${fatalPos >= 0 ? hy.hypotheses[fatalPos].score : '-'}) is listed at place ${fatalPos + 1}, after five higher scores`);
+    if (!(crowd.h && crowd.h.status === 'CONFIRMED')) console.log(crowd.h && crowd.h.status, JSON.stringify(crowd.h && crowd.h.checks.filter(c => /fatal/.test(c.id))), JSON.stringify(crowd.h && crowd.h.validation_notes));
+    ok(crowd.h && crowd.h.status === 'CONFIRMED' && crowd.h.fatal_recheck.rule === 'B', 'and it is validated and CONFIRMED by rule B');
+    ok(!hy.hypotheses[fatalPos].components.includes('other'), 'a class called Color in the namespace Acme\\Widgets is not named as a place where Elementor\\Core\\Schemes\\Color is declared');
 
     group('definitions: class, interface, trait, enum, class_alias');
     for (const [kind, src] of [['interface', 'interface Color {}'], ['trait', 'trait Color {}'], ['enum', 'enum Color {}'], ['final class', 'final class Color {}']]) {

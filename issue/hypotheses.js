@@ -6,6 +6,7 @@
 const schema = require('../lib/schema');
 
 const MAX_HYPOTHESES = 5;
+const MAX_LOG_FATAL = 3;               // extra places for log-backed fatals that did not make the top five
 const SCORING = [
     { rule: 'support:log', points: 3, why: 'a log line (parsed, certain) names it' },
     { rule: 'support:bisect', points: 5, why: 'in the sandbox the symptom appears only when these components are active together (a minimal set found by delta debugging); the validation step is what may turn this into REPRODUCIBLE' },
@@ -104,7 +105,7 @@ function build(ctx) {
     for (const c of logClues) {
         if (c.type === 'php-redeclare') {
             const prev = c.detail.previous_file && require('../lib/ownership').componentOf(c.detail.previous_file);
-            const site = logClues.find(x => x.type === 'php-location' && x.source.line === c.source.line && x.source.ref === c.source.ref);
+            const site = require('./clues').locationOf(c, logClues);
             const siteComp = site && require('../lib/ownership').componentOf(site.detail.file);
             const comps = [prev, siteComp].filter(Boolean).map(toRef);
             const name = String(c.value).toLowerCase();
@@ -113,8 +114,10 @@ function build(ctx) {
             else if (comps.length) add('duplicate-declaration', comps, name, [{ kind: 'log', ref: c.id, text: `log: Cannot redeclare ${c.value}()` }], { family: 'fatal', mechanism: `The log shows "Cannot redeclare ${c.value}()": two files declare it and both loaded.` });
         }
         if (c.type === 'php-undefined-function' || c.type === 'php-class-not-found') {
-            const owners = Object.entries(analysis.facts).filter(([, m]) => [...m.functions, ...m.classes].some(f => String(f.name).toLowerCase().replace(/^.*\\/, '') === String(c.value).toLowerCase().replace(/^.*\\/, ''))).map(([r]) => r);
-            const site = logClues.find(x => x.type === 'php-location' && x.source.line === c.source.line && x.source.ref === c.source.ref);
+            // a NAMESPACED class is matched by its full name (a class called Color in another namespace is not the missing one); anything else by its short name, as before
+            const wantFull = c.type === 'php-class-not-found' && String(c.value).includes('\\') ? String(c.value).replace(/^\\/, '').toLowerCase() : null;
+            const owners = Object.entries(analysis.facts).filter(([, m]) => [...m.functions, ...m.classes].some(f => (wantFull ? String(f.name).replace(/^\\/, '').toLowerCase() === wantFull : String(f.name).toLowerCase().replace(/^.*\\/, '') === String(c.value).toLowerCase().replace(/^.*\\/, '')))).map(([r]) => r);
+            const site = require('./clues').locationOf(c, logClues);
             const siteComp = site && toRef(require('../lib/ownership').componentOf(site.detail.file) || '');
             add('missing-function', [siteComp, ...owners].filter(Boolean), String(c.value).toLowerCase(), [{ kind: 'log', ref: c.id, text: `log: ${c.type === 'php-class-not-found' ? 'class not found' : 'call to undefined function'} ${c.value}` }],
                 { family: 'fatal', mechanism: `The log shows a call to ${c.value}, which was not defined at that moment. ${owners.length ? `It is declared in ${owners.join(', ')}, so that code was probably not loaded yet, not active, or loaded after the call.` : 'No scanned component declares it, so the plugin that should provide it may be missing or deactivated.'}` });
@@ -123,9 +126,9 @@ function build(ctx) {
         // Before step 7 such a fatal made no hypothesis at all, so a plain crash could never be a finding. Redeclare / undefined function / class fatals are skipped here:
         // they have their own hypotheses.
         if (c.type === 'php-fatal') {
-            const sameLine = x => x.source.ref === c.source.ref && x.source.line === c.source.line;
+            const sameLine = x => x.source.ref === c.source.ref && x.source.line === c.source.line && JSON.stringify((x.detail && x.detail.log) || null) === JSON.stringify((c.detail && c.detail.log) || null);
             const explained = logClues.some(x => sameLine(x) && ['php-redeclare', 'php-undefined-function', 'php-class-not-found'].includes(x.type));
-            const loc = logClues.find(x => x.type === 'php-location' && sameLine(x) && x.detail && x.detail.file);
+            const loc = require('./clues').locationOf(c, logClues);
             const comp = !explained && loc ? toRef(require('../lib/ownership').componentOf(loc.detail.file) || '') : '';
             if (comp) add('error-in-component', [comp], '', [{ kind: 'log', ref: c.id, text: `log: ${c.detail.level || 'fatal error'} in ${loc.detail.file}:${loc.detail.line}`, file: loc.detail.file, line: loc.detail.line }], { family: 'fatal', mechanism: `The log shows a fatal error raised in ${loc.detail.file}:${loc.detail.line}: ${String(c.value).slice(0, 140)}.` });
         }
@@ -275,7 +278,11 @@ function build(ctx) {
     const eligible = out.filter(h => h.supports.some(s => ['log', 'bisect', 'probe', 'observation', 'collision', 'kb-verified', 'kb-unverified', 'graph-relevant', 'graph-relevant-unverified'].includes(s.kind)));
     const rep = ctx.reproduced && ctx.reproduced.result !== 'could-not-test' ? ctx.reproduced : (ctx.sandboxReproduced ? { result: ctx.sandboxReproduced, reason: 'sandbox', type: 'sandbox' } : ctx.reproduced || null);
     for (const h of eligible) { h.symptom_reproduced = rep ? rep.result : 'not-tested'; if (rep && rep.result === 'no') h.oracle.text += ' NOTE: the symptom was NOT reproduced on the probed pages, so this hypothesis rests on static evidence only and stays unconfirmed.'; }
-    return { max: MAX_HYPOTHESES, scoring_rules: SCORING, symptom: issue.symptom, symptom_reproduced: rep, hypotheses: eligible.slice(0, MAX_HYPOTHESES), not_listed: eligible.slice(MAX_HYPOTHESES).map(h => ({ id: h.id, title: h.title, score: h.score })), considered: out.length };
+    // The short list is the best MAX_HYPOTHESES by score, PLUS (at most MAX_LOG_FATAL) hypotheses of the fatal family that a log line backs: a fatal that was written to the log
+    // must not fall off the list because five unrelated, higher-scored observations came first (real case: 143 hypotheses, the Elementor class fatal ranked 6th and was never validated).
+    const listed = eligible.slice(0, MAX_HYPOTHESES);
+    listed.push(...eligible.slice(MAX_HYPOTHESES).filter(h => h.family === 'fatal' && h.supports.some(s => s.kind === 'log')).slice(0, MAX_LOG_FATAL));
+    return { max: MAX_HYPOTHESES, scoring_rules: SCORING, symptom: issue.symptom, symptom_reproduced: rep, hypotheses: listed, not_listed: eligible.filter(h => !listed.includes(h)).map(h => ({ id: h.id, title: h.title, score: h.score })), considered: out.length };
 }
 
 const round = n => Math.round(n * 100) / 100;
