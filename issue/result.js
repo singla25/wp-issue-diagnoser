@@ -6,6 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 const store = require('../lib/issue-store');
+const plainNames = require('../lib/plain-names');
 const schema = require('../lib/schema');
 
 const readJson = f => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return null; } };
@@ -128,6 +129,25 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
     f.advisories = split.advisories;
     f.summary = summaryMod.summarise(split, { ran: { ...ran, sandboxFailed: (sbx && sbx.could_not_run) || null }, verbose });
     f.gate = { enabled: true, verbose: !!verbose, ran, counts: split.counts, rejected: split.rejected };
+    // plain words for the reader (gate mode only): the technical ids (theme:unicamp, PROBABLE_NEEDS_REVIEW) stay in the ids and statuses, never in the sentences
+    const pt = (t, bare) => plainNames.plainText(t, comps, { bare });
+    for (const list of [split.findings, split.advisories, split.likely || []]) for (const x of list) { x.title = pt(x.title, true); x.cause = pt(x.cause, false); }
+    // hypotheses and fix options are not rewritten (findings.json keeps them as the analysis wrote them); the page swaps these exact texts for the plain ones
+    const pairs = new Map();
+    const pair = (raw, bare) => { if (raw && typeof raw === 'string') { const p = pt(raw, bare); if (p !== raw) pairs.set(raw, p); } };
+    for (const h of f.hypotheses) { pair(h.title, true); pair(h.mechanism, false); }
+    for (const r of f.resolution) for (const o of r.options) { pair(o.title, false); pair(o.detail, false); }
+    f.plain_text = [...pairs.entries()].sort((a, b) => b[0].length - a[0].length || (a[0] < b[0] ? -1 : 1));
+    // the Involved components table: the same advisory five times is one line with a count (the same merge as the advisories list), and the component has a plain name
+    for (const c of f.components) {
+        c.label = plainNames.plainRef(c.ref, plainNames.namesOf(comps));
+        const groups = plainNames.mergeTitles((c.in_hypotheses || []).map(t => ({ title: t })));
+        c.in_hypotheses = groups.map(g => { const t = pt(g.title, true); return g.count > 1 ? `${t} (${g.count} ${/^Outdated template override/.test(g.title) ? 'templates' : 'times'})` : t; });
+    }
+    f.not_tested = plainNames.notTested(f.timeline, { verbose, hasScreenshots: ((f.reported && f.reported.images) || []).length > 0 }).map(t => t.id);
+    // reader text: the checks without their internal ids, the notes without the oracle wording, the steps without status codes (findings.json keeps every check)
+    f.reader_why = {}; for (const h of f.hypotheses) f.reader_why[h.id] = plainNames.readerWhy(h);
+    f.not_tested_text = {}; for (const t of f.timeline) f.not_tested_text[t.id] = plainNames.readerStepLine(t);
     // the options of the fix plan get their own undo text
     for (const r of f.resolution) { const plan = planOf.get(r.hypothesis), rb = rollbackMod.rollbackFor(plan); r.options.forEach((o, i) => { o.undo = rb.options[i] ? rb.options[i].undo : null; }); }
     // the verdict follows the gate: a hypothesis that is not established and breaking is not a "probable cause" of anything shown here
@@ -135,7 +155,7 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
         const causes = split.findings.filter(x => x.label !== 'compromise');
         f.verdict = { ...f.verdict, label: causes.length ? (causes.every(x => x.log_only) ? 'Confirmed cause found in your logs' : 'Confirmed breaking cause found') : 'No confirmed breaking cause was found',
             confidence: causes.length ? (causes.some(x => x.status === 'REPRODUCIBLE') ? 'high' : 'medium-high') : 'none' };
-        if (!causes.length && (split.likely || []).length) f.verdict = { ...f.verdict, label: 'Most likely cause found in your log (not confirmed)', confidence: 'low' };
+        if (!causes.length && (split.likely || []).length) f.verdict = { ...f.verdict, label: plainNames.LIKELY_PHRASE, confidence: 'low' };
     }
 }
 const shown = f => new Set((f.findings || []).map(x => x.id));
@@ -145,10 +165,10 @@ function gateMarkdown(f) {
     const L = [];
     L.push(`# Issue report: ${esc(f.issue.title)}`, '', `Issue ${code(f.issue.id)} · symptom ${code(f.issue.symptom)} · environment ${code(f.issue.environment)}`, '');
     L.push('## Summary', '', ...f.summary.lines.map(l => (l.startsWith('  •') ? `- ${esc(l.replace(/^\s*•\s*/, ''))}` : esc(l))), '');
-    L.push(`## Findings (${f.findings.length})`, '');
+    L.push(f.findings.length ? `## Findings (${f.findings.length})` : '## Findings', '');
     if (!f.findings.length) L.push('_None: nothing passed the gate (established AND seen to break the site)._', '');
     f.findings.forEach((x, i) => {
-        L.push(`### ${i + 1}. ${esc(x.cause.replace(/^./, c => c.toUpperCase()))}`, '', `- Kind of problem: ${esc(x.type_text)} (${code(x.label)})`, `- Status: ${code(x.status)} · shown because: ${esc(x.shown_because)}`);
+        L.push(`### ${i + 1}. ${esc(x.cause.replace(/^./, c => c.toUpperCase()))}`, '', `- Kind of problem: ${esc(x.type_text)} (${code(x.label)})`, `- Status: ${esc(plainNames.statusWord(x.status))} · shown because: ${esc(x.shown_because)}`);
         const ev = (x.evidence || []).filter(e => e.file).slice(0, 4).map(refLine);
         if (ev.length) L.push(`- Where: ${ev.map(code).join(', ')}`);
         for (const b of x.breaking_because || []) L.push(`- Seen: ${esc(b.reason)}`);
@@ -160,13 +180,15 @@ function gateMarkdown(f) {
         L.push(`## Advisories (${f.advisories.length})`, '', '_Possible causes that were not confirmed, or not seen to break the site. They are listed so nothing disappears._', '');
         if (!f.advisories.length) L.push('_None._', '');
         for (const a of f.advisories) {
-            L.push(`- **${esc(a.cause.replace(/^./, c => c.toUpperCase()))}** — not shown because it is ${esc(a.why_not_shown.text)}${a.why_not_shown.all.length > 1 ? ` (also: ${a.why_not_shown.all.slice(1).map(esc).join(', ')})` : ''}. Kind: ${esc(a.type_text)}. Status ${code(a.status)}.`);
-            for (const b of a.backed_by_log || []) L.push(`    - A log error names ${code(b.file)}${b.component ? ` (plugin ${esc(b.component)})` : ''}.`);
+            L.push(`- **${esc(a.cause.replace(/^./, c => c.toUpperCase()))}** — not shown because it is ${esc(a.why_not_shown.text)}${a.why_not_shown.all.length > 1 ? ` (also: ${a.why_not_shown.all.slice(1).map(esc).join(', ')})` : ''}. Kind: ${esc(a.type_text)}. Status: ${esc(plainNames.statusWord(a.status))}.`);
+            for (const b of a.backed_by_log || []) L.push(`    - A log error names ${code(b.file)}${b.component ? ` (${esc(plainNames.componentLabel(b))})` : ''}.`);
         }
         L.push('');
     }
     L.push('## What was checked', '');
-    for (const s of f.timeline) L.push(`- ${s.status} ${esc(s.label)}${s.reason ? `: ${esc(s.reason).slice(0, 200)}` : ''}`);
+    // steps that were not done are listed only when they are tied to the answer (--verbose lists them all)
+    const keep = new Set(f.not_tested || f.timeline.map(s => s.id));
+    for (const s of f.timeline) if (s.status === 'PASSED' || keep.has(s.id)) L.push(`- ${s.status} ${esc(s.label)}${s.reason ? `: ${esc(s.reason).slice(0, 200)}` : ''}`);
     L.push('', '## Limits', '');
     for (const l of f.limits) L.push(`- ${esc(l)}`);
     L.push('');

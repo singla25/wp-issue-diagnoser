@@ -2,6 +2,7 @@
 // no "hypothesis", no "oracle", no "hooks", and never a claim that the site "is hacked" (compromise signs are a pattern match, not proof).
 // The kind of problem (the conflict-type label) is NOT used as an explanation here: the plain cause line is enough. The label stays in the data.
 
+const plain = require('../lib/plain-names');
 const COMPROMISE_SENTENCE = 'Possible compromise signs were found (pattern match, not proof).';
 const COMPROMISE_ADVICE = 'Do not delete files yourself; ask your host or a security professional to check, and keep a backup.';
 const NO_CHECK = 'Note: no live check or sandbox test was run, so nothing here was seen failing on your website.';
@@ -25,7 +26,8 @@ function summarise(split, { ran = {}, verbose = false } = {}) {
         lines.push(headline);
         for (const f of causes) lines.push(`  • ${cap(f.cause)}${f.log_only && seen.length ? ' (found in your logs)' : ''}.`);
     } else {
-        headline = 'No confirmed breaking cause was found.';
+        // a log-backed most likely cause exists: the same one phrase as the verdict, never "no confirmed cause" next to the same item
+        headline = (split.likely || []).length ? plain.LIKELY_PHRASE : 'No confirmed breaking cause was found.';
         lines.push(headline);
     }
     // the "What is wrong" box: a log fatal that names a file (issue/whats-wrong.js)
@@ -38,7 +40,7 @@ function summarise(split, { ran = {}, verbose = false } = {}) {
     if (adv.length) lines.push(verbose ? `${adv.length} possible ${plural(adv.length, 'cause is', 'causes are')} listed under Advisories below.` : `${adv.length} possible ${plural(adv.length, 'cause is', 'causes are')} listed under Advisories (run with --verbose to see ${plural(adv.length, 'it', 'them')}).`);
     else if (!causes.length && !compromise.length) lines.push('Nothing else stood out.');
     if (backed.length) {
-        const who = backed.flatMap(a => a.backed_by_log.map(b => `${b.file}${b.component ? ` (${b.component_label || `plugin ${b.component}`})` : ''}`));
+        const who = backed.flatMap(a => a.backed_by_log.map(b => `${b.file}${b.component ? ` (${b.component_label || plain.componentLabel(b)})` : ''}`));
         const uniq = [...new Set(who)];
         lines.push(`${backed.length} of them ${plural(backed.length, 'is', 'are')} backed by a log error but ${plural(backed.length, 'was', 'were')} not confirmed: ${uniq.slice(0, 3).join('; ')}${uniq.length > 3 ? ` and ${uniq.length - 3} more` : ''}.`);
     }

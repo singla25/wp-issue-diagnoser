@@ -73,7 +73,10 @@
     "selftest:sandbox-failure": "node scripts/selftest-sandbox-failure.js",
     "selftest:sandbox-copy-names": "node scripts/selftest-sandbox-copy-names.js",
     "selftest:fatal-recheck": "node scripts/selftest-fatal-recheck.js",
-    "selftest:likely-cause": "node scripts/selftest-likely-cause.js"
+    "selftest:likely-cause": "node scripts/selftest-likely-cause.js",
+    "selftest:polish": "node scripts/selftest-polish.js",
+    "selftest:reader-wording": "node scripts/selftest-reader-wording.js",
+    "selftest:validate-symptom": "node scripts/selftest-validate-symptom.js"
   },
   "license": "ISC",
   "dependencies": {

@@ -196,19 +196,19 @@ async function wiz(answers, flags, extra = {}) {
     const sbA = await wiz(['Layout broken', '', '', siteE], { out: path.join(tmp, 'outK'), 'no-probe': true, 'no-questions': true }, { preflight: () => ({ ok: false }) });
     ok(!/throwaway copy/.test(sbA.text), 'Docker not usable: the question is not asked');
     // changed with the owner's request for the database backup: the first question is the backup (an .sql file); without one the sandbox is an OPTIONAL extra, default no
-    const sbB = await wiz(['Layout broken', '', '', siteE, '', 'n'], { out: path.join(tmp, 'outK2'), 'no-probe': true, 'no-questions': true }, { preflight: () => ({ ok: true }) });
-    ok(/Do you have a database backup \(an \.sql file\) of the site\?/.test(sbB.text) && /Optional: a deeper test in a throwaway copy .* Run it\? \[y\/N\]/.test(sbB.text) && !sbB.error, 'Docker usable and a terminal: the backup is asked first; with none the sandbox is an optional extra (default no); "n" skips it');
-    const sbDef = await wiz(['Layout broken', '', '', siteE, '', ''], { out: path.join(tmp, 'outK2b'), 'no-probe': true, 'no-questions': true }, { preflight: () => ({ ok: true }) });
+    const sbB = await wiz(['Layout broken', '', '', siteE, 'n'], { out: path.join(tmp, 'outK2'), 'no-probe': true, 'no-questions': true }, { preflight: () => ({ ok: true }) });
+    ok(!/database backup/.test(sbB.text) && /Optional: a deeper test in a throwaway copy .* Run it\? \[y\/N\]/.test(sbB.text) && !sbB.error, 'Docker usable and a terminal: the sandbox is asked first (optional, default no); "n" skips it and the backup is never asked');
+    const sbDef = await wiz(['Layout broken', '', '', siteE, ''], { out: path.join(tmp, 'outK2b'), 'no-probe': true, 'no-questions': true }, { preflight: () => ({ ok: true }) });
     ok(!sbDef.error && !/sandbox-start|SANDBOX/.test(sbDef.text) && /Optional: a deeper test/.test(sbDef.text), 'pressing Enter at the optional question means NO sandbox (the default is no)');
     // the database backup: asked first, re-asked on a bad path, passed on as --db-dump, never for a live site
     fs.writeFileSync(path.join(tmp, 'backup.sql'), '-- dump\n'); fs.writeFileSync(path.join(tmp, 'notes.txt'), 'x');
     const cliLib = require('../lib/issue-cli'), realInv = cliLib.investigate; let seen = null;
     cliLib.investigate = async (id2, o2) => { seen = o2; return 0; };
-    const sbD = await wiz(['Layout broken', '', '', siteE, path.join(tmp, 'notes.txt'), path.join(tmp, 'backup.sql'), 'y'], { out: path.join(tmp, 'outK4'), 'no-probe': true, 'no-questions': true }, { preflight: () => ({ ok: true }) });
+    const sbD = await wiz(['Layout broken', '', '', siteE, 'y', path.join(tmp, 'notes.txt'), path.join(tmp, 'backup.sql')], { out: path.join(tmp, 'outK4'), 'no-probe': true, 'no-questions': true }, { preflight: () => ({ ok: true }) });
     ok(!sbD.error && /is not an \.sql \(or \.sql\.gz\) file that exists/.test(sbD.text) && /user names, e-mail addresses and passwords are made anonymous/.test(sbD.text) && seen && seen.sandbox === true && seen['db-dump'] === path.join(tmp, 'backup.sql'), 'a backup: a bad path is asked again, the anonymising is stated, and the backup goes to the pipeline as --db-dump with the sandbox on');
     seen = null;
-    const sbE = await wiz(['Layout broken', '', '', siteE, path.join(tmp, 'backup.sql'), 'n'], { out: path.join(tmp, 'outK5'), 'no-probe': true, 'no-questions': true }, { preflight: () => ({ ok: true }) });
-    ok(!sbE.error && seen && seen.sandbox === false && !seen['db-dump'], 'declining the deeper test drops the backup too (nothing is imported)');
+    const sbE = await wiz(['Layout broken', '', '', siteE, 'n'], { out: path.join(tmp, 'outK5'), 'no-probe': true, 'no-questions': true }, { preflight: () => ({ ok: true }) });
+    ok(!sbE.error && !/database backup/.test(sbE.text) && seen && seen.sandbox === false && !seen['db-dump'], 'declining the deeper test: the backup is never asked and nothing is imported');
     seen = null;
     const sbF = await wiz(['Pages break', '', 'https://shop.example.net/', siteE, '', 'shop.example.net'], { out: path.join(tmp, 'outK6'), 'no-probe': true, 'no-questions': true }, { preflight: () => ({ ok: true }) });
     ok(!sbF.error && !/database backup|throwaway copy/.test(sbF.text) && seen && seen.sandbox === false, 'a live site: neither the backup nor the sandbox is asked');

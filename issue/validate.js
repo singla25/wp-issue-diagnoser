@@ -112,13 +112,14 @@ function run(id, { root, config = null, lint = phpast.phpLint } = {}) {
     // "Not reproduced" is a real answer, with ONE exception: the problem is a crash AND a probed page the report is about answered HTTP 5xx. Then the page did fail, whatever the
     // oracle looked at (a debug-log oracle sees no new line when the fatal was logged earlier), so the symptom counts as reproduced and the cap that "not reproduced" puts on every
     // hypothesis does not apply. An unrelated 5xx (a page the report is not about) does not lift it, and "ran and did not reproduce" on a page that answered fine still downgrades.
-    if (symptom === 'no' && issue.symptom === 'white-screen' && probe && Array.isArray(probe.pages)) {
+    const symptomBefore = symptom;
+    if ((symptom === 'no' || symptom === 'could-not-test') && issue.symptom === 'white-screen' && probe && Array.isArray(probe.pages)) {
         const pathOf = u => { try { return new URL(u, 'http://x/').pathname.replace(/\/+$/, '') || '/'; } catch { return null; } };
         // the pages the report names; with none named, the home page of the address given. A site in a sub-folder (/ews/) has its pages under that folder.
         const home = pathOf(issue.url || '/'), named = (issue.pages || []).map(pathOf).filter(Boolean);
         const isAbout = u => { const q = pathOf(u); return !!q && (named.length ? named.some(a => a === '/' ? q === home || q === '/' : q === a || q.endsWith(a)) : q === home || q === '/'); };
         const hit = probe.pages.find(p => p && p.status >= 500 && p.status < 600 && isAbout(p.url));
-        if (hit) { symptom = 'yes'; checks.push(check('not-reproduced-cap', 'PASSED', `the oracle said "not reproduced", but the problem is a crash and ${hit.url} (a page the report is about) answered HTTP ${hit.status}: the symptom counts as reproduced`)); }
+        if (hit) { symptom = 'yes'; checks.push(check('not-reproduced-cap', 'PASSED', `the oracle said "${symptomBefore === 'no' ? 'not reproduced' : 'could not test'}", but the problem is a crash and ${hit.url} (a page the report is about) answered HTTP ${hit.status}: the symptom counts as reproduced`)); }
     }
 
     // the hypothesis only carries a summary of its observation; the checks need the observation's own fields (declaration name, handle, ...)

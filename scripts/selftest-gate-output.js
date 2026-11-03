@@ -66,7 +66,7 @@ const json = r => JSON.parse(r.files['findings.json']);
     ok(advJ.findings.length === 0 && advJ.advisories.some(a => a.type === 'duplicate-declaration' && a.status === 'CONFIRMED' && a.why_not_shown.primary === 'not-breaking'), 'CONFIRMED (two verified sites) but not breaking: an advisory with the reason "not-breaking"');
     ok(advJ.summary.headline === 'No confirmed breaking cause was found.' && /possible causes? (is|are) listed under Advisories \(run with --verbose to see (it|them)\)\./.test(advJ.summary.text) && /no live check or sandbox test was run/.test(advJ.summary.text), 'summary: "No confirmed breaking cause was found." + the Advisories line + the "no live check" sentence');
     const advMd = adv.files['ISSUE-REPORT.md'];
-    ok(advMd.includes('## Findings (0)') && advMd.includes('_None: nothing passed the gate'), 'Markdown: Findings (0) says so; it is not empty');
+    ok(!advMd.includes('Findings (0)') && /^## Findings$/m.test(advMd) && advMd.includes('_None: nothing passed the gate'), 'Markdown: an empty Findings heading has no (0); it says so and is not empty');
     ok(!advMd.includes('Duplicate declaration') && !advMd.toLowerCase().includes('is declared in'), 'Markdown without --verbose does not print the advisory');
     const advV = await run({ tree: 'dupNoLog', result: { gate: true, verbose: true } });
     ok(/not shown because it is confirmed, but no effect on the site was seen/.test(advV.files['ISSUE-REPORT.md']), 'with verbose the advisory is listed with the plain reason');
