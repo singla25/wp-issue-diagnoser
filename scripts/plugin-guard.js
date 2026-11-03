@@ -8,17 +8,18 @@
 const { parse } = require('./guard');
 const HELP = `plugin-guard: find the likely cause of a WordPress problem. Reads a copy of your site; changes nothing.
 
-Run it with no options to be asked: 1 the problem, 2 screenshots, 3 log file, 4 site address, 5 site folder, 6 local/staging/live, 7 PHP version.
+Run it with no options to be asked: what is wrong, screenshots, the website address (optional), and which WordPress folder (a list of the ones found on this computer is shown).
+The site's own log is found by itself, and with an address it only asks you to confirm one guess: local, staging or live.
 
 Options (each one answers a question; with --yes nothing is asked):
   --description "<text>"   what is wrong (required)
   --root <folder>          the wp-content folder, or the WordPress folder that contains it (required)
   --url <address>          the website, to look at it from outside (optional)
-  --env local|staging|live what kind of site --url is (required with --url)
+  --env local|staging|live what kind of site --url is (asked as one yes/no line in a terminal; required with --url otherwise)
   --authorized             you have the owner's permission to visit a LIVE site
   --php <version>          for example 8.1 (optional)
   --images <paths>         screenshots: files or folders, separated by commas (optional)
-  --log <file>             a log file; it is copied and redacted, never changed (optional)
+  --log <file>             a log file instead of the one found in your site; it is copied and redacted, never changed (optional)
   --sandbox                also test in a throwaway copy in Docker (needs: npm run guard:setup-sandbox)
   --out <folder>           where reports go (default: the package's issues folder, or ./plugin-guard-reports when that cannot be written)
   --yes                    never ask; a missing required value is an error (exit 2)

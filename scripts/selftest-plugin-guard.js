@@ -57,7 +57,7 @@ async function wiz(answers, flags, extra = {}) {
     input.end(answers.join('\n') + (answers.length ? '\n' : ''));
     const saved = process.env.PLUGIN_GUARD_ISSUES, log = console.log; let logged = ''; console.log = (...a) => { logged += a.join(' ') + '\n'; };
     let error = null, code = null;
-    try { code = await wizard.run({ _: [], ...flags }, { input, output, tty: true, cwd: tmp, env: { HOME: tmp }, preflight: () => ({ ok: false }), ...extra }); }
+    try { code = await wizard.run({ _: [], ...flags }, { input, output, tty: true, cwd: tmp, env: { HOME: tmp }, preflight: () => ({ ok: false }), siteRoots: [], ...extra }); }
     catch (e) { error = e; } finally { console.log = log; if (saved === undefined) delete process.env.PLUGIN_GUARD_ISSUES; else process.env.PLUGIN_GUARD_ISSUES = saved; }
     return { text: text + logged, error, code };
 }
@@ -87,11 +87,11 @@ async function wiz(answers, flags, extra = {}) {
     group('prompt order, and a bad folder is asked for again');
     const siteA = makeSite('prompts');
     const outA = path.join(tmp, 'outA');
-    const pr = await wiz(['The site shows a critical error', '', '', '', path.join(tmp, 'no-such-folder'), tmp, siteA, ''], { out: outA, 'no-probe': true, 'no-questions': true });
-    const idx = ['1/7', '2/7', '3/7', '4/7', '5/7', '7/7'].map(k => pr.text.indexOf(k));
-    ok(!pr.error && idx.every((v, i) => v >= 0 && (i === 0 || v > idx[i - 1])), 'the questions come in order: problem, screenshots, log, address, folder, PHP version');
-    ok((pr.text.match(/5\/7/g) || []).length === 3 && /is not a WordPress folder/.test(pr.text) && /no-such-folder does not exist/.test(pr.text), 'a missing folder and a folder that is not WordPress are each explained and the folder is asked for again');
-    ok(!/6\/7/.test(pr.text), 'with no website address the site kind is not asked (nothing is visited)');
+    const pr = await wiz(['The site shows a critical error', '', '', path.join(tmp, 'no-such-folder'), tmp, siteA], { out: outA, 'no-probe': true, 'no-questions': true });
+    const idx = ['What is wrong?', 'Screenshots:', 'Website address', 'I found this WordPress site'].map(k => pr.text.indexOf(k));
+    ok(!pr.error && idx.every((v, i) => v >= 0 && (i === 0 || v > idx[i - 1])), 'the questions come in order: problem, screenshots, address, folder (no log, no PHP question)');
+    ok((pr.text.match(/Use it\? \[Y\/n\]/g) || []).length === 3 && /is not a WordPress folder/.test(pr.text) && /no-such-folder does not exist/.test(pr.text), 'a missing folder and a folder that is not WordPress are each explained and the folder is asked for again');
+    ok(!/Is that right\?/.test(pr.text), 'with no website address the site kind is not asked (nothing is visited)');
     ok(/VERDICT/.test(pr.text) && /Report folder:/.test(pr.text), 'the summary and the report location are printed');
 
     group('the site folder is never written to, and the copy holds no secrets');
@@ -123,10 +123,10 @@ async function wiz(answers, flags, extra = {}) {
     group('the live-site rule: the reporter types the domain, or --authorized');
     const siteD = makeSite('live', { ownLog: false });
     const outD = path.join(tmp, 'outD');
-    const wrong = await wiz(['Pages break', '', '', 'https://shop.example.net/', siteD, 'live', 'wrong.example.org'], { out: outD, 'no-probe': true, 'no-questions': true });
+    const wrong = await wiz(['Pages break', '', 'https://shop.example.net/', siteD, '', 'wrong.example.org'], { out: outD, 'no-probe': true, 'no-questions': true });
     ok(wrong.error && wrong.error.exitCode === 3 && /was NOT visited/.test(wrong.error.message) && issuesOf(outD).length === 0, 'a wrong domain: refused (exit 3), nothing created');
     ok(/type the site's domain exactly \(shop\.example\.net\)/.test(wrong.text), 'the prompt names the domain to type');
-    const right = await wiz(['Pages break', '', '', 'https://shop.example.net/', siteD, 'live', 'SHOP.example.net', ''], { out: outD, 'no-probe': true, 'no-questions': true });
+    const right = await wiz(['Pages break', '', 'https://shop.example.net/', siteD, '', 'SHOP.example.net'], { out: outD, 'no-probe': true, 'no-questions': true });
     const rid = issuesOf(outD)[0];
     ok(!right.error && rid && jl(outD, rid).authorized_live === true && jl(outD, rid).environment === 'live', 'the right domain: the run goes on and the issue is recorded as authorised live');
     const noTty = cli(['--description', 'Pages break', '--root', siteD, '--url', 'https://shop.example.net/', '--env', 'live', '--out', path.join(tmp, 'outD2'), '--no-probe']);
@@ -140,10 +140,10 @@ async function wiz(answers, flags, extra = {}) {
     group('"local" for a public name is confirmed; local-looking names are not');
     ok(['localhost', 'a.localhost', '127.0.0.1', '10.1.2.3', '192.168.1.5', '172.20.0.1', 'shop.local', 'x.test', 'wordpress', '::1'].every(intake.hostIsLocal) && !['example.com', '8.8.8.8', '172.32.0.1', 'shop.dev'].some(intake.hostIsLocal), 'hostIsLocal: localhost, private ranges, .local, .test, single names yes; public names no');
     const siteE = makeSite('localcheck', { ownLog: false });
-    const loc = await wiz(['Pages break', '', '', 'http://www.example.com/', siteE, 'n', 'staging', ''], { env: 'local', out: path.join(tmp, 'outE'), 'no-probe': true, 'no-questions': true });
+    const loc = await wiz(['Pages break', '', 'http://www.example.com/', siteE, 'n', 'staging'], { env: 'local', out: path.join(tmp, 'outE'), 'no-probe': true, 'no-questions': true });
     const eid = issuesOf(path.join(tmp, 'outE'))[0];
     ok(/does not look like a local address/.test(loc.text) && eid && jl(path.join(tmp, 'outE'), eid).environment === 'staging', 'a public name called local: asked, and "no" leads to choosing staging or live');
-    const loc2 = await wiz(['Pages break', '', '', 'http://localhost:8080/', siteE, ''], { env: 'local', out: path.join(tmp, 'outE2'), 'no-probe': true, 'no-questions': true });
+    const loc2 = await wiz(['Pages break', '', 'http://localhost:8080/', siteE], { env: 'local', out: path.join(tmp, 'outE2'), 'no-probe': true, 'no-questions': true });
     ok(!/does not look like a local address/.test(loc2.text) && !loc2.error, 'localhost: no extra question');
     const loc3 = cli(['--description', 'x', '--root', siteE, '--url', 'http://www.example.com/', '--env', 'local', '--no-probe', '--out', path.join(tmp, 'outE3')]);
     ok(loc3.status === 0 && /does not look like a local address/.test(loc3.stdout + loc3.stderr), 'no terminal: only a warning (the existing rule is not changed)');
@@ -162,16 +162,16 @@ async function wiz(answers, flags, extra = {}) {
     group('the PHP version collected here is not asked again');
     ok(Q.RULES.php.applies({ issue: { php_version: '8.1' }, observations: [{ type: 'removed-function-call' }] }) === false
         && Q.RULES.php.applies({ issue: { php_version: null }, observations: [{ type: 'removed-function-call' }] }) === true, 'question 5 applies without a version and not with one');
-    const phpRun = await wiz(['Pages break', '', '', '', siteE, '8.2'], { out: path.join(tmp, 'outH'), 'no-probe': true, 'no-questions': true });
+    const phpRun = await wiz(['Pages break', '', '', siteE], { php: '8.2', out: path.join(tmp, 'outH'), 'no-probe': true, 'no-questions': true });
     const hid = issuesOf(path.join(tmp, 'outH'))[0];
-    ok(!phpRun.error && hid && jl(path.join(tmp, 'outH'), hid).php_version === '8.2', 'the PHP version answered in the wizard is stored in the issue');
+    ok(!phpRun.error && hid && jl(path.join(tmp, 'outH'), hid).php_version === '8.2', 'the PHP version given with --php is stored in the issue (the wizard no longer asks it)');
     ok(!/PHP version does your website run/.test(phpRun.text), 'no later question asks for it');
 
     group('screenshots without OCR data');
     const { PNG } = require('pngjs'); const img = new PNG({ width: 40, height: 40 }); img.data.fill(255);
     fs.writeFileSync(path.join(tmp, 'shot.png'), PNG.sync.write(img));
     const realStatus = ocrData.status; ocrData.status = () => ({ ok: false, reason: 'missing' });
-    const ocr = await wiz(['Layout broken', path.join(tmp, 'shot.png'), '', '', siteE, ''], { out: path.join(tmp, 'outI'), 'no-probe': true, 'no-questions': true });
+    const ocr = await wiz(['Layout broken', path.join(tmp, 'shot.png'), '', siteE], { out: path.join(tmp, 'outI'), 'no-probe': true, 'no-questions': true });
     ocrData.status = realStatus;
     ok(/text in screenshots cannot be read yet/.test(ocr.text) && /npm run guard:setup-ocr/.test(ocr.text), 'without OCR data it says so plainly and names npm run guard:setup-ocr');
     ok(/1 screenshot\(s\) kept/.test(ocr.text), 'the screenshot is still kept');
@@ -193,24 +193,24 @@ async function wiz(answers, flags, extra = {}) {
     ok(inside2 && inside2.exitCode === 2, '--out inside the site folder is refused');
 
     group('the sandbox question');
-    const sbA = await wiz(['Layout broken', '', '', '', siteE, ''], { out: path.join(tmp, 'outK'), 'no-probe': true, 'no-questions': true }, { preflight: () => ({ ok: false }) });
+    const sbA = await wiz(['Layout broken', '', '', siteE], { out: path.join(tmp, 'outK'), 'no-probe': true, 'no-questions': true }, { preflight: () => ({ ok: false }) });
     ok(!/throwaway copy/.test(sbA.text), 'Docker not usable: the question is not asked');
     // changed with the owner's request for the database backup: the first question is the backup (an .sql file); without one the sandbox is an OPTIONAL extra, default no
-    const sbB = await wiz(['Layout broken', '', '', '', siteE, '', '', 'n'], { out: path.join(tmp, 'outK2'), 'no-probe': true, 'no-questions': true }, { preflight: () => ({ ok: true }) });
+    const sbB = await wiz(['Layout broken', '', '', siteE, '', 'n'], { out: path.join(tmp, 'outK2'), 'no-probe': true, 'no-questions': true }, { preflight: () => ({ ok: true }) });
     ok(/Do you have a database backup \(an \.sql file\) of the site\?/.test(sbB.text) && /Optional: a deeper test in a throwaway copy .* Run it\? \[y\/N\]/.test(sbB.text) && !sbB.error, 'Docker usable and a terminal: the backup is asked first; with none the sandbox is an optional extra (default no); "n" skips it');
-    const sbDef = await wiz(['Layout broken', '', '', '', siteE, '', '', ''], { out: path.join(tmp, 'outK2b'), 'no-probe': true, 'no-questions': true }, { preflight: () => ({ ok: true }) });
+    const sbDef = await wiz(['Layout broken', '', '', siteE, '', ''], { out: path.join(tmp, 'outK2b'), 'no-probe': true, 'no-questions': true }, { preflight: () => ({ ok: true }) });
     ok(!sbDef.error && !/sandbox-start|SANDBOX/.test(sbDef.text) && /Optional: a deeper test/.test(sbDef.text), 'pressing Enter at the optional question means NO sandbox (the default is no)');
     // the database backup: asked first, re-asked on a bad path, passed on as --db-dump, never for a live site
     fs.writeFileSync(path.join(tmp, 'backup.sql'), '-- dump\n'); fs.writeFileSync(path.join(tmp, 'notes.txt'), 'x');
     const cliLib = require('../lib/issue-cli'), realInv = cliLib.investigate; let seen = null;
     cliLib.investigate = async (id2, o2) => { seen = o2; return 0; };
-    const sbD = await wiz(['Layout broken', '', '', '', siteE, '', path.join(tmp, 'notes.txt'), path.join(tmp, 'backup.sql'), 'y'], { out: path.join(tmp, 'outK4'), 'no-probe': true, 'no-questions': true }, { preflight: () => ({ ok: true }) });
+    const sbD = await wiz(['Layout broken', '', '', siteE, path.join(tmp, 'notes.txt'), path.join(tmp, 'backup.sql'), 'y'], { out: path.join(tmp, 'outK4'), 'no-probe': true, 'no-questions': true }, { preflight: () => ({ ok: true }) });
     ok(!sbD.error && /is not an \.sql \(or \.sql\.gz\) file that exists/.test(sbD.text) && /user names, e-mail addresses and passwords are made anonymous/.test(sbD.text) && seen && seen.sandbox === true && seen['db-dump'] === path.join(tmp, 'backup.sql'), 'a backup: a bad path is asked again, the anonymising is stated, and the backup goes to the pipeline as --db-dump with the sandbox on');
     seen = null;
-    const sbE = await wiz(['Layout broken', '', '', '', siteE, '', path.join(tmp, 'backup.sql'), 'n'], { out: path.join(tmp, 'outK5'), 'no-probe': true, 'no-questions': true }, { preflight: () => ({ ok: true }) });
+    const sbE = await wiz(['Layout broken', '', '', siteE, path.join(tmp, 'backup.sql'), 'n'], { out: path.join(tmp, 'outK5'), 'no-probe': true, 'no-questions': true }, { preflight: () => ({ ok: true }) });
     ok(!sbE.error && seen && seen.sandbox === false && !seen['db-dump'], 'declining the deeper test drops the backup too (nothing is imported)');
     seen = null;
-    const sbF = await wiz(['Pages break', '', '', 'https://shop.example.net/', siteE, 'live', 'shop.example.net', ''], { out: path.join(tmp, 'outK6'), 'no-probe': true, 'no-questions': true }, { preflight: () => ({ ok: true }) });
+    const sbF = await wiz(['Pages break', '', 'https://shop.example.net/', siteE, '', 'shop.example.net'], { out: path.join(tmp, 'outK6'), 'no-probe': true, 'no-questions': true }, { preflight: () => ({ ok: true }) });
     ok(!sbF.error && !/database backup|throwaway copy/.test(sbF.text) && seen && seen.sandbox === false, 'a live site: neither the backup nor the sandbox is asked');
     cliLib.investigate = realInv;
     const sbC = await wiz([], { yes: true, description: 'x', root: siteE, out: path.join(tmp, 'outK3'), 'no-probe': true }, { preflight: () => ({ ok: true }) });
