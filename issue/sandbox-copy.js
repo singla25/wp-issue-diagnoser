@@ -32,12 +32,22 @@ const PARTS = ['plugins', 'themes', 'mu-plugins', 'languages'];
 const inside = (parent, child) => child === parent || child.startsWith(parent + path.sep);
 const err = (msg, code = 2) => Object.assign(new Error(msg), { exitCode: code });
 
+// does a skipped folder hold any PHP file? (bounded: 5000 entries)
+function holdsPhp(dir) {
+    let seen = 0;
+    const walk = d => { let l; try { l = readdir(d, { withFileTypes: true }); } catch { return true; } for (const e of l) { if (++seen > 5000) return true; if (e.isFile() && /\.php$/i.test(e.name)) return true; if (e.isDirectory() && !e.isSymbolicLink() && walk(path.join(d, e.name))) return true; } return false; };
+    return walk(dir);
+}
+
 // -> { entries: [{ src, rel, size, dir }], skipped: [{ path, reason }], symlinks: n, bytes, files, biggest }
 function scan(root, { withUploads = false, ...limits } = {}) {
     const L = { ...DEFAULTS, ...limits };
     const wc = path.join(root, 'wp-content');
     const entries = [], skipped = [], top = new Map();
     let symlinks = 0, bytes = 0, files = 0;
+    // PHP the copy left out: the analysis must know, because "no component defines this class" is only true if every PHP file was there to be read. wp-config*.php is
+    // configuration, not code that defines classes of other plugins, and is not counted. A skipped FOLDER counts if it holds any PHP file.
+    const phpSkipped = [];
     const skip = (p, reason) => { if (skipped.length < 400) skipped.push({ path: p, reason }); };
     const walk = (abs, rel, partName) => {
         let list; try { list = readdir(abs, { withFileTypes: true }); } catch { skip(rel, 'unreadable'); return; }
@@ -45,17 +55,17 @@ function scan(root, { withUploads = false, ...limits } = {}) {
         for (const e of list) {
             const a = path.join(abs, e.name), r = `${rel}/${e.name}`;
             let st; try { st = fs.lstatSync(a); } catch { continue; }
-            if (st.isSymbolicLink()) { symlinks++; skip(r, 'symbolic link (never followed)'); continue; }
+            if (st.isSymbolicLink()) { symlinks++; skip(r, 'symbolic link (never followed)'); if (/\.php$/i.test(e.name)) phpSkipped.push(r); continue; }
             if (st.isDirectory()) {
-                if (SKIP_DIRS.test(e.name)) { skip(r, 'tool folder'); continue; }
+                if (SKIP_DIRS.test(e.name)) { skip(r, 'tool folder'); if (holdsPhp(a)) phpSkipped.push(r); continue; }
                 entries.push({ src: a, rel: r, dir: true, size: 0 });
                 walk(a, r, partName);
                 continue;
             }
-            if (!st.isFile()) { skip(r, 'not a regular file'); continue; }
+            if (!st.isFile()) { skip(r, 'not a regular file'); if (/\.php$/i.test(e.name)) phpSkipped.push(r); continue; }
             const bad = PUBLIC_CERT.test(e.name) && !hasPrivateKey(a) ? null : SKIP_FILES.find(([re]) => re.test(e.name));
-            if (bad) { skip(r, bad[1]); continue; }
-            if (st.size > L.maxFileBytes) { skip(r, `file larger than ${Math.round(L.maxFileBytes / 1048576)} MB`); continue; }
+            if (bad) { skip(r, bad[1]); if (/\.php$/i.test(e.name) && !/^wp-config.*\.php$/i.test(e.name)) phpSkipped.push(r); continue; }
+            if (st.size > L.maxFileBytes) { skip(r, `file larger than ${Math.round(L.maxFileBytes / 1048576)} MB`); if (/\.php$/i.test(e.name)) phpSkipped.push(r); continue; }
             files++; bytes += st.size; top.set(partName, (top.get(partName) || 0) + st.size);
             entries.push({ src: a, rel: r, dir: false, size: st.size });
         }
@@ -78,11 +88,11 @@ function scan(root, { withUploads = false, ...limits } = {}) {
             if (!DROPINS.has(e.name)) continue;
             const a = path.join(wc, e.name), r = `wp-content/${e.name}`, st = fs.lstatSync(a);
             if (st.isSymbolicLink()) { symlinks++; skip(r, 'symbolic link (never followed)'); continue; }
-            if (DROPIN_SKIP.has(e.name)) { skip(r, 'drop-in for a service the sandbox does not have (Redis, another database, multisite)'); continue; }
+            if (DROPIN_SKIP.has(e.name)) { skip(r, 'drop-in for a service the sandbox does not have (Redis, another database, multisite)'); phpSkipped.push(r); continue; }
             dropins.push(e.name); files++; bytes += st.size; entries.push({ src: a, rel: r, dir: false, size: st.size });
         }
     } catch { /* no wp-content */ }
-    return { entries, skipped, symlinks, bytes, files, dropins, biggest: [...top].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([part, size]) => ({ part, mb: Math.round(size / 104857.6) / 10 })), limits: L };
+    return { entries, skipped, symlinks, bytes, files, dropins, phpSkipped, biggest: [...top].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([part, size]) => ({ part, mb: Math.round(size / 104857.6) / 10 })), limits: L };
 }
 
 // Copies into destSite (…/sandboxes/<id>/site). Refuses, before writing anything, above the size / file caps.
@@ -108,7 +118,7 @@ function copySite(root, destSite, { sandboxDir, withUploads = false, ...limits }
     }
     for (const d of ['wp-content/mu-plugins', 'wp-content/plugins', 'wp-content/themes', 'wp-content/uploads']) fs.mkdirSync(path.join(dest, d), { recursive: true, mode: 0o755 });
     fs.chmodSync(path.join(dest, 'wp-content/uploads'), 0o777); // written by www-data in the container; the sandbox folder itself is 0700
-    return { files: copied, bytes: s.bytes, symlinks_skipped: s.symlinks, dropins_copied: s.dropins, uploads_copied: !!withUploads,
+    return { php_skipped: s.phpSkipped.length, php_skipped_examples: s.phpSkipped.slice(0, 10), files: copied, bytes: s.bytes, symlinks_skipped: s.symlinks, dropins_copied: s.dropins, uploads_copied: !!withUploads,
         skipped: s.skipped.slice(0, 60), skipped_total: s.skipped.length, skipped_by_reason: Object.fromEntries([...new Set(s.skipped.map(x => x.reason))].sort().map(r => [r, s.skipped.filter(x => x.reason === r).length])) };
 }
 

@@ -60,6 +60,70 @@ function readTail(abs, maxBytes) {
     } finally { fs.closeSync(fd); }
 }
 
+// ---------- deep scan: a fatal that is NOT in the last 2 MB of a huge log ----------
+// Used only when the tail holds no fatal and the problem looks like a crash. Reads in 1 MB chunks, line-aligned, never more than `cap` bytes in total: first backwards from
+// just before the tail (most recent first, 3/4 of the budget), then forwards from the start of the file (a log that was flooded with notices later still holds the old crash
+// at its beginning). Only fatal-like lines are kept (with the few lines after them, for the stack trace): at most 200 entries, 1200 characters per line, redacted.
+// Same guards as readTail: a regular file, opened read-only, one chunk in memory at a time.
+const FATAL_LIKE = /\b(?:PHP )?(?:Fatal error|Parse error)\b|Uncaught\s+\w*(?:Error|Exception)|\bnot found in\b/;
+const CRASH_WORDS = /white screen|blank (?:page|screen)|critical error|fatal error|there has been a critical|error 500|http 500|500 (?:internal )?error|internal server error|site (?:is )?down|page (?:is )?not loading|stopped working|can'?t load|cannot load/i;
+const looksLikeCrash = text => CRASH_WORDS.test(String(text || ''));
+const hasFatal = text => /\b(?:PHP )?Fatal error\b|\bParse error\b/.test(String(text || ''));
+
+function deepScan(abs, { tailBytes = DEFAULT_MAX_BYTES, cap = 64 * 1024 * 1024, chunk = 1024 * 1024, maxEntries = 200, maxLine = 1200 } = {}) {
+    const st = fs.lstatSync(abs);
+    if (!st.isFile()) return null;
+    const total = st.size, out = { text: '', entries: 0, read_bytes: 0, total_bytes: total, passes: [], found: false, capped: false };
+    const fd = fs.openSync(abs, 'r');
+    const kept = [];
+    const take = (text, order) => {      // lines of one chunk -> fatal-like lines + up to 6 following lines
+        const lines = text.split(/\r?\n/);
+        const found = [];
+        for (let i = 0; i < lines.length; i++) {
+            if (!FATAL_LIKE.test(lines[i])) continue;
+            const block = [lines[i], ...lines.slice(i + 1, i + 7).filter(l => /^(#\d+|Stack trace:|\s+thrown in)/.test(l))];
+            found.push(block.map(l => redact.text(l).slice(0, maxLine)).join('\n'));
+        }
+        return order === 'back' ? found.reverse() : found;
+    };
+    try {
+        const readAt = (from, len) => { const buf = Buffer.alloc(len); fs.readSync(fd, buf, 0, len, from); return buf.toString('utf8'); };
+        let budget = cap;
+        // pass 1: backwards from the start of the tail, 3/4 of the budget
+        let end = Math.max(0, total - tailBytes), spent = 0;
+        const backBudget = Math.floor(cap * 0.75);
+        const backFrom = end;
+        while (end > 0 && spent < backBudget && kept.length < maxEntries) {
+            const len = Math.min(chunk, end, backBudget - spent), from = end - len;
+            let text = readAt(from, len);
+            if (from > 0) text = text.slice(text.indexOf('\n') + 1);        // the first line of the chunk may be cut
+            kept.push(...take(text, 'back')); spent += len; end = from;
+        }
+        out.read_bytes += spent;
+        if (spent) out.passes.push({ direction: 'backwards', from_byte: end, to_byte: backFrom, bytes: spent });
+        // pass 2 (only if pass 1 found no fatal): forwards from byte 0, never into what was read
+        if (!kept.length) {
+            budget = cap - spent; let pos = 0, fwd = 0;
+            while (pos < end && fwd < budget && kept.length < maxEntries) {
+                const len = Math.min(chunk, end - pos, budget - fwd);
+                let text = readAt(pos, len);
+                if (pos + len < end) text = text.slice(0, text.lastIndexOf('\n') + 1);      // the last line of the chunk may be cut: it is read again with the next chunk
+                const used = Buffer.byteLength(text, 'utf8') || len;
+                kept.push(...take(text, 'fwd')); fwd += used; pos += used || len;
+            }
+            out.read_bytes += fwd;
+            if (fwd) out.passes.push({ direction: 'forwards', from_byte: 0, to_byte: pos, bytes: fwd });
+        }
+        out.capped = end > 0 && kept.length === 0 && out.read_bytes >= cap - chunk;
+    } finally { fs.closeSync(fd); }
+    out.entries = Math.min(kept.length, maxEntries);
+    out.found = out.entries > 0;
+    out.text = kept.slice(0, maxEntries).join('\n') + (kept.length ? '\n' : '');
+    return out;
+}
+const mb = b => (b / 1048576 >= 10 ? Math.round(b / 1048576) : Math.round(b / 104857.6) / 10);
+const describeDeep = d => `the last 2 MB of this log had no fatal error, so ${d.passes.map(p => `${mb(p.bytes)} MB ${p.direction === 'backwards' ? 'before it' : 'from the start'}`).join(' and ')} were also read (${mb(d.read_bytes)} MB of ${mb(d.total_bytes)} MB): ${d.found ? `${d.entries} fatal-like line(s) found` : 'no fatal error found in the part read'}`;
+
 function levelOf(msg) {
     const m = /^PHP (Fatal error|Parse error|Warning|Notice|Deprecated)|^(Fatal error|Parse error|Warning|Notice|Deprecated)/i.exec(msg);
     return m ? (m[1] || m[2]).toLowerCase() : 'other';
@@ -107,7 +171,7 @@ function dedupe(entries) {
 }
 
 // window: { from: ISO|null, to: ISO|null } -> entries get in_window: true/false, or null when there is no window or no timestamp
-function collect(root, { maxBytes = DEFAULT_MAX_BYTES, window = null } = {}) {
+function collect(root, { maxBytes = DEFAULT_MAX_BYTES, window = null, deep = null } = {}) {
     const result = { files: [], entries: [], problems: [] };
     const candidates = ['wp-content/debug.log', 'error_log', 'wp-content/error_log', 'wp-admin/error_log'];
     for (const kind of ['plugins', 'themes']) {
@@ -123,8 +187,14 @@ function collect(root, { maxBytes = DEFAULT_MAX_BYTES, window = null } = {}) {
         if (r.symlink) { result.problems.push(`${rel}: is a symbolic link, not read`); continue; }
         let t; try { t = readTail(r.abs, maxBytes); } catch (e) { result.problems.push(`${rel}: ${e.code || e.message}`); continue; }
         if (!t) continue;
-        result.files.push({ ref: rel, bytes: t.bytes, truncated: t.truncated });
-        all = all.concat(parseLog(t.text, rel));
+        const fileInfo = { ref: rel, bytes: t.bytes, truncated: t.truncated };
+        let text = t.text;
+        if (deep && deep.enabled && t.truncated && !hasFatal(text)) {
+            try { const d = deepScan(r.abs, { tailBytes: maxBytes, cap: deep.cap }); if (d) { fileInfo.deep = { read_bytes: d.read_bytes, total_bytes: d.total_bytes, found: d.found, entries: d.entries, passes: d.passes, text: describeDeep(d) }; text = `${text}\n${d.text}`; } }
+            catch (e) { result.problems.push(`${rel}: deep scan failed (${e.code || e.message})`); }
+        }
+        result.files.push(fileInfo);
+        all = all.concat(parseLog(text, rel));
     }
     const merged = dedupe(all).slice(0, MAX_ENTRIES);
     for (const e of merged) e.in_window = window && (window.from || window.to) && e.last_seen ? (!window.from || e.last_seen >= window.from) && (!window.to || e.first_seen <= window.to) : null;
@@ -133,4 +203,4 @@ function collect(root, { maxBytes = DEFAULT_MAX_BYTES, window = null } = {}) {
     return result;
 }
 
-module.exports = { collect, parseLog, dedupe, readTail, isoOf, zoneOffset, DEFAULT_MAX_BYTES };
+module.exports = { collect, parseLog, dedupe, readTail, isoOf, zoneOffset, deepScan, describeDeep, looksLikeCrash, hasFatal, DEFAULT_MAX_BYTES };

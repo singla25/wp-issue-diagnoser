@@ -37,7 +37,8 @@ function build(id, { validation, plans, dir, gate = false, verbose = false }) {
     const hyps = validation.hypotheses.map(h => ({
         id: h.id, title: h.title, status: lastFixed && lastFixed.hypothesis === h.id ? 'FIXED_VERIFIED' : h.status, score: h.score, advisory: !!h.advisory, class: h.class || null, active_state: h.active_state || null, family: h.family, components: h.components, mechanism: h.mechanism,
         supports: h.supports, contradicts: h.contradicts, score_breakdown: h.score_breakdown, oracle: h.oracle, checks: h.checks, validation_notes: h.validation_notes, independent_kinds: h.independent_kinds,
-        ownership: h.ownership, fix_eligible: h.fix_eligible, kb_verified: h.kb_verified, kb_sources: h.kb_sources
+        ownership: h.ownership, fix_eligible: h.fix_eligible, kb_verified: h.kb_verified, kb_sources: h.kb_sources,
+        ...(h.fatal_recheck ? { fatal_recheck: h.fatal_recheck } : {})
     }));
     const planOf = new Map(plans.map(p => [p.hypothesis, p]));
     const sbx = W('sandbox.json'), bis = W('bisect.json'), ev = W('evidence.json'), probe = W('probe.json');

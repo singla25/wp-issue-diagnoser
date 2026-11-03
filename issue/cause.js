@@ -85,6 +85,7 @@ function cause(h, ctx = {}) {
     if (h.class === 'compromise' || /^classic:integrity-/.test(h.type || '')) return `Possible compromise signs were found in ${fileOnly(h)} (pattern match, not proof)`;
     const env = environmentCause(h, ctx);
     if (env) return ENV_SENTENCE[env](h);
+    if (h.fatal_recheck && h.fatal_recheck.text && h.fatal_recheck.text.cause) return clip(h.fatal_recheck.text.cause, 400);   // a "class not found" fatal, re-checked (issue/fatal-recheck.js)
     const key = h.type === 'kb' ? `kb:${(h.kb || [])[0] || ''}` : h.type;
     if (T[h.type]) return clip(T[h.type](h, obs, ctx), 400);                  // a phrase that completes "The cause: ..." (no capital letter, no full stop)
     if (h.type === 'kb') return clip(first(h.mechanism) || h.title || key, 400).replace(/[.]$/, '');

@@ -122,7 +122,9 @@ async function run(id, { root = null, options = {}, env = process.env, imageFile
     const steps = [], clues = [];
     const images = issue.images || [];
     const result = { schema: 1, issue_id: id, planned: null, protection: null, pages: [], oracle: null, public_check: null, image_diff: null, governor: null, notes: [] };
-    const finish = (extra = {}) => { fs.mkdirSync(path.join(dir, 'work'), { recursive: true, mode: 0o700 }); fs.writeFileSync(path.join(dir, 'work', 'probe.json'), JSON.stringify(result, null, 2) + '\n', { mode: 0o600 }); return { steps, clues, result, oracle: result.oracle, ...extra }; };
+    const finish = (extra = {}) => { fs.mkdirSync(path.join(dir, 'work'), { recursive: true, mode: 0o700 });
+        // when the probe ran: kept in the ISSUE file (the work files hold no timestamps, so two investigations stay byte-identical); issue/fatal-recheck.js pairs a log fatal with it
+        if (result.pages.length) { try { const cur = store.load(id); cur.probe_ran_at = new Date().toISOString(); store.save(cur); } catch { /* the issue file is not essential */ } } fs.writeFileSync(path.join(dir, 'work', 'probe.json'), JSON.stringify(result, null, 2) + '\n', { mode: 0o600 }); return { steps, clues, result, oracle: result.oracle, ...extra }; };
 
     // ---- screenshot pair mode: expected vs actual, no website needed ----
     const pairList = imgdiff.pairs(images).filter(p => p.actual);

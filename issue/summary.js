@@ -23,7 +23,7 @@ function summarise(split, { ran = {}, verbose = false } = {}) {
             ? `We found ${n} confirmed ${plural(n, 'cause', 'causes')} that ${plural(n, 'breaks', 'break')} your website.`
             : `${n} confirmed ${plural(n, 'cause was', 'causes were')} found in your logs.`;
         lines.push(headline);
-        for (const f of causes) lines.push(`  • ${cap(f.cause)}${f.log_only && seen.length ? ' (found in your logs)' : ''}.`);
+        for (const f of causes) { lines.push(`  • ${cap(f.cause)}${f.log_only && seen.length ? ' (found in your logs)' : ''}.`); for (const m of f.more_lines || []) lines.push(m); }
     } else {
         headline = 'No confirmed breaking cause was found.';
         lines.push(headline);

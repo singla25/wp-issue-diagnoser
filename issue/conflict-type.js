@@ -72,6 +72,13 @@ function label(h, ctx = {}) {
     const sides = kinds.filter(k => k !== 'core');
     if (sides.includes('theme') && sides.some(k => k === 'plugin' || k === 'mu')) { cand.add('theme-plugin'); why.push('theme + plugin'); }
     if (sides.filter(k => k === 'plugin' || k === 'mu').length >= 2) { cand.add('plugin-plugin'); why.push('two or more plugins'); }
+    // a "class not found" fatal in a theme whose class belongs to a KNOWN plugin is a theme-plugin problem; in a plugin whose class belongs to another known plugin, plugin-plugin.
+    // A guessed provider does not count. (Server causes and compromise signs above still win.)
+    const fr = h.fatal_recheck;
+    if (fr && fr.provider && fr.provider.known && fr.provider.kind === 'plugin' && !cand.has('compromise') && !cand.has('environment-server')) {
+        const side = fr.file_kind === 'theme' ? 'theme-plugin' : fr.file_kind === 'plugin' && fr.provider.slug !== (fr.file.split('/')[2] || '') ? 'plugin-plugin' : null;
+        if (side) { cand.delete('plugin-core-php'); cand.add(side); why.push(`class ${fr.class} belongs to the plugin ${fr.provider.slug}`); }
+    }
     const chosen = PRECEDENCE.find(l => cand.has(l)) || 'unclassified';
     return { label: chosen, candidates: PRECEDENCE.filter(l => cand.has(l)), kinds, why };
 }

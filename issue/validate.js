@@ -8,6 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const ownership = require('../lib/ownership');
 const phpast = require('./phpast');
+const fatalRecheck = require('./fatal-recheck');
 
 // What each cited evidence line must contain. THE KNOWN TRAP: this map must be at least as broad as what the scanner (phpast.js) records,
 // otherwise true findings are rejected. Hence: a leading backslash and whitespace before "(" are allowed (\add_action ( ... )), the whole
@@ -110,7 +111,8 @@ function run(id, { root, config = null, lint = phpast.phpLint } = {}) {
     const symptom = oracle.agrees === false ? 'could-not-test' : (oracle.recomputed || (sbx && sbx.reproduced_in_sandbox === 'yes' ? 'yes' : sbx && sbx.reproduced_in_sandbox === 'no' ? 'no' : (hyp.symptom_reproduced && hyp.symptom_reproduced.result) || 'not-tested'));
 
     // the hypothesis only carries a summary of its observation; the checks need the observation's own fields (declaration name, handle, ...)
-    const obsById = new Map(((readJson(W('custom-code.json')) || {}).observations || []).map(o => [o.id, o]));
+    const ccJson = readJson(W('custom-code.json')) || {}, intake = readJson(W('intake.json'));
+    const obsById = new Map((ccJson.observations || []).map(o => [o.id, o]));
     const out = [];
     for (const hSummary of hyp.hypotheses) {
         const obs = hSummary.supports.map(s => (s.kind === 'observation' ? obsById.get(s.ref) : null)).find(Boolean) || {};
@@ -149,13 +151,22 @@ function run(id, { root, config = null, lint = phpast.phpLint } = {}) {
             hchecks.push(check('declaration-sites', 'PASSED', `all ${good.length} cited declarations were re-read and each still declares ${h.declaration && h.declaration.name}`));
             notes.push('both declaration sites were re-read and verified: they count as two deterministic supports');
         }
-        const deterministic = [...kinds].filter(k => DETERMINISTIC.has(k)).concat(siteKinds);
+        // a "Class X not found" fatal at a known file (issue/fatal-recheck.js): re-read, and either the live page broke too (Rule A) or nothing in the copy defines X (Rule B).
+        // When a rule holds, the log line is subsumed in the first support, so the two supports below are the TWO deterministic supports (not three).
+        let fatal = null;
+        if (h.type === 'missing-function' && root) {
+            fatal = fatalRecheck.recheck({ h, clues: ev.clues, root, probe, issue, intake, components: ccJson.components || [], sandbox: sbx });
+            if (fatal) for (const c of fatal.checks) hchecks.push(check(`fatal:${c.id}`, c.status, c.reason));
+        }
+        const fatalKinds = fatal && fatal.supports.length === 2 ? fatal.supports : [];
+        if (fatalKinds.length) notes.push(`rule ${fatal.rule}: ${fatal.rule === 'A' ? 'the cited line was re-read, the fatal repeats, it is fresh, and the live page answered HTTP 5xx' : 'the cited line was re-read, the fatal repeats, and no PHP file of the copy defines the class'}: two deterministic supports`);
+        const deterministic = fatalKinds.length ? [...kinds].filter(k => DETERMINISTIC.has(k) && k !== 'log').concat(siteKinds, fatalKinds) : [...kinds].filter(k => DETERMINISTIC.has(k)).concat(siteKinds);
         // ---- the verdict ----
         let status = h.status;
         if (bisectOk) status = 'REPRODUCIBLE';
         else if (files.length && good.length === 0 && bad.length === files.filter(f => f.status !== 'unchecked' && f.status !== 'verified-file-only').length && bad.length > 0) { status = 'REJECTED_FALSE_POSITIVE'; notes.push(`every cited location failed re-verification (${bad.map(b => `${b.file}:${b.line || '-'} ${b.status}`).join('; ')})`); }
         else if (bad.length) { status = h.status === 'UNVERIFIED' ? 'UNVERIFIED' : 'PROBABLE_NEEDS_REVIEW'; notes.push(`${bad.length} of ${files.length} cited location(s) failed re-verification, so it cannot be CONFIRMED`); }
-        else if (deterministic.length >= 2 && (good.length > 0 || kinds.has('log') || kinds.has('probe'))) status = 'CONFIRMED';
+        else if (deterministic.length >= 2 && (good.length > 0 || kinds.has('log') || kinds.has('probe') || fatalKinds.length)) status = 'CONFIRMED';
         else if (h.status === 'UNVERIFIED' || h.status === 'PROBABLE_NEEDS_REVIEW') status = deterministic.length ? 'PROBABLE_NEEDS_REVIEW' : 'UNVERIFIED';
         // an advisory (a version header, or a removed-function call nothing has corroborated) is never CONFIRMED or REPRODUCIBLE. One that a log fatal,
         // a probe observation or the bisection backs has advisory: false from hypotheses.js and takes the normal path above.
@@ -168,7 +179,7 @@ function run(id, { root, config = null, lint = phpast.phpLint } = {}) {
         // ownership: recomputed; this alone says whether code may be named in a fix task
         const touched = [...new Set(cited.map(e => e.file))];
         const owners = touched.map(f => ({ file: f, owner: policy ? ownership.classify(policy, f).owner : 'unknown' }));
-        out.push({ ...hSummary, status, validation_notes: notes, checks: hchecks, evidence_checked: files, independent_kinds: [...kinds].sort(), ownership: owners, fix_eligible: !!owners.length && owners.every(o => o.owner === 'custom') });
+        out.push({ ...hSummary, status, ...(fatal ? { fatal_recheck: fatal } : {}), validation_notes: notes, checks: hchecks, evidence_checked: files, independent_kinds: [...kinds].sort(), ownership: owners, fix_eligible: !!owners.length && owners.every(o => o.owner === 'custom') });
     }
     const result = { schema: 1, issue_id: id, symptom_reproduced: symptom, oracle, hypotheses: out, checks };
     fs.writeFileSync(W('validation.json'), JSON.stringify(result, null, 2) + '\n', { mode: 0o600 });

@@ -114,7 +114,7 @@ function split(hyps, ctx = {}) {
         const established = ESTABLISHED.has(h.status) || compromise;
         const because = breaking(h, ctx, idx);
         const logBacked = logEvidence(h, ctx, idx);
-        const base = { id: h.id, type: h.type, title: h.title, status: h.status, label: lab.label, label_candidates: lab.candidates, cause: plain, components: h.components || [], class: h.class || null,
+        const base = { id: h.id, type: h.type, title: h.title, status: h.status, label: lab.label, label_candidates: lab.candidates, cause: plain, ...(h.fatal_recheck && h.fatal_recheck.text && h.fatal_recheck.text.lines.length > 1 ? { more_lines: h.fatal_recheck.text.lines.slice(1) } : {}), components: h.components || [], class: h.class || null,
             severity: h.severity || null, evidence: h.evidence || [], mechanism: h.mechanism || null, ownership: h.ownership || null, fix_eligible: !!h.fix_eligible, active_state: h.active_state || null };
         if (!h.advisory && established && (compromise || because.length)) {
             findings.push({ ...base, established: compromise ? 'compromise' : h.status, log_only: because.length > 0 && because.every(b => b.kind === 'log'), breaking_because: because, shown_because: compromise ? 'compromise signs are always shown' : 'established and breaking' });

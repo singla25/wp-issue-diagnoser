@@ -32,7 +32,7 @@ function componentHints(list) {
     return [...m.values()].map(e => ({ component: e.component, score: e.score, sources: [...e.sources].sort() })).sort((a, b) => b.score - a.score || a.component.localeCompare(b.component));
 }
 
-async function run(id, { root = null, maxLogBytes, recognizer = ocr.recognize, probeOptions = {}, probeEnv = process.env, beforeProbe = null } = {}) {
+async function run(id, { root = null, maxLogBytes, deepLogCap, recognizer = ocr.recognize, probeOptions = {}, probeEnv = process.env, beforeProbe = null } = {}) {
     const issue = store.load(id), dir = store.dirOf(id);
     const steps = [], all = [], notices = [];
     const addNotices = (text, src) => notices.push(...clues.notices(text, src));
@@ -91,7 +91,9 @@ async function run(id, { root = null, maxLogBytes, recognizer = ocr.recognize, p
     if (!root) steps.push(stepOf('logs', 'debug.log / error_log', 'NOT_RUN', 'no local WordPress root was given (--root), so no log could be read'));
     else {
         const since = parsed.dates[0] || null;
-        logResult = logs.collect(root, { maxBytes: maxLogBytes, window: { from: since ? `${since}T00:00:00.000Z` : null, to: issue.created_at } });
+        // a crash (white screen, critical error, 500) is the one symptom where a fatal buried in a huge, noisy log is worth the extra reading (issue/logs.js deepScan)
+        const crash = issue.symptom === 'white-screen' || logs.looksLikeCrash(`${issue.title} ${issue.description}`) || all.some(c => ['wp-critical-error', 'php-fatal', 'php-class-not-found'].includes(c.type));
+        logResult = logs.collect(root, { maxBytes: maxLogBytes, window: { from: since ? `${since}T00:00:00.000Z` : null, to: issue.created_at }, deep: { enabled: crash, cap: deepLogCap } });
         for (const e of logResult.entries) {
             addNotices(e.text, { kind: 'log', ref: e.sources[0] });
             for (const c of clues.extract(e.text, { kind: 'log', ref: e.sources[0] }, { confidence: 'certain' })) {
@@ -102,8 +104,9 @@ async function run(id, { root = null, maxLogBytes, recognizer = ocr.recognize, p
         write(dir, 'work/logs.json', { files: logResult.files, problems: logResult.problems, entries: logResult.entries.map(({ text, ...rest }) => rest) });
         const assumed = logResult.entries.filter(e => e.tz_flags.includes('assumed-utc')).length, unknown = logResult.entries.filter(e => e.tz_flags.includes('unknown-zone')).length;
         const tzNote = [assumed ? `${assumed} entr${assumed === 1 ? 'y has' : 'ies have'} no timezone in the log line: UTC was assumed` : '', unknown ? `${unknown} entr${unknown === 1 ? 'y has' : 'ies have'} a timezone that was not understood: UTC was assumed` : ''].filter(Boolean).join('; ');
+        const deepNote = logResult.files.filter(f => f.deep).map(f => `${f.ref}: ${f.deep.text}`).join('; ');
         steps.push(logResult.files.length
-            ? stepOf('logs', 'debug.log / error_log', 'PASSED', tzNote || null, { files: logResult.files.map(f => f.ref), entries: logResult.entries.length, window_from: since, timezone_assumed: assumed, timezone_unknown: unknown })
+            ? stepOf('logs', 'debug.log / error_log', 'PASSED', [tzNote, deepNote].filter(Boolean).join('; ') || null, { files: logResult.files.map(f => f.ref), entries: logResult.entries.length, window_from: since, timezone_assumed: assumed, timezone_unknown: unknown })
             : stepOf('logs', 'debug.log / error_log', 'NOT_RUN', `no debug.log or error_log found under ${path.basename(root)} (WP_DEBUG_LOG may be off): this is not evidence that nothing went wrong`));
         for (const p of logResult.problems) steps.push(stepOf('logs-file', `Log file ${p.split(':')[0]}`, 'SKIPPED', p));
     }
