@@ -71,7 +71,8 @@
     "selftest:plugin-guard": "node scripts/selftest-plugin-guard.js",
     "selftest:sandbox-failure": "node scripts/selftest-sandbox-failure.js",
     "selftest:sandbox-copy-names": "node scripts/selftest-sandbox-copy-names.js",
-    "selftest:fatal-recheck": "node scripts/selftest-fatal-recheck.js"
+    "selftest:fatal-recheck": "node scripts/selftest-fatal-recheck.js",
+    "selftest:likely-cause": "node scripts/selftest-likely-cause.js"
   },
   "license": "ISC",
   "dependencies": {

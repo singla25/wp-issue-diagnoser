@@ -108,7 +108,18 @@ function run(id, { root, config = null, lint = phpast.phpLint } = {}) {
         oracle = { recomputed: again.result, stored: probe.oracle.result, agrees: again.result === probe.oracle.result };
         checks.push(check('oracle', oracle.agrees ? 'PASSED' : 'FAILED', oracle.agrees ? `recomputed from the stored page observations: ${again.result}` : `the stored answer was "${probe.oracle.result}" but the observations give "${again.result}"`));
     } else checks.push(check('oracle', 'NOT_RUN', probe ? 'work/probe.json holds no page observations to recompute from' : 'no live probe ran'));
-    const symptom = oracle.agrees === false ? 'could-not-test' : (oracle.recomputed || (sbx && sbx.reproduced_in_sandbox === 'yes' ? 'yes' : sbx && sbx.reproduced_in_sandbox === 'no' ? 'no' : (hyp.symptom_reproduced && hyp.symptom_reproduced.result) || 'not-tested'));
+    let symptom = oracle.agrees === false ? 'could-not-test' : (oracle.recomputed || (sbx && sbx.reproduced_in_sandbox === 'yes' ? 'yes' : sbx && sbx.reproduced_in_sandbox === 'no' ? 'no' : (hyp.symptom_reproduced && hyp.symptom_reproduced.result) || 'not-tested'));
+    // "Not reproduced" is a real answer, with ONE exception: the problem is a crash AND a probed page the report is about answered HTTP 5xx. Then the page did fail, whatever the
+    // oracle looked at (a debug-log oracle sees no new line when the fatal was logged earlier), so the symptom counts as reproduced and the cap that "not reproduced" puts on every
+    // hypothesis does not apply. An unrelated 5xx (a page the report is not about) does not lift it, and "ran and did not reproduce" on a page that answered fine still downgrades.
+    if (symptom === 'no' && issue.symptom === 'white-screen' && probe && Array.isArray(probe.pages)) {
+        const pathOf = u => { try { return new URL(u, 'http://x/').pathname.replace(/\/+$/, '') || '/'; } catch { return null; } };
+        // the pages the report names; with none named, the home page of the address given. A site in a sub-folder (/ews/) has its pages under that folder.
+        const home = pathOf(issue.url || '/'), named = (issue.pages || []).map(pathOf).filter(Boolean);
+        const isAbout = u => { const q = pathOf(u); return !!q && (named.length ? named.some(a => a === '/' ? q === home || q === '/' : q === a || q.endsWith(a)) : q === home || q === '/'); };
+        const hit = probe.pages.find(p => p && p.status >= 500 && p.status < 600 && isAbout(p.url));
+        if (hit) { symptom = 'yes'; checks.push(check('not-reproduced-cap', 'PASSED', `the oracle said "not reproduced", but the problem is a crash and ${hit.url} (a page the report is about) answered HTTP ${hit.status}: the symptom counts as reproduced`)); }
+    }
 
     // the hypothesis only carries a summary of its observation; the checks need the observation's own fields (declaration name, handle, ...)
     const ccJson = readJson(W('custom-code.json')) || {}, intake = readJson(W('intake.json'));

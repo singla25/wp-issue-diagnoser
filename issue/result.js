@@ -78,7 +78,7 @@ function build(id, { validation, plans, dir, gate = false, verbose = false }) {
         limits: LIMITS
     };
     f.counts = Object.fromEntries(ORDER.concat(['REJECTED_FALSE_POSITIVE']).map(s => [s, hyps.filter(h => h.status === s).length]));
-    if (gate) applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixed });
+    if (gate) applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixed, issue });
     // stable id for every hypothesis comes from hypotheses.js (a hash of its key); findings get the same id so reruns line up
     f.finding_ids = hyps.map(h => schema.stableId('fnd', id.replace(/^iss-.*/, 'issue'), h.id));
     return f;
@@ -93,12 +93,12 @@ const LIMITS = [
 ];
 
 // ---------------------------------------------------------------- the gate (step 7b): only with { gate: true }; without it nothing below runs and the output is unchanged
-const gateMod = require('./gate'), summaryMod = require('./summary'), rollbackMod = require('./rollback'), ctMod = require('./conflict-type');
+const whatsWrong = require('./whats-wrong'), gateMod = require('./gate'), summaryMod = require('./summary'), rollbackMod = require('./rollback'), ctMod = require('./conflict-type');
 const TYPE_TEXT = {
     'plugin-plugin': 'two plugins clash', 'theme-plugin': 'your theme and a plugin clash', hook: 'two parts of the site act on the same WordPress step',
     'plugin-core-php': 'a problem involving PHP or WordPress itself', 'environment-server': 'a limit or a setting of your hosting', compromise: 'possible compromise signs', unclassified: 'a single plugin, theme or file'
 };
-function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixed }) {
+function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixed, issue }) {
     const cc = W('custom-code.json') || { observations: [] }, comps = (W('components.json') || { components: [] }).components || [];
     const obsById = new Map((cc.observations || []).map(o => [o.id, o]));
     const names = {}, kinds = {};
@@ -114,7 +114,17 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
     const split = gateMod.split(hyps, ctx);
     for (const x of split.findings) { x.type_text = TYPE_TEXT[x.label]; x.rollback = rollbackMod.rollbackFor(planOf.get(x.id)); }
     for (const x of split.advisories) x.type_text = TYPE_TEXT[x.label];
+    // the "What is wrong" box: for the first most-likely cause, else the first finding that is a re-checked log fatal
+    const boxItem = (split.likely || [])[0] || split.findings.find(x => (hyps.find(h => h.id === x.id) || {}).fatal_recheck);
+    if (boxItem) {
+        const hy = hyps.find(h => h.id === boxItem.id), fileComp = hy.fatal_recheck.file ? require('../lib/ownership').componentOf(hy.fatal_recheck.file) : null;
+        split.box = whatsWrong.build(hy.fatal_recheck, { components: comps, issue, probePages: (probe && probe.pages) || [], advisories: split.advisories, ran, fileComponent: fileComp ? fileComp.replace(/^plugin:/, '') : '' }, split.likely && split.likely[0] === boxItem ? 'likely' : 'confirmed');
+        boxItem.box = split.box;
+    }
+    for (const x of split.likely || []) { x.type_text = TYPE_TEXT[x.label]; x.rollback = rollbackMod.rollbackFor(planOf.get(x.id)); }
     f.findings = split.findings;
+    if (split.likely) f.likely = split.likely;
+    if (split.box) f.what_is_wrong = split.box;
     f.advisories = split.advisories;
     f.summary = summaryMod.summarise(split, { ran: { ...ran, sandboxFailed: (sbx && sbx.could_not_run) || null }, verbose });
     f.gate = { enabled: true, verbose: !!verbose, ran, counts: split.counts, rejected: split.rejected };
@@ -125,6 +135,7 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
         const causes = split.findings.filter(x => x.label !== 'compromise');
         f.verdict = { ...f.verdict, label: causes.length ? (causes.every(x => x.log_only) ? 'Confirmed cause found in your logs' : 'Confirmed breaking cause found') : 'No confirmed breaking cause was found',
             confidence: causes.length ? (causes.some(x => x.status === 'REPRODUCIBLE') ? 'high' : 'medium-high') : 'none' };
+        if (!causes.length && (split.likely || []).length) f.verdict = { ...f.verdict, label: 'Most likely cause found in your log (not confirmed)', confidence: 'low' };
     }
 }
 const shown = f => new Set((f.findings || []).map(x => x.id));

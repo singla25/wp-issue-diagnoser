@@ -98,13 +98,14 @@ function recheck({ h, clues, root, probe, issue, intake, components = [], sandbo
     const logSupport = (h.supports || []).find(s => s.kind === 'log');
     const byId = new Map((clues || []).map(c => [c.id, c]));
     const clue = logSupport && byId.get(logSupport.ref);
-    if (!clue || clue.type !== 'php-class-not-found') return null;
+    if (!clue || !['php-class-not-found', 'php-undefined-function'].includes(clue.type)) return null;
+    const isFn = clue.type === 'php-undefined-function';
     const loc = require('./clues').locationOf(clue, clues);
     if (!loc) return null;
-    const cls = clue.value, file = loc.detail.file, line = loc.detail.line;
+    const cls = clue.value, file = loc.detail.file, line = loc.detail.line;   // `cls` is the class, or the function / method for a "Call to undefined" fatal
     const fileKind = kindOfFile(file);
     const checks = [], log = (clue.detail && clue.detail.log) || {};
-    const res = { class: cls, file, line, file_kind: fileKind, count: log.count || 1, last_seen: log.last_seen || null, checks, rule: null, supports: [], line_ok: false, repeated: false, provider: null, scan: null, blocked: null, text: null };
+    const res = { kind: isFn ? 'function' : 'class', class: cls, file, line, file_kind: fileKind, count: log.count || 1, last_seen: log.last_seen || null, checks, rule: null, supports: [], line_ok: false, repeated: false, provider: null, scan: null, blocked: null, text: null };
     const add = (id, status, reason) => checks.push({ id, status, reason });
 
     // 1. the cited file and line, re-read
@@ -116,7 +117,7 @@ function recheck({ h, clues, root, probe, issue, intake, components = [], sandbo
     if (lines) {
         if (!(line >= 1 && line <= lines.length)) add('fatal-line', 'FAILED', `the file has ${lines.length} lines, so line ${line} does not exist`);
         else {
-            const short = shortOf(cls), full = cls.replace(/^\\/, '');
+            const short = isFn ? String(cls).split(/::|\\/).pop() : shortOf(cls), full = cls.replace(/^\\/, '');
             const named = lines.slice(Math.max(0, line - 1 - WINDOW), Math.min(lines.length, line + WINDOW)).some(l => l.replace(/\\\\/g, '\\').toLowerCase().includes(full.toLowerCase()) || new RegExp(`(^|[^\\w$])${esc(short)}\\b`, 'i').test(l));
             res.line_ok = named;
             add('fatal-line', named ? 'PASSED' : 'FAILED', named ? `line ${line} of ${file} (re-read) names ${short}` : `no line within ${WINDOW} lines of ${line} in ${file} names ${short}`);
@@ -125,6 +126,8 @@ function recheck({ h, clues, root, probe, issue, intake, components = [], sandbo
     res.repeated = res.count >= 2;
     add('fatal-repeats', res.repeated ? 'PASSED' : 'FAILED', res.repeated ? `the same fatal is in the log ${res.count} times` : 'the fatal is in the log only once');
     const sound = res.line_ok && res.repeated;
+    res.sound = !!sound;                          // what the "most likely cause" tier needs: file and line re-read, class / function named there, fatal repeated
+    if (isFn) { res.provider = { known: false, source: null, slug: null, name: null, kind: null, installed: null, version: null, active: null }; res.text = wording(res, { probeSaw5xx: false, fresh: null }); return res; }
 
     // 2. the provider
     const active = sandbox && sandbox.baseline && Array.isArray(sandbox.baseline.active_plugins) ? new Set(sandbox.baseline.active_plugins) : null;
@@ -173,6 +176,11 @@ function wording(r, { probeSaw5xx, fresh }) {
     const absent = r.scan && r.scan.complete && !defined;
     const lines = [], head = `The ${kind} file ${where} calls the class ${r.class}`;
     let cause;
+    if (r.kind === 'function') {
+        cause = `the ${kind} file ${where} calls the function ${r.class}(), which was not defined when it ran`;
+        lines.push(`The ${kind} file ${where} calls the function ${r.class}(), which was not defined when it ran.`);
+        return { cause, lines };
+    }
     if (p.known && p.installed && absent) {
         cause = `the ${kind} file ${where} calls the class ${r.class}, which ${p.name}${p.version ? ` ${p.version}` : ''} does not contain`;
         lines.push(`${head}, which ${p.name}${p.version ? ` ${p.version}` : ''} does not contain.`);
@@ -189,9 +197,9 @@ function wording(r, { probeSaw5xx, fresh }) {
     } else {
         cause = `the ${kind} file ${where} calls the class ${r.class}, which was not found when it ran`;
         lines.push(`${head}, which was not found when it ran.`);
-        if (p.source === 'guess') lines.push(`The class might belong to ${p.name || p.slug} (a guess from its name, not checked).`);
+        if (p.source === 'guess') lines.push(`This class normally comes from ${p.name || p.slug} (a guess from its name, not checked).`);
         else if (!p.known) lines.push("The class's owner could not be identified.");
-        else if (p.known && p.installed) lines.push(`Whether ${p.name} contains it was not checked.`);
+        else if (p.known && p.installed) lines.push(`This class normally comes from ${p.name}${p.version ? ` ${p.version}` : ''}; whether it contains the class was not checked.`);
     }
     if (r.blocked && /could not check all code/.test(r.blocked)) lines.push(r.blocked.replace(/^could not check all code: ?/, 'Could not check all code: ').replace(/^Could not check all code: (?!$)/, 'Could not check all code: ') + '.');
     else if (r.blocked) lines.push(`${r.blocked.charAt(0).toUpperCase()}${r.blocked.slice(1)}.`);

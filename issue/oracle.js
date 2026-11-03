@@ -60,6 +60,7 @@ const cant = (reason, c) => ({ result: 'could-not-test', reason, matches: [], pa
 
 // obs: { pages: [{ url, viewport:{name,width}, loaded, status, console_errors, page_errors, error_responses, scroll:{doc_width,viewport_width}, text, measure, lcp }], planned,
 //        protection, debug_log: { available, reason, new_text } }
+const CRASH_SYMPTOMS = new Set(['white-screen']);
 function evaluate(spec, obs, { needsLogin = false, symptom = null } = {}) {
     const c = ctxOf(obs);
     const base = { type: spec.type, value: spec.value, defaulted: !!spec.defaulted, ...(symptom ? { symptom } : {}) };
@@ -131,6 +132,13 @@ function evaluate(spec, obs, { needsLogin = false, symptom = null } = {}) {
             if (!d || !d.available) return done(cant(d ? d.reason : 'debug.log could not be read (a local copy of the site and WP_DEBUG_LOG are needed); missing data is not "clean"', c));
             if (!c.loaded.length) return done(cant('no page was loaded, so nothing could have been written to debug.log', c));
             const lines = String(d.new_text || '').split(/\r?\n/).filter(Boolean), hits = lines.filter(l => pat.test(l)).map(l => ({ page: '(debug.log)', viewport: '-', detail: cut(l) }));
+            // A page that answered 5xx is a failure whatever debug.log did (the fatal may already be logged by an earlier request, or the log not written at all): this oracle must never turn
+            // it into "no". For a crash symptom it is the symptom, for any other symptom it is "could not test" (the 5xx may be unrelated to the pattern asked for).
+            const five = c.loaded.filter(p => p.status >= 500 && p.status < 600);
+            if (!hits.length && five.length) {
+                const why = `a probed page answered HTTP ${five[0].status} while debug.log gained no matching line (${lines.length} line(s) gained)`;
+                return CRASH_SYMPTOMS.has(symptom) ? done(yes(why, five.map(p => ({ page: p.url, viewport: p.viewport.name, detail: `the page itself answered HTTP ${p.status}` })), c)) : done(cant(`${why}; this symptom is not a crash, so the 5xx is not taken as the answer`, c));
+            }
             return conclude(hits, `debug.log gained ${hits.length} matching line(s) while the pages loaded`, `debug.log gained ${lines.length} line(s) while the pages loaded, none matching`);
         }
         case 'click-changes': {

@@ -23,11 +23,13 @@ function summarise(split, { ran = {}, verbose = false } = {}) {
             ? `We found ${n} confirmed ${plural(n, 'cause', 'causes')} that ${plural(n, 'breaks', 'break')} your website.`
             : `${n} confirmed ${plural(n, 'cause was', 'causes were')} found in your logs.`;
         lines.push(headline);
-        for (const f of causes) { lines.push(`  • ${cap(f.cause)}${f.log_only && seen.length ? ' (found in your logs)' : ''}.`); for (const m of f.more_lines || []) lines.push(m); }
+        for (const f of causes) lines.push(`  • ${cap(f.cause)}${f.log_only && seen.length ? ' (found in your logs)' : ''}.`);
     } else {
         headline = 'No confirmed breaking cause was found.';
         lines.push(headline);
     }
+    // the "What is wrong" box: a log fatal that names a file (issue/whats-wrong.js)
+    if (split.box) { lines.push(`${split.box.heading}:`); for (const l of split.box.lines) lines.push(`  ${l}`); }
     if (compromise.length) {
         const files = [...new Set(compromise.flatMap(f => (f.evidence || []).map(e => e.file)).filter(Boolean))];
         lines.push(`${COMPROMISE_SENTENCE} A person should look at: ${files.slice(0, 5).join(', ')}${files.length > 5 ? ` and ${files.length - 5} more` : ''}.`);
@@ -36,7 +38,7 @@ function summarise(split, { ran = {}, verbose = false } = {}) {
     if (adv.length) lines.push(verbose ? `${adv.length} possible ${plural(adv.length, 'cause is', 'causes are')} listed under Advisories below.` : `${adv.length} possible ${plural(adv.length, 'cause is', 'causes are')} listed under Advisories (run with --verbose to see ${plural(adv.length, 'it', 'them')}).`);
     else if (!causes.length && !compromise.length) lines.push('Nothing else stood out.');
     if (backed.length) {
-        const who = backed.flatMap(a => a.backed_by_log.map(b => `${b.file}${b.component ? ` (plugin ${b.component})` : ''}`));
+        const who = backed.flatMap(a => a.backed_by_log.map(b => `${b.file}${b.component ? ` (${b.component_label || `plugin ${b.component}`})` : ''}`));
         const uniq = [...new Set(who)];
         lines.push(`${backed.length} of them ${plural(backed.length, 'is', 'are')} backed by a log error but ${plural(backed.length, 'was', 'were')} not confirmed: ${uniq.slice(0, 3).join('; ')}${uniq.length > 3 ? ` and ${uniq.length - 3} more` : ''}.`);
     }
@@ -44,7 +46,7 @@ function summarise(split, { ran = {}, verbose = false } = {}) {
     if (nothingRan) lines.push(NO_CHECK);
     if (ran.sandboxFailed) lines.push(`Note: the sandbox test could not run, and this is no evidence either way: ${String(ran.sandboxFailed).replace(/[.\s]+$/, "")}.`);
     if (nothingRan && !causes.length && !compromise.length && !adv.length) lines.push(NOT_HEALTHY);
-    return { headline, lines, text: lines.join('\n'), counts: split.counts, compromise_sentence: compromise.length ? COMPROMISE_SENTENCE : null };
+    return { headline, lines, text: lines.join('\n'), counts: split.counts, compromise_sentence: compromise.length ? COMPROMISE_SENTENCE : null, ...(split.box ? { box: split.box, lines_without_box: lines.filter(l => !(l === `${split.box.heading}:` || split.box.lines.some(b => l === `  ${b}`))) } : {}) };
 }
 
 module.exports = { summarise, COMPROMISE_SENTENCE, COMPROMISE_ADVICE, NO_CHECK, NOT_HEALTHY };

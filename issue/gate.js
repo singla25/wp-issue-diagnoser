@@ -66,7 +66,7 @@ function logEvidence(h, ctx, idx) {
     const out = [];
     for (const s of validated(h, 'log')) {
         const clue = idx.get(s.ref), file = fatalFile(clue, ctx.clues);
-        if (file) out.push({ kind: 'log', file, component: componentOfFile(file), reason: `a log error names ${file}` });
+        if (file) { const component = componentOfFile(file); out.push({ kind: 'log', file, component, ...(component && /^(theme|mu):/.test(component) ? { component_label: `${component.startsWith('theme:') ? 'theme' : 'must-use plugin'} ${(ctx.names && ctx.names[component]) || component.replace(/^[a-z]+:/, '')}` } : {}), reason: `a log error names ${file}` }); }
     }
     return out;
 }
@@ -105,7 +105,7 @@ function breaking(h, ctx, idx) {
 function split(hyps, ctx = {}) {
     const idx = clueIndex(ctx.clues);
     const lctx = { ...ctx, clueById: id => idx.get(id) || null };
-    const findings = [], advisories = [];
+    const findings = [], advisories = [], likely = [];
     let rejected = 0;
     for (const h of hyps) {
         if (h.status === 'REJECTED_FALSE_POSITIVE') { rejected++; continue; }
@@ -126,12 +126,20 @@ function split(hyps, ctx = {}) {
         if (!established) reasons.push('not-established');
         if (established && !because.length && h.type !== 'redirect-on-hook') reasons.push('not-breaking');
         const primary = reasons[0] || 'not-breaking';
+        // MOST LIKELY CAUSE: a log fatal that names a class or function, whose file and line were re-read and whose fatal repeats (issue/fatal-recheck.js). Not established, so it is
+        // never called "confirmed", but it is not hidden behind --verbose either. Statuses are untouched.
+        if (h.fatal_recheck && h.fatal_recheck.sound && !h.advisory) { likely.push({ ...base, tier: 'likely', why_not_confirmed: { primary, all: reasons, text: REASON_TEXT[primary] }, log_backed: logBacked }); continue; }
         advisories.push({ ...base, why_not_shown: { primary, all: reasons, text: REASON_TEXT[primary] }, breaking_evidence: because, backed_by_log: !established ? logBacked : [] });
     }
     const order = (a, b) => (a.label === 'compromise' ? 0 : 1) - (b.label === 'compromise' ? 0 : 1) || String(a.id).localeCompare(String(b.id));
     findings.sort(order);
+    // the same advisory for several files of one pair of components (an outdated template override, four times) is one advisory with a count
+    const merged = new Map();
+    for (const a of advisories) { const k = `${a.type}|${a.title}|${(a.components || []).join('+')}`; const m = merged.get(k); if (!m) merged.set(k, { ...a, merged: 1, merged_ids: [a.id] }); else { m.merged++; m.merged_ids.push(a.id); m.evidence = [...(m.evidence || []), ...(a.evidence || [])].filter((e, i, all) => all.findIndex(x => x.file === e.file && x.line === e.line) === i).slice(0, 30); } }
+    advisories.length = 0; for (const a of merged.values()) { if (a.merged === 1) { delete a.merged; delete a.merged_ids; } advisories.push(a); }
     advisories.sort((a, b) => a.why_not_shown.primary.localeCompare(b.why_not_shown.primary) || String(a.id).localeCompare(String(b.id)));
-    return { findings, advisories, rejected, counts: { findings: findings.length, advisories: advisories.length, rejected, backed_by_log: advisories.filter(a => a.backed_by_log.length).length } };
+    likely.sort(order);
+    return { findings, ...(likely.length ? { likely } : {}), advisories, rejected, counts: { findings: findings.length, ...(likely.length ? { likely: likely.length } : {}), advisories: advisories.length, rejected, backed_by_log: advisories.filter(a => a.backed_by_log.length).length } };
 }
 
 module.exports = { split, oracleBreaking, fatalFile, FATAL_CLUES, ESTABLISHED, REQUEST_AREAS, REASON_TEXT };

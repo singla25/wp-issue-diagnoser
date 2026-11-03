@@ -120,7 +120,7 @@ const intakeJson = o => (dir) => fs.writeFileSync(path.join(dir, 'work', 'intake
     const noVer = await run('p-nover', { elementor: 'no-version' });
     ok(noVer.h.status === 'CONFIRMED' && /which Elementor does not contain\./.test(noVer.text) && !/older version/.test(noVer.text), 'provider version not known: no version and no "older version" sentence');
     const guess = await run('p-guess', { cls: 'Foobarwidgets\\Core\\Thing', line: '$c = new \\Foobarwidgets\\Core\\Thing();', elementor: 'absent', extra: r => w(r, 'wp-content/plugins/foobarwidgets-pro/foobarwidgets-pro.php', '<?php\n/**\n * Plugin Name: Foobar Widgets Pro\n * Version: 2.0\n */\n') });
-    ok(guess.h.fatal_recheck.provider.known === false && guess.h.fatal_recheck.provider.source === 'guess' && /might belong to Foobar Widgets Pro \(a guess from its name, not checked\)/.test(guess.text) && !/does not contain/.test(guess.text), 'a guessed provider NEVER produces "does not contain"');
+    ok(guess.h.fatal_recheck.provider.known === false && guess.h.fatal_recheck.provider.source === 'guess' && /normally comes from Foobar Widgets Pro \(a guess from its name, not checked\)/.test(guess.text) && !/does not contain/.test(guess.text), 'a guessed provider NEVER produces "does not contain"');
     ok((guess.f.findings[0] || guess.f.advisories[0] || {}).label !== 'theme-plugin', 'and a guessed provider does not set the theme-plugin label');
     const unk = await run('p-unknown-owner', { cls: 'Zzqx\\Thing', line: '$c = new \\Zzqx\\Thing();', elementor: 'absent' });
     ok(/The class's owner could not be identified\./.test(unk.text), '"The class\'s owner could not be identified."');
