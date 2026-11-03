@@ -11,7 +11,7 @@ const path = require('path');
 
 // ---- VISIBLE allow-list: a term that may legitimately appear in reader text (whole term, case-insensitive). One line of reason each. ----
 const ALLOW = [
-    // ['term', 'why it is fine'],
+    ['stored', "an ordinary English word (plugin 'Stored Products', 'stored in uploads'); only the phrase 'stored oracle answer' is internal, and 'oracle' is scanned on its own"],
 ];
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pg-rw-'));
@@ -90,6 +90,12 @@ async function run(name, { verbose = false } = {}) {
 const readerMd = md => md.split(/^(?=## )/m).filter(s => !/^## (What was checked|Limits)\b/.test(s)).join('');
 
 (async () => {
+    group('0b. the reader filter drops whole internal terms only');
+    const hy = { checks: [{ id: 'x1', status: 'PASSED', reason: 'plugin Stored Products is active' }, { id: 'x2', status: 'PASSED', reason: 'the file was stored in uploads' }, { id: 'x3', status: 'FAILED', reason: 'the stored oracle answer did not match its recomputation' }, { id: 'oracle', status: 'FAILED', reason: 'plain' }], validation_notes: ['plugin Stored Products is active', 'the file was stored in uploads', 'the stored oracle answer did not match its recomputation'] };
+    const rw = plain.readerWhy(hy), rv = plain.readerValidationLines({ checks: hy.checks, hypotheses: [{ status: 'UNVERIFIED', title: 't', validation_notes: hy.validation_notes }] }).join('\n');
+    ok(rw.some(l => /Stored Products/.test(l)) && rw.some(l => /stored in uploads/.test(l)), "readerWhy keeps a line with a plugin named 'Stored Products' and one with 'stored' in normal prose");
+    ok(!rw.some(l => /oracle|recomput/i.test(l)) && rw.length === 4, "readerWhy still drops the 'stored oracle answer ... recomputation' sentence and the oracle check");
+    ok(/Stored Products/.test(rv) && /stored in uploads/.test(rv) && !/oracle|recomput/i.test(rv), 'readerValidationLines: same');
     group('0. the term list');
     console.log(`      ${TERMS.length} terms; allow-list: ${ALLOW.length} entr${ALLOW.length === 1 ? 'y' : 'ies'}`);
     ok(['oracle', 'bisect', 'sources', 'not-reproduced-cap', 'declaration-sites'].every(t => TERMS.includes(t)) && TERMS.some(t => t === 'support:') && TERMS.some(t => t === 'php-l:') && TERMS.includes('live-probe') && TERMS.includes('fatal-fresh'), 'the ids were collected from validate.js, fatal-recheck.js and probe.js');

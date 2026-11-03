@@ -3,6 +3,8 @@
 //   tier "confirmed"  validate.js confirmed it (rule A or B)
 // It says what was found and what was checked, never "your site is broken because of X". Every text it prints is data from the site, shown as plain text.
 
+const { LIKELY_PHRASE } = require('../lib/plain-names');
+const LIKELY_OLD = LIKELY_PHRASE.replace(' log (', ' log, old entry (');
 const DAY = 24 * 3600 * 1000, FRESH_DAYS = 7;
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const dateOf = iso => { const d = new Date(iso); return Number.isNaN(d.getTime()) ? null : `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`; };
@@ -59,7 +61,7 @@ function build(fr, ctx, tier) {
     const prName = fr.provider && fr.provider.name;
     L.push(isFn ? `What to try: update ${who}; make sure the plugin that provides ${fr.class}() is installed and active; test with a default theme.`
         : `What to try: update ${who}${prName ? `; use a version of ${prName} that has this class` : '; make sure the plugin that provides this class is installed and active'}; test with a default theme to see whether the error goes away.`);
-    return { title: 'What is wrong', tier, heading: tier === 'likely' ? (age === 'old' ? 'Most likely cause (old log entry)' : 'Most likely cause (found in your log)') : 'Cause found in your log', age, lines: L };
+    return { title: 'What is wrong', tier, heading: tier === 'likely' ? (age === 'old' ? LIKELY_OLD : LIKELY_PHRASE) : 'Cause found in your log', age, lines: L };
 }
 
 module.exports = { build, FRESH_DAYS };

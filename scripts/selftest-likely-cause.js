@@ -56,7 +56,7 @@ const probeWith = (pages, oracleResult = 'no') => (dir, issue) => {
     const mk = p => ({ url: p.url, status: p.status, viewport: { name: 'laptop', width: 1280 }, loaded: true, console_errors: [], page_errors: [], error_responses: [] });
     fs.writeFileSync(path.join(dir, 'work', 'probe.json'), JSON.stringify({ schema: 1, planned: pages.length, protection: null, pages: pages.map(mk), oracle: { type: 'console-error', value: 'zzz-never', result: oracleResult } }));
 };
-const H = '"Most likely cause (found in your log)"';
+const H = '"Most likely cause found in your log (not confirmed)"';
 
 (async () => {
     group('the exact ews line, Rule B holds: a confirmed finding with the box');
@@ -80,19 +80,19 @@ const H = '"Most likely cause (found in your log)"';
     group('Most likely cause: repeated, file and line re-read, but nothing established it');
     const l = await run('likely', {}, intakeSkipped);
     ok(l.h.status === 'PROBABLE_NEEDS_REVIEW' && l.f.findings.length === 0 && l.f.likely && l.f.likely.length === 1 && l.f.likely[0].tier === 'likely', 'PROBABLE_NEEDS_REVIEW stays (statuses untouched); the item is in "likely", not in findings');
-    ok(l.f.what_is_wrong.tier === 'likely' && l.f.what_is_wrong.heading === 'Most likely cause (found in your log)' && l.f.what_is_wrong.age === 'recent', 'heading "Most likely cause (found in your log)", age recent');
-    ok(l.f.summary.headline === 'Most likely cause found in your log (not confirmed)' && l.f.summary.lines.includes('Most likely cause (found in your log):'), 'the summary headline is the one phrase, then shows the most likely cause');
+    ok(l.f.what_is_wrong.tier === 'likely' && l.f.what_is_wrong.heading === 'Most likely cause found in your log (not confirmed)' && l.f.what_is_wrong.age === 'recent', 'heading "Most likely cause found in your log (not confirmed)", age recent');
+    ok(l.f.summary.headline === 'Most likely cause found in your log (not confirmed)' && l.f.summary.lines.includes('Most likely cause found in your log (not confirmed):'), 'the summary headline is the one phrase, then shows the most likely cause');
     ok(!l.f.summary.text.includes('No confirmed breaking cause was found') && require('../issue/summary').summarise({ findings: [], advisories: [], counts: {} }, { ran: {} }).headline === 'No confirmed breaking cause was found.', 'with a likely cause the Summary never says "No confirmed breaking cause was found"; with no log-backed cause the old headline still appears');
     ok(l.f.verdict.label === 'Most likely cause found in your log (not confirmed)' && l.f.verdict.confidence === 'low', `verdict: ${l.f.verdict.label}`);
-    ok(!l.f.what_is_wrong.lines.some(x => /\bconfirmed\b/i.test(x)) && !/\bconfirmed\b/i.test(l.f.what_is_wrong.heading), 'no "confirmed" in the box or its heading');
+    ok(!l.f.what_is_wrong.lines.some(x => /\bconfirmed\b/i.test(x)) && !/\bconfirmed\b/i.test(l.f.what_is_wrong.heading.replace(/ \(not confirmed\)$/, "")), 'no "confirmed" in the box or its heading');
     ok(!l.f.advisories.some(a => a.id === l.f.likely[0].id), 'it is not also listed as an advisory');
     ok(l.f.what_is_wrong.lines.some(x => /Could not check all code/.test(x)), 'the box says "Could not check all code" when the copy skipped PHP');
-    ok(l.html.includes('Most likely cause (found in your log)') && l.html.includes("sec('whatswrong'") && !/\.innerHTML\s*=|insertAdjacentHTML/.test(l.html), 'the HTML carries the box in its data, builds it with textContent (no innerHTML assignment)');
+    ok(l.html.includes('Most likely cause found in your log (not confirmed)') && l.html.includes("sec('whatswrong'") && !/\.innerHTML\s*=|insertAdjacentHTML/.test(l.html), 'the HTML carries the box in its data, builds it with textContent (no innerHTML assignment)');
     ok(l.html.includes('not confirmed'), 'the HTML says "not confirmed"');
 
     group('an old log entry is still shown, and labelled');
     const old = await run('old', { at: '16-Mar-2026 13:11:38' }, intakeSkipped);
-    ok(old.f.likely && old.f.what_is_wrong.age === 'old' && old.f.what_is_wrong.heading === 'Most likely cause (old log entry)' && old.f.what_is_wrong.lines.some(x => /^Old log entry: last seen in your log on 16 Mar 2026/.test(x)), 'older than 7 days: shown, labelled "old log entry", with the date');
+    ok(old.f.likely && old.f.what_is_wrong.age === 'old' && old.f.what_is_wrong.heading === 'Most likely cause found in your log, old entry (not confirmed)' && old.f.what_is_wrong.lines.some(x => /^Old log entry: last seen in your log on 16 Mar 2026/.test(x)), 'older than 7 days: shown, labelled "old log entry", with the date');
     ok(l.f.what_is_wrong.lines.some(x => /^Last seen in your log on \d+ \w+ \d{4}\.$/.test(x)), 'a recent one says "Last seen in your log on <date>"');
     const edge = await run('week', { at: daysAgo(6) }, intakeSkipped);
     ok(edge.f.what_is_wrong.age === 'recent', '6 days before the report is still recent');
