@@ -120,6 +120,15 @@ const readerMd = md => md.split(/^(?=## )/m).filter(s => !/^## (What was checked
         scan(`${name}: What is wrong box`, r.f.what_is_wrong ? r.f.what_is_wrong.lines.join('\n') : '');
         scan(`${name}: advisories`, r.f.advisories.map(a => [a.title, a.cause, a.type_text, a.why_not_shown && a.why_not_shown.text].join(' ')).join('\n'));
         scan(`${name}: findings and most likely cause`, [...r.f.findings, ...(r.f.likely || [])].map(x => [x.title, x.cause, x.type_text, x.shown_because].join(' ')).join('\n'));
+        group(`${name}: checkpoint step A2 (counts, list, empty Findings text, Verdict lines, log note)`);
+        scan(`${name}: the Summary as the report prints it (counts sentence, log note)`, r.f.summary.report_lines.join('\n') + '\n' + r.f.summary.text_report);
+        scan(`${name}: the Summary as the page prints it`, r.f.summary.lines_html.join('\n'));
+        scan(`${name}: checkpoint counts and the list`, [r.f.checkpoint_text.sentence, ...r.f.checkpoint_text.lines].join('\n'));
+        ok(!r.f.checkpoint_text.lines.length === !verbose, `${name}: the checkpoint list is in the reader text only with --verbose`);
+        scan(`${name}: empty-Findings text`, r.f.findings_empty_text);
+        scan(`${name}: Verdict cause line, confidence sentence, symptom, Tested and Fix lines`, [r.f.verdict_cause_line, r.f.confidence_text, r.f.symptom_text, r.f.tested_text, r.f.fix_text].filter(Boolean).join('\n'));
+        scan(`${name}: the log note (both variants)`, [{ files: [{ truncated: true, bytes: 5 * 1048576 }], entries: [{ level: 'warning', count: 9 }] }, { files: [{ truncated: true, bytes: 5 * 1048576 }], entries: [{ level: 'fatal error', count: 9 }] }].map(plain.logNote).join('\n'));
+        scan(`${name}: the resolution reader wording`, r.f.resolution.flatMap(x => [...(x.what_to_try || []), ...x.options.flatMap(o => [o.reader_title, o.reader_detail].filter(Boolean))]).join('\n'));
         group(`${name}: Markdown`);
         scan(`${name}: ISSUE-REPORT.md (without "What was checked" and "Limits")`, readerMd(r.md));
         group(`${name}: command-line text`);

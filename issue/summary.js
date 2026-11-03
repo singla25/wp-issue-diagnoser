@@ -11,7 +11,18 @@ const cap = s => String(s).replace(/^./, c => c.toUpperCase());
 const plural = (n, one, many) => (n === 1 ? one : many);
 
 // split: result of gate.split. ran: { probe, sandbox } booleans. -> { headline, lines, text, counts }
-function summarise(split, { ran = {}, verbose = false } = {}) {
+// the advisories by name, merged: 'an outdated template override (5 templates)'
+function advisoryNames(adv) {
+    const groups = new Map();
+    for (const a of adv) {
+        const head = String(a.title || a.cause || 'a possible cause').split(':')[0].trim().replace(/^./, c => c.toLowerCase());
+        const g = groups.get(head) || { n: 0, tpl: a.type === 'template-override-outdated' };
+        g.n += a.merged || 1; groups.set(head, g);
+    }
+    return [...groups.entries()].map(([head, g]) => `${/^[aeiou]/i.test(head) ? 'an' : 'a'} ${head}${g.n > 1 ? ` (${g.n} ${g.tpl ? 'templates' : 'times'})` : ''}`);
+}
+
+function summarise(split, { ran = {}, verbose = false, checkpointSentence = null, logNote = null } = {}) {
     const compromise = split.findings.filter(f => f.label === 'compromise' || f.class === 'compromise');
     const causes = split.findings.filter(f => !compromise.includes(f));
     const adv = split.advisories, backed = adv.filter(a => a.backed_by_log && a.backed_by_log.length);
@@ -32,11 +43,14 @@ function summarise(split, { ran = {}, verbose = false } = {}) {
     }
     // the "What is wrong" box: a log fatal that names a file (issue/whats-wrong.js)
     if (split.box) { lines.push(`${split.box.heading}:`); for (const l of split.box.lines) lines.push(`  ${l}`); }
+    // `lines` / `text` stay as they were; the report (page, Markdown, command line) adds the checkpoint counts and the log note right after the "What is wrong" block
+    const extraAt = lines.length, extras = [checkpointSentence, logNote].filter(Boolean);
     if (compromise.length) {
         const files = [...new Set(compromise.flatMap(f => (f.evidence || []).map(e => e.file)).filter(Boolean))];
         lines.push(`${COMPROMISE_SENTENCE} A person should look at: ${files.slice(0, 5).join(', ')}${files.length > 5 ? ` and ${files.length - 5} more` : ''}.`);
         lines.push(COMPROMISE_ADVICE);
     }
+    const advHint = adv.length && !verbose ? `${adv.length} possible ${plural(adv.length, 'cause is', 'causes are')} listed under Advisories (run with --verbose to see ${plural(adv.length, 'it', 'them')}).` : null;
     if (adv.length) lines.push(verbose ? `${adv.length} possible ${plural(adv.length, 'cause is', 'causes are')} listed under Advisories below.` : `${adv.length} possible ${plural(adv.length, 'cause is', 'causes are')} listed under Advisories (run with --verbose to see ${plural(adv.length, 'it', 'them')}).`);
     else if (!causes.length && !compromise.length) lines.push('Nothing else stood out.');
     if (backed.length) {
@@ -48,7 +62,12 @@ function summarise(split, { ran = {}, verbose = false } = {}) {
     if (nothingRan) lines.push(NO_CHECK);
     if (ran.sandboxFailed) lines.push(`Note: the sandbox test could not run, and this is no evidence either way: ${String(ran.sandboxFailed).replace(/[.\s]+$/, "")}.`);
     if (nothingRan && !causes.length && !compromise.length && !adv.length) lines.push(NOT_HEALTHY);
-    return { headline, lines, text: lines.join('\n'), counts: split.counts, compromise_sentence: compromise.length ? COMPROMISE_SENTENCE : null, ...(split.box ? { box: split.box, lines_without_box: lines.filter(l => !(l === `${split.box.heading}:` || split.box.lines.some(b => l === `  ${b}`))) } : {}) };
+    // the web page never says "run with --verbose": it names the advisories (they are listed, collapsed, on the page)
+    const withExtras = ls => ls.slice(0, extraAt).concat(extras, ls.slice(extraAt));
+    const reportLines = withExtras(lines);
+    const linesHtml = withExtras(advHint ? lines.map(l => (l === advHint ? `${adv.length} possible ${plural(adv.length, 'cause is', 'causes are')} listed under Advisories: ${advisoryNames(adv).join('; ')}.` : l)) : lines);
+    const cut = ls => ls.filter(l => !(split.box && (l === `${split.box.heading}:` || split.box.lines.some(b => l === `  ${b}`))));
+    return { headline, lines, text: lines.join('\n'), counts: split.counts, report_lines: reportLines, text_report: reportLines.join('\n'), lines_html: linesHtml, ...(split.box ? { lines_html_without_box: cut(linesHtml) } : {}), compromise_sentence: compromise.length ? COMPROMISE_SENTENCE : null, ...(split.box ? { box: split.box, lines_without_box: lines.filter(l => !(l === `${split.box.heading}:` || split.box.lines.some(b => l === `  ${b}`))) } : {}) };
 }
 
-module.exports = { summarise, COMPROMISE_SENTENCE, COMPROMISE_ADVICE, NO_CHECK, NOT_HEALTHY };
+module.exports = { summarise, advisoryNames, COMPROMISE_SENTENCE, COMPROMISE_ADVICE, NO_CHECK, NOT_HEALTHY };

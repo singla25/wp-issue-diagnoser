@@ -11,7 +11,7 @@ function collect() {
         let f = null; try { f = JSON.parse(fs.readFileSync(fj, 'utf8')); } catch { /* not investigated yet */ }
         const top = f && f.hypotheses.filter(h => h.status !== 'REJECTED_FALSE_POSITIVE')[0];
         const last = f && f.retests[f.retests.length - 1];
-        return { id: i.id, title: i.title, symptom: i.symptom, environment: i.environment, created_at: i.created_at, verdict: f ? f.verdict.label : null, top_status: top ? top.status : null, retests: f ? f.retests.length : 0, last_retest: last ? last.verdict : null, has_report: !!(f && fs.existsSync(path.join(dir, 'result', 'issue.html'))) };
+        return { id: i.id, title: require('../lib/plain-names').shortTitle(i.title, i.description), symptom: i.symptom, environment: i.environment, created_at: i.created_at, verdict: f ? f.verdict.label : null, top_status: top ? top.status : null, retests: f ? f.retests.length : 0, last_retest: last ? last.verdict : null, has_report: !!(f && fs.existsSync(path.join(dir, 'result', 'issue.html'))) };
     }).sort((a, b) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : a.id < b.id ? -1 : 1));
 }
 function write() {

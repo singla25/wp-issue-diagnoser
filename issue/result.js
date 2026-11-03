@@ -79,7 +79,7 @@ function build(id, { validation, plans, dir, gate = false, verbose = false }) {
         limits: LIMITS
     };
     f.counts = Object.fromEntries(ORDER.concat(['REJECTED_FALSE_POSITIVE']).map(s => [s, hyps.filter(h => h.status === s).length]));
-    if (gate) applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixed, issue });
+    if (gate) applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixed, issue, dir });
     // stable id for every hypothesis comes from hypotheses.js (a hash of its key); findings get the same id so reruns line up
     f.finding_ids = hyps.map(h => schema.stableId('fnd', id.replace(/^iss-.*/, 'issue'), h.id));
     return f;
@@ -99,7 +99,7 @@ const TYPE_TEXT = {
     'plugin-plugin': 'two plugins clash', 'theme-plugin': 'your theme and a plugin clash', hook: 'two parts of the site act on the same WordPress step',
     'plugin-core-php': 'a problem involving PHP or WordPress itself', 'environment-server': 'a limit or a setting of your hosting', compromise: 'possible compromise signs', unclassified: 'a single plugin, theme or file'
 };
-function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixed, issue }) {
+function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixed, issue, dir }) {
     const cc = W('custom-code.json') || { observations: [] }, comps = (W('components.json') || { components: [] }).components || [];
     const obsById = new Map((cc.observations || []).map(o => [o.id, o]));
     const names = {}, kinds = {};
@@ -123,11 +123,20 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
         boxItem.box = split.box;
     }
     for (const x of split.likely || []) { x.type_text = TYPE_TEXT[x.label]; x.rollback = rollbackMod.rollbackFor(planOf.get(x.id)); }
+    // the checkpoints (issue/checkpoints.js): counts and items stay in findings.json; the reader gets a sentence and, with --verbose, one plain line each
+    const cpMod = require('./checkpoints'), cpRows = cpMod.evaluate({ work: cpMod.loadWork(dir), validation, ran, hasRoot: !!issue.root, issue });
+    const cpCounts = cpMod.tally(cpRows);
+    f.checkpoints = { counts: cpCounts, items: cpRows.map(r => ({ id: r.id, title: r.title, result: r.result, reason: r.reason })) };
+    const cpText = plainNames.checkpointText(cpRows.map(r => ({ ...r, title: plainNames.plainText(r.title, comps), reason: plainNames.plainText(r.reason, comps) })), cpCounts);
+    f.checkpoint_text = { sentence: cpText.sentence, lines: verbose ? cpText.lines : [] };
+    // a site log larger than the read cap: only its end was read
+    const logNote = plainNames.logNote(W('logs.json'));
+    if (logNote) { f.log_note = logNote; if (split.box) split.box.note = logNote; }
     f.findings = split.findings;
     if (split.likely) f.likely = split.likely;
     if (split.box) f.what_is_wrong = split.box;
     f.advisories = split.advisories;
-    f.summary = summaryMod.summarise(split, { ran: { ...ran, sandboxFailed: (sbx && sbx.could_not_run) || null }, verbose });
+    f.summary = summaryMod.summarise(split, { ran: { ...ran, sandboxFailed: (sbx && sbx.could_not_run) || null }, verbose, checkpointSentence: cpText.sentence, logNote });
     f.gate = { enabled: true, verbose: !!verbose, ran, counts: split.counts, rejected: split.rejected };
     // plain words for the reader (gate mode only): the technical ids (theme:unicamp, PROBABLE_NEEDS_REVIEW) stay in the ids and statuses, never in the sentences
     const pt = (t, bare) => plainNames.plainText(t, comps, { bare });
@@ -157,16 +166,47 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
             confidence: causes.length ? (causes.some(x => x.status === 'REPRODUCIBLE') ? 'high' : 'medium-high') : 'none' };
         if (!causes.length && (split.likely || []).length) f.verdict = { ...f.verdict, label: plainNames.LIKELY_PHRASE, confidence: 'low' };
     }
+    // reader sentences of the Verdict (findings.json keeps verdict.confidence and symptom_reproduced as they were)
+    f.confidence_text = plainNames.confidenceSentence(f.verdict.confidence, f.verdict.label, { reproduced: split.findings.some(x => x.status === 'REPRODUCIBLE') });
+    f.symptom_text = plainNames.symptomSentence(f.verdict.symptom_reproduced);
+    f.tested_text = plainNames.testedSentence(f);
+    f.issue_title_short = plainNames.shortTitle(issue.title, issue.description);
+    f.findings_empty_text = (split.likely || []).length ? "No confirmed cause. See 'What is wrong' above." : 'No confirmed cause was found.';
+    if (boxItem) {
+        // one short pointer line for the Verdict: plain names, "not confirmed", never the sentence of the box
+        const hy = hyps.find(h => h.id === boxItem.id), fr = hy.fatal_recheck, names2 = plainNames.namesOf(comps);
+        const fcRef = fr.file ? (require('../lib/ownership').componentOf(fr.file) || '').replace(/^plugin:/, '') : '';
+        const who = fcRef && comps.some(c => c.ref === fcRef || c.slug === fcRef) ? plainNames.plainRef((comps.find(c => c.ref === fcRef || c.slug === fcRef) || {}).ref || fcRef, names2) : `the ${fr.file_kind === 'theme' ? 'theme' : fr.file_kind === 'mu' ? 'must-use plugin' : 'plugin'}`;
+        const pr = fr.provider || {};
+        const what = fr.kind === 'function' ? 'calls a function that is not defined'
+            : pr.known && pr.installed && fr.scan && fr.scan.complete && !(fr.scan.defined || []).length ? `uses a class ${pr.name}${pr.version ? ` ${pr.version}` : ''} does not have`
+            : pr.known ? `uses a class that comes from ${pr.name}${pr.version ? ` ${pr.version}` : ''}` : 'uses a class that could not be found';
+        f.verdict_cause_line = `${who.replace(/^./, c => c.toUpperCase())}, in a file that ${what} (${split.box && split.box.tier === 'likely' ? 'not confirmed' : 'confirmed'}). Details: see "What is wrong".`;
+        // "What to try" is the one list: the resolution page repeats it and its options do not contradict it
+        const tryLine = (split.box.lines || []).find(l => l.startsWith('What to try: '));
+        const items = tryLine ? tryLine.replace(/^What to try: /, '').replace(/\.$/, '').split('; ').map(t => t.trim()).filter(Boolean).map(t => t.replace(/^./, c => c.toUpperCase())) : [];
+        const r = f.resolution.find(x => x.hypothesis === boxItem.id);
+        if (r && items.length) {
+            r.what_to_try = items;
+            f.fix_text = `No automatic fix is offered. What to try: ${items.map(t => t.replace(/^./, c => c.toLowerCase())).join('; ')}.`;
+            for (const o of r.options) {
+                if (o.type === 'human' && o.title === 'No safe automatic option') { o.reader_title = 'No automatic fix is offered'; o.reader_detail = 'Plugin Guard does not change your site. Try the steps under "What to try", one at a time, on a copy of the site.'; }
+                else if (o.type === 'plugin') { const m = /^Deactivate, replace or update (.+)$/.exec(o.title); if (m) o.reader_title = `Update ${plainNames.plainText(m[1], comps)} (switch it off only as a last resort)`; }
+            }
+        }
+    }
 }
 const shown = f => new Set((f.findings || []).map(x => x.id));
 const refLine = e => `${e.file}${e.line ? `:${e.line}` : ''}`;
 
 function gateMarkdown(f) {
     const L = [];
-    L.push(`# Issue report: ${esc(f.issue.title)}`, '', `Issue ${code(f.issue.id)} · symptom ${code(f.issue.symptom)} · environment ${code(f.issue.environment)}`, '');
-    L.push('## Summary', '', ...f.summary.lines.map(l => (l.startsWith('  •') ? `- ${esc(l.replace(/^\s*•\s*/, ''))}` : esc(l))), '');
+    L.push(`# Issue report: ${esc(f.issue_title_short || f.issue.title)}`, '', `Issue ${code(f.issue.id)} · symptom ${code(f.issue.symptom)} · environment ${code(f.issue.environment)}`, '');
+    L.push('## Summary', '', ...(f.summary.report_lines || f.summary.lines).map(l => (l.startsWith('  •') ? `- ${esc(l.replace(/^\s*•\s*/, ''))}` : esc(l))), '', esc(f.confidence_text), '');
+    if (f.gate.verbose && f.checkpoint_text) L.push('## All checks', '', ...f.checkpoint_text.lines.map(l => `- ${esc(l)}`), '');
+    else if (f.checkpoint_text) L.push('_Run with --verbose to list every check._', '');
     L.push(f.findings.length ? `## Findings (${f.findings.length})` : '## Findings', '');
-    if (!f.findings.length) L.push('_None: nothing passed the gate (established AND seen to break the site)._', '');
+    if (!f.findings.length) L.push(`_${esc(f.findings_empty_text || 'None: nothing passed the gate (established AND seen to break the site).')}_`, '');
     f.findings.forEach((x, i) => {
         L.push(`### ${i + 1}. ${esc(x.cause.replace(/^./, c => c.toUpperCase()))}`, '', `- Kind of problem: ${esc(x.type_text)} (${code(x.label)})`, `- Status: ${esc(plainNames.statusWord(x.status))} · shown because: ${esc(x.shown_because)}`);
         const ev = (x.evidence || []).filter(e => e.file).slice(0, 4).map(refLine);
