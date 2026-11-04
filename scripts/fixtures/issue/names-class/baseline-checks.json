@@ -1,0 +1,811 @@
+{
+  "alias": {
+    "hypotheses": [
+      {
+        "type": "missing-function",
+        "title": "Missing function or class: theme:unicamp",
+        "status": "CONFIRMED",
+        "independent_kinds": [
+          "log"
+        ],
+        "checks": [
+          {
+            "id": "support:log",
+            "status": "PASSED",
+            "reason": "the log clue is still in evidence.json"
+          },
+          {
+            "id": "fatal:fatal-line",
+            "status": "PASSED",
+            "reason": "line 48 of wp-content/themes/unicamp/elementor/widgets/original/heading.php (re-read) names it through its alias Scheme_Color"
+          },
+          {
+            "id": "fatal:fatal-repeats",
+            "status": "PASSED",
+            "reason": "the same fatal is in the log 2 times"
+          },
+          {
+            "id": "fatal:probe-5xx",
+            "status": "PASSED",
+            "reason": "the live probe saw HTTP 500 on http://localhost82.local.com/ews/"
+          },
+          {
+            "id": "fatal:fatal-fresh",
+            "status": "PASSED",
+            "reason": "the fatal (2026-11-03T09:15:01.000Z) is within 24 hours of the probe run"
+          },
+          {
+            "id": "fatal:class-undefined",
+            "status": "PASSED",
+            "reason": "4 PHP files of the copy were read and none defines Elementor\\Core\\Schemes\\Color"
+          }
+        ],
+        "fatal_recheck": {
+          "rule": "A",
+          "supports": [
+            "fatal-site",
+            "probe-5xx"
+          ],
+          "line_ok": true,
+          "sound": true,
+          "repeated": true,
+          "checks": [
+            {
+              "id": "fatal-line",
+              "status": "PASSED",
+              "reason": "line 48 of wp-content/themes/unicamp/elementor/widgets/original/heading.php (re-read) names it through its alias Scheme_Color"
+            },
+            {
+              "id": "fatal-repeats",
+              "status": "PASSED",
+              "reason": "the same fatal is in the log 2 times"
+            },
+            {
+              "id": "probe-5xx",
+              "status": "PASSED",
+              "reason": "the live probe saw HTTP 500 on http://localhost82.local.com/ews/"
+            },
+            {
+              "id": "fatal-fresh",
+              "status": "PASSED",
+              "reason": "the fatal (2026-11-03T09:15:01.000Z) is within 24 hours of the probe run"
+            },
+            {
+              "id": "class-undefined",
+              "status": "PASSED",
+              "reason": "4 PHP files of the copy were read and none defines Elementor\\Core\\Schemes\\Color"
+            }
+          ]
+        }
+      }
+    ],
+    "symptom_reproduced": "yes",
+    "direct": {
+      "rule": "A",
+      "supports": [
+        "fatal-site",
+        "probe-5xx"
+      ],
+      "line_ok": true,
+      "sound": true,
+      "repeated": true,
+      "checks": [
+        {
+          "id": "fatal-line",
+          "status": "PASSED",
+          "reason": "line 48 of wp-content/themes/unicamp/elementor/widgets/original/heading.php (re-read) names it through its alias Scheme_Color"
+        },
+        {
+          "id": "fatal-repeats",
+          "status": "PASSED",
+          "reason": "the same fatal is in the log 2 times"
+        },
+        {
+          "id": "probe-5xx",
+          "status": "PASSED",
+          "reason": "the live probe saw HTTP 500 on http://localhost82.local.com/ews/"
+        },
+        {
+          "id": "fatal-fresh",
+          "status": "PASSED",
+          "reason": "the fatal (2026-11-03T09:15:01.000Z) is within 24 hours of the probe run"
+        },
+        {
+          "id": "class-undefined",
+          "status": "PASSED",
+          "reason": "4 PHP files of the copy were read and none defines Elementor\\Core\\Schemes\\Color"
+        }
+      ]
+    }
+  },
+  "full": {
+    "hypotheses": [
+      {
+        "type": "missing-function",
+        "title": "Missing function or class: theme:unicamp",
+        "status": "CONFIRMED",
+        "independent_kinds": [
+          "log"
+        ],
+        "checks": [
+          {
+            "id": "support:log",
+            "status": "PASSED",
+            "reason": "the log clue is still in evidence.json"
+          },
+          {
+            "id": "fatal:fatal-line",
+            "status": "PASSED",
+            "reason": "line 48 of wp-content/themes/unicamp/elementor/widgets/original/heading.php (re-read) names the class by its full name"
+          },
+          {
+            "id": "fatal:fatal-repeats",
+            "status": "PASSED",
+            "reason": "the same fatal is in the log 2 times"
+          },
+          {
+            "id": "fatal:probe-5xx",
+            "status": "PASSED",
+            "reason": "the live probe saw HTTP 500 on http://localhost82.local.com/ews/"
+          },
+          {
+            "id": "fatal:fatal-fresh",
+            "status": "PASSED",
+            "reason": "the fatal (2026-11-03T09:15:01.000Z) is within 24 hours of the probe run"
+          },
+          {
+            "id": "fatal:class-undefined",
+            "status": "NOT_RUN",
+            "reason": "could not check all code: theme:unicamp could not be fully parsed"
+          }
+        ],
+        "fatal_recheck": {
+          "rule": "A",
+          "supports": [
+            "fatal-site",
+            "probe-5xx"
+          ],
+          "line_ok": true,
+          "sound": true,
+          "repeated": true,
+          "checks": [
+            {
+              "id": "fatal-line",
+              "status": "PASSED",
+              "reason": "line 48 of wp-content/themes/unicamp/elementor/widgets/original/heading.php (re-read) names the class by its full name"
+            },
+            {
+              "id": "fatal-repeats",
+              "status": "PASSED",
+              "reason": "the same fatal is in the log 2 times"
+            },
+            {
+              "id": "probe-5xx",
+              "status": "PASSED",
+              "reason": "the live probe saw HTTP 500 on http://localhost82.local.com/ews/"
+            },
+            {
+              "id": "fatal-fresh",
+              "status": "PASSED",
+              "reason": "the fatal (2026-11-03T09:15:01.000Z) is within 24 hours of the probe run"
+            },
+            {
+              "id": "class-undefined",
+              "status": "NOT_RUN",
+              "reason": "could not check all code: theme:unicamp could not be fully parsed"
+            }
+          ]
+        }
+      },
+      {
+        "type": "syntax-error",
+        "title": "Syntax error: theme:unicamp",
+        "status": "REJECTED_FALSE_POSITIVE",
+        "independent_kinds": [
+          "observation"
+        ],
+        "checks": [
+          {
+            "id": "evidence:wp-content/themes/unicamp/elementor/widgets/original/heading.php:48",
+            "status": "FAILED",
+            "reason": "php -l now passes: the syntax error is gone (fixed since, or never real)"
+          }
+        ],
+        "fatal_recheck": null
+      }
+    ],
+    "symptom_reproduced": "yes",
+    "direct": {
+      "rule": "A",
+      "supports": [
+        "fatal-site",
+        "probe-5xx"
+      ],
+      "line_ok": true,
+      "sound": true,
+      "repeated": true,
+      "checks": [
+        {
+          "id": "fatal-line",
+          "status": "PASSED",
+          "reason": "line 48 of wp-content/themes/unicamp/elementor/widgets/original/heading.php (re-read) names the class by its full name"
+        },
+        {
+          "id": "fatal-repeats",
+          "status": "PASSED",
+          "reason": "the same fatal is in the log 2 times"
+        },
+        {
+          "id": "probe-5xx",
+          "status": "PASSED",
+          "reason": "the live probe saw HTTP 500 on http://localhost82.local.com/ews/"
+        },
+        {
+          "id": "fatal-fresh",
+          "status": "PASSED",
+          "reason": "the fatal (2026-11-03T09:15:01.000Z) is within 24 hours of the probe run"
+        },
+        {
+          "id": "class-undefined",
+          "status": "NOT_RUN",
+          "reason": "could not check all code: theme:unicamp could not be fully parsed"
+        }
+      ]
+    }
+  },
+  "import": {
+    "hypotheses": [
+      {
+        "type": "missing-function",
+        "title": "Missing function or class: theme:unicamp",
+        "status": "CONFIRMED",
+        "independent_kinds": [
+          "log"
+        ],
+        "checks": [
+          {
+            "id": "support:log",
+            "status": "PASSED",
+            "reason": "the log clue is still in evidence.json"
+          },
+          {
+            "id": "fatal:fatal-line",
+            "status": "PASSED",
+            "reason": "line 48 of wp-content/themes/unicamp/elementor/widgets/original/heading.php (re-read) names it through its import"
+          },
+          {
+            "id": "fatal:fatal-repeats",
+            "status": "PASSED",
+            "reason": "the same fatal is in the log 2 times"
+          },
+          {
+            "id": "fatal:probe-5xx",
+            "status": "PASSED",
+            "reason": "the live probe saw HTTP 500 on http://localhost82.local.com/ews/"
+          },
+          {
+            "id": "fatal:fatal-fresh",
+            "status": "PASSED",
+            "reason": "the fatal (2026-11-03T09:15:01.000Z) is within 24 hours of the probe run"
+          },
+          {
+            "id": "fatal:class-undefined",
+            "status": "NOT_RUN",
+            "reason": "could not check all code: theme:unicamp could not be fully parsed"
+          }
+        ],
+        "fatal_recheck": {
+          "rule": "A",
+          "supports": [
+            "fatal-site",
+            "probe-5xx"
+          ],
+          "line_ok": true,
+          "sound": true,
+          "repeated": true,
+          "checks": [
+            {
+              "id": "fatal-line",
+              "status": "PASSED",
+              "reason": "line 48 of wp-content/themes/unicamp/elementor/widgets/original/heading.php (re-read) names it through its import"
+            },
+            {
+              "id": "fatal-repeats",
+              "status": "PASSED",
+              "reason": "the same fatal is in the log 2 times"
+            },
+            {
+              "id": "probe-5xx",
+              "status": "PASSED",
+              "reason": "the live probe saw HTTP 500 on http://localhost82.local.com/ews/"
+            },
+            {
+              "id": "fatal-fresh",
+              "status": "PASSED",
+              "reason": "the fatal (2026-11-03T09:15:01.000Z) is within 24 hours of the probe run"
+            },
+            {
+              "id": "class-undefined",
+              "status": "NOT_RUN",
+              "reason": "could not check all code: theme:unicamp could not be fully parsed"
+            }
+          ]
+        }
+      },
+      {
+        "type": "syntax-error",
+        "title": "Syntax error: theme:unicamp",
+        "status": "REJECTED_FALSE_POSITIVE",
+        "independent_kinds": [
+          "observation"
+        ],
+        "checks": [
+          {
+            "id": "evidence:wp-content/themes/unicamp/elementor/widgets/original/heading.php:48",
+            "status": "FAILED",
+            "reason": "php -l now passes: the syntax error is gone (fixed since, or never real)"
+          }
+        ],
+        "fatal_recheck": null
+      }
+    ],
+    "symptom_reproduced": "yes",
+    "direct": {
+      "rule": "A",
+      "supports": [
+        "fatal-site",
+        "probe-5xx"
+      ],
+      "line_ok": true,
+      "sound": true,
+      "repeated": true,
+      "checks": [
+        {
+          "id": "fatal-line",
+          "status": "PASSED",
+          "reason": "line 48 of wp-content/themes/unicamp/elementor/widgets/original/heading.php (re-read) names it through its import"
+        },
+        {
+          "id": "fatal-repeats",
+          "status": "PASSED",
+          "reason": "the same fatal is in the log 2 times"
+        },
+        {
+          "id": "probe-5xx",
+          "status": "PASSED",
+          "reason": "the live probe saw HTTP 500 on http://localhost82.local.com/ews/"
+        },
+        {
+          "id": "fatal-fresh",
+          "status": "PASSED",
+          "reason": "the fatal (2026-11-03T09:15:01.000Z) is within 24 hours of the probe run"
+        },
+        {
+          "id": "class-undefined",
+          "status": "NOT_RUN",
+          "reason": "could not check all code: theme:unicamp could not be fully parsed"
+        }
+      ]
+    }
+  },
+  "samens": {
+    "hypotheses": [
+      {
+        "type": "missing-function",
+        "title": "Missing function or class: theme:unicamp",
+        "status": "CONFIRMED",
+        "independent_kinds": [
+          "log"
+        ],
+        "checks": [
+          {
+            "id": "support:log",
+            "status": "PASSED",
+            "reason": "the log clue is still in evidence.json"
+          },
+          {
+            "id": "fatal:fatal-line",
+            "status": "PASSED",
+            "reason": "line 48 of wp-content/themes/unicamp/elementor/widgets/original/heading.php (re-read) names it through the file's own namespace"
+          },
+          {
+            "id": "fatal:fatal-repeats",
+            "status": "PASSED",
+            "reason": "the same fatal is in the log 2 times"
+          },
+          {
+            "id": "fatal:probe-5xx",
+            "status": "PASSED",
+            "reason": "the live probe saw HTTP 500 on http://localhost82.local.com/ews/"
+          },
+          {
+            "id": "fatal:fatal-fresh",
+            "status": "PASSED",
+            "reason": "the fatal (2026-11-03T09:15:01.000Z) is within 24 hours of the probe run"
+          },
+          {
+            "id": "fatal:class-undefined",
+            "status": "NOT_RUN",
+            "reason": "could not check all code: theme:unicamp could not be fully parsed"
+          }
+        ],
+        "fatal_recheck": {
+          "rule": "A",
+          "supports": [
+            "fatal-site",
+            "probe-5xx"
+          ],
+          "line_ok": true,
+          "sound": true,
+          "repeated": true,
+          "checks": [
+            {
+              "id": "fatal-line",
+              "status": "PASSED",
+              "reason": "line 48 of wp-content/themes/unicamp/elementor/widgets/original/heading.php (re-read) names it through the file's own namespace"
+            },
+            {
+              "id": "fatal-repeats",
+              "status": "PASSED",
+              "reason": "the same fatal is in the log 2 times"
+            },
+            {
+              "id": "probe-5xx",
+              "status": "PASSED",
+              "reason": "the live probe saw HTTP 500 on http://localhost82.local.com/ews/"
+            },
+            {
+              "id": "fatal-fresh",
+              "status": "PASSED",
+              "reason": "the fatal (2026-11-03T09:15:01.000Z) is within 24 hours of the probe run"
+            },
+            {
+              "id": "class-undefined",
+              "status": "NOT_RUN",
+              "reason": "could not check all code: theme:unicamp could not be fully parsed"
+            }
+          ]
+        }
+      },
+      {
+        "type": "syntax-error",
+        "title": "Syntax error: theme:unicamp",
+        "status": "REJECTED_FALSE_POSITIVE",
+        "independent_kinds": [
+          "observation"
+        ],
+        "checks": [
+          {
+            "id": "evidence:wp-content/themes/unicamp/elementor/widgets/original/heading.php:48",
+            "status": "FAILED",
+            "reason": "php -l now passes: the syntax error is gone (fixed since, or never real)"
+          }
+        ],
+        "fatal_recheck": null
+      }
+    ],
+    "symptom_reproduced": "yes",
+    "direct": {
+      "rule": "A",
+      "supports": [
+        "fatal-site",
+        "probe-5xx"
+      ],
+      "line_ok": true,
+      "sound": true,
+      "repeated": true,
+      "checks": [
+        {
+          "id": "fatal-line",
+          "status": "PASSED",
+          "reason": "line 48 of wp-content/themes/unicamp/elementor/widgets/original/heading.php (re-read) names it through the file's own namespace"
+        },
+        {
+          "id": "fatal-repeats",
+          "status": "PASSED",
+          "reason": "the same fatal is in the log 2 times"
+        },
+        {
+          "id": "probe-5xx",
+          "status": "PASSED",
+          "reason": "the live probe saw HTTP 500 on http://localhost82.local.com/ews/"
+        },
+        {
+          "id": "fatal-fresh",
+          "status": "PASSED",
+          "reason": "the fatal (2026-11-03T09:15:01.000Z) is within 24 hours of the probe run"
+        },
+        {
+          "id": "class-undefined",
+          "status": "NOT_RUN",
+          "reason": "could not check all code: theme:unicamp could not be fully parsed"
+        }
+      ]
+    }
+  },
+  "bare": {
+    "hypotheses": [
+      {
+        "type": "missing-function",
+        "title": "Missing function or class: theme:unicamp",
+        "status": "PROBABLE_NEEDS_REVIEW",
+        "independent_kinds": [
+          "log"
+        ],
+        "checks": [
+          {
+            "id": "support:log",
+            "status": "PASSED",
+            "reason": "the log clue is still in evidence.json"
+          },
+          {
+            "id": "fatal:fatal-line",
+            "status": "FAILED",
+            "reason": "no line within 2 lines of 48 in wp-content/themes/unicamp/elementor/widgets/original/heading.php uses the class Elementor\\Core\\Schemes\\Color (by its full name, an alias imported in this file, or its import)"
+          },
+          {
+            "id": "fatal:fatal-repeats",
+            "status": "PASSED",
+            "reason": "the same fatal is in the log 2 times"
+          },
+          {
+            "id": "fatal:probe-5xx",
+            "status": "PASSED",
+            "reason": "the live probe saw HTTP 500 on http://localhost82.local.com/ews/"
+          },
+          {
+            "id": "fatal:fatal-fresh",
+            "status": "PASSED",
+            "reason": "the fatal (2026-11-03T09:15:01.000Z) is within 24 hours of the probe run"
+          }
+        ],
+        "fatal_recheck": {
+          "rule": null,
+          "supports": [],
+          "line_ok": false,
+          "sound": false,
+          "repeated": true,
+          "checks": [
+            {
+              "id": "fatal-line",
+              "status": "FAILED",
+              "reason": "no line within 2 lines of 48 in wp-content/themes/unicamp/elementor/widgets/original/heading.php uses the class Elementor\\Core\\Schemes\\Color (by its full name, an alias imported in this file, or its import)"
+            },
+            {
+              "id": "fatal-repeats",
+              "status": "PASSED",
+              "reason": "the same fatal is in the log 2 times"
+            },
+            {
+              "id": "probe-5xx",
+              "status": "PASSED",
+              "reason": "the live probe saw HTTP 500 on http://localhost82.local.com/ews/"
+            },
+            {
+              "id": "fatal-fresh",
+              "status": "PASSED",
+              "reason": "the fatal (2026-11-03T09:15:01.000Z) is within 24 hours of the probe run"
+            }
+          ]
+        }
+      }
+    ],
+    "symptom_reproduced": "yes",
+    "direct": {
+      "rule": null,
+      "supports": [],
+      "line_ok": false,
+      "sound": false,
+      "repeated": true,
+      "checks": [
+        {
+          "id": "fatal-line",
+          "status": "FAILED",
+          "reason": "no line within 2 lines of 48 in wp-content/themes/unicamp/elementor/widgets/original/heading.php uses the class Elementor\\Core\\Schemes\\Color (by its full name, an alias imported in this file, or its import)"
+        },
+        {
+          "id": "fatal-repeats",
+          "status": "PASSED",
+          "reason": "the same fatal is in the log 2 times"
+        },
+        {
+          "id": "probe-5xx",
+          "status": "PASSED",
+          "reason": "the live probe saw HTTP 500 on http://localhost82.local.com/ews/"
+        },
+        {
+          "id": "fatal-fresh",
+          "status": "PASSED",
+          "reason": "the fatal (2026-11-03T09:15:01.000Z) is within 24 hours of the probe run"
+        }
+      ]
+    }
+  },
+  "ruleB": {
+    "hypotheses": [
+      {
+        "type": "missing-function",
+        "title": "Missing function or class: theme:unicamp",
+        "status": "CONFIRMED",
+        "independent_kinds": [
+          "log"
+        ],
+        "checks": [
+          {
+            "id": "support:log",
+            "status": "PASSED",
+            "reason": "the log clue is still in evidence.json"
+          },
+          {
+            "id": "fatal:fatal-line",
+            "status": "PASSED",
+            "reason": "line 48 of wp-content/themes/unicamp/elementor/widgets/original/heading.php (re-read) names it through its alias Scheme_Color"
+          },
+          {
+            "id": "fatal:fatal-repeats",
+            "status": "PASSED",
+            "reason": "the same fatal is in the log 2 times"
+          },
+          {
+            "id": "fatal:probe-5xx",
+            "status": "NOT_RUN",
+            "reason": "no live probe ran"
+          },
+          {
+            "id": "fatal:fatal-fresh",
+            "status": "FAILED",
+            "reason": "the fatal (2026-03-16T13:11:39.000Z) is more than 24 hours away from the issue creation, so it is not paired with the live page"
+          },
+          {
+            "id": "fatal:class-undefined",
+            "status": "PASSED",
+            "reason": "4 PHP files of the copy were read and none defines Elementor\\Core\\Schemes\\Color"
+          }
+        ],
+        "fatal_recheck": {
+          "rule": "B",
+          "supports": [
+            "fatal-site",
+            "class-undefined"
+          ],
+          "line_ok": true,
+          "sound": true,
+          "repeated": true,
+          "checks": [
+            {
+              "id": "fatal-line",
+              "status": "PASSED",
+              "reason": "line 48 of wp-content/themes/unicamp/elementor/widgets/original/heading.php (re-read) names it through its alias Scheme_Color"
+            },
+            {
+              "id": "fatal-repeats",
+              "status": "PASSED",
+              "reason": "the same fatal is in the log 2 times"
+            },
+            {
+              "id": "probe-5xx",
+              "status": "NOT_RUN",
+              "reason": "no live probe ran"
+            },
+            {
+              "id": "fatal-fresh",
+              "status": "FAILED",
+              "reason": "the fatal (2026-03-16T13:11:39.000Z) is more than 24 hours away from the issue creation, so it is not paired with the live page"
+            },
+            {
+              "id": "class-undefined",
+              "status": "PASSED",
+              "reason": "4 PHP files of the copy were read and none defines Elementor\\Core\\Schemes\\Color"
+            }
+          ]
+        }
+      }
+    ],
+    "symptom_reproduced": "could-not-test",
+    "direct": {
+      "rule": "B",
+      "supports": [
+        "fatal-site",
+        "class-undefined"
+      ],
+      "line_ok": true,
+      "sound": true,
+      "repeated": true,
+      "checks": [
+        {
+          "id": "fatal-line",
+          "status": "PASSED",
+          "reason": "line 48 of wp-content/themes/unicamp/elementor/widgets/original/heading.php (re-read) names it through its alias Scheme_Color"
+        },
+        {
+          "id": "fatal-repeats",
+          "status": "PASSED",
+          "reason": "the same fatal is in the log 2 times"
+        },
+        {
+          "id": "probe-5xx",
+          "status": "NOT_RUN",
+          "reason": "no live probe ran"
+        },
+        {
+          "id": "fatal-fresh",
+          "status": "FAILED",
+          "reason": "the fatal (2026-03-16T13:11:39.000Z) is more than 24 hours away from the issue creation, so it is not paired with the live page"
+        },
+        {
+          "id": "class-undefined",
+          "status": "PASSED",
+          "reason": "4 PHP files of the copy were read and none defines Elementor\\Core\\Schemes\\Color"
+        }
+      ]
+    }
+  },
+  "fn": {
+    "hypotheses": [
+      {
+        "type": "missing-function",
+        "title": "Missing function or class: theme:unicamp",
+        "status": "PROBABLE_NEEDS_REVIEW",
+        "independent_kinds": [
+          "log"
+        ],
+        "checks": [
+          {
+            "id": "support:log",
+            "status": "PASSED",
+            "reason": "the log clue is still in evidence.json"
+          },
+          {
+            "id": "fatal:fatal-line",
+            "status": "PASSED",
+            "reason": "line 48 of wp-content/themes/unicamp/elementor/widgets/original/heading.php (re-read) names unicamp_helper"
+          },
+          {
+            "id": "fatal:fatal-repeats",
+            "status": "PASSED",
+            "reason": "the same fatal is in the log 2 times"
+          }
+        ],
+        "fatal_recheck": {
+          "rule": null,
+          "supports": [],
+          "line_ok": true,
+          "sound": true,
+          "repeated": true,
+          "checks": [
+            {
+              "id": "fatal-line",
+              "status": "PASSED",
+              "reason": "line 48 of wp-content/themes/unicamp/elementor/widgets/original/heading.php (re-read) names unicamp_helper"
+            },
+            {
+              "id": "fatal-repeats",
+              "status": "PASSED",
+              "reason": "the same fatal is in the log 2 times"
+            }
+          ]
+        }
+      }
+    ],
+    "symptom_reproduced": "yes",
+    "direct": {
+      "rule": null,
+      "supports": [],
+      "line_ok": true,
+      "sound": true,
+      "repeated": true,
+      "checks": [
+        {
+          "id": "fatal-line",
+          "status": "PASSED",
+          "reason": "line 48 of wp-content/themes/unicamp/elementor/widgets/original/heading.php (re-read) names unicamp_helper"
+        },
+        {
+          "id": "fatal-repeats",
+          "status": "PASSED",
+          "reason": "the same fatal is in the log 2 times"
+        }
+      ]
+    }
+  }
+}

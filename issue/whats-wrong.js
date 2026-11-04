@@ -10,6 +10,21 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 const dateOf = iso => { const d = new Date(iso); return Number.isNaN(d.getTime()) ? null : `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`; };
 const KIND_WORD = { theme: 'theme', plugin: 'plugin', mu: 'must-use plugin' };
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+// how the cited line named the class (fatal_recheck.names_how / names_line, data from issue/fatal-recheck.js namesClass): "line 48 uses it as Scheme_Color".
+// A function fatal, or a result without the two fields (an older findings file), keeps the earlier wording "line 48 names Color".
+function namedText(fr) {
+    const isFn = fr.kind === 'function';
+    const short = isFn ? String(fr.class).split(/::|\\/).pop() : String(fr.class).replace(/^.*\\/, '');
+    const old = `line ${fr.line} names ${short}`;
+    if (isFn || typeof fr.names_how !== 'string' || !fr.names_how) return old;
+    const at = `line ${Number.isInteger(fr.names_line) ? fr.names_line : fr.line}`, how = fr.names_how;
+    const alias = /^names it through its alias (\S+)$/.exec(how);
+    if (alias) return `${at} uses it as ${alias[1]}`;
+    if (how === 'names the class by its full name') return `${at} uses the full name ${String(fr.class).replace(/^\\/, '')}`;
+    if (how === 'names it through its import') return `${at} uses it by its imported name ${short}`;
+    if (how === "names it through the file's own namespace") return `${at} uses it (same namespace)`;
+    return old;
+}
 
 // fr: hypothesis.fatal_recheck. ctx: { components: [{ref,kind,slug,name,version}], issue, probePages: [{url,status}], advisories: [...gate advisories], ran: {probe,sandbox}, fileComponent: ref }
 function build(fr, ctx, tier) {
@@ -29,8 +44,8 @@ function build(fr, ctx, tier) {
     cs.where = { who: fileComp ? `the ${kind} ${compName(fileComp)}${fileComp.version ? ` ${fileComp.version}` : ''}` : `the ${kind}`, file: fr.file, line: fr.line };
     const seen = dateOf(fr.last_seen);
     cs.last_seen = seen;   // the log entry's date in words (a confirmed case states it on its own line)
-    cs.sure.push(`Found in your log ${fr.count} times${seen ? `, last seen ${seen}` : ''}${age === 'old' ? ` (an old entry: more than ${FRESH_DAYS} days before this report)` : ''}.`, `The file and line were read again (line ${fr.line} names ${isFn ? String(fr.class).split(/::|\\/).pop() : String(fr.class).replace(/^.*\\/, '')}).`);
-    L.push(`What was checked: found in your log, repeated ${fr.count} times, file and line re-read (line ${fr.line} names ${isFn ? String(fr.class).split(/::|\\/).pop() : String(fr.class).replace(/^.*\\/, '')}).`);
+    cs.sure.push(`Found in your log ${fr.count} times${seen ? `, last seen ${seen}` : ''}${age === 'old' ? ` (an old entry: more than ${FRESH_DAYS} days before this report)` : ''}.`, `The file and line were read again (${namedText(fr)}).`);
+    L.push(`What was checked: found in your log, repeated ${fr.count} times, file and line re-read (${namedText(fr)}).`);
     L.push(age === 'old' ? `Old log entry: last seen in your log on ${seen || 'an unknown date'}, more than ${FRESH_DAYS} days before this report.` : `Last seen in your log on ${seen || 'an unknown date'}.`);
     // the class: only a known provider whose files were searched can be said not to contain it
     const classAt = L.length;
@@ -78,4 +93,4 @@ function build(fr, ctx, tier) {
     return { title: 'What is wrong', case: cs, tier, heading: tier === 'likely' ? (age === 'old' ? LIKELY_OLD : LIKELY_PHRASE) : 'Cause found in your log', age, lines: L };
 }
 
-module.exports = { build, FRESH_DAYS };
+module.exports = { build, namedText, FRESH_DAYS };

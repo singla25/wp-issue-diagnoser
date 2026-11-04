@@ -27,7 +27,13 @@ function confirmedSentence(n, sandbox) {
 }
 // "How sure" of a cause that is not confirmed
 const notConfirmedSentence = sandbox => (sandbox === 'yes' ? 'Reproduced on a test copy of your site, but not confirmed by the re-check of the code.' : NOT_CONFIRMED_SENTENCE);
-const MODIFIED_NOTE = 'These are signs read from the copy; it cannot be verified against the vendor. Replace the copy with a licensed one from the vendor.';
+// Case 3 (owner wording, REPORT-SPEC Part 3): what the signs mean, and the advice only as a condition (the tool cannot know where the copy came from)
+const MODIFIED_NOTE = "This copy shows signs of being changed from the vendor's version. It cannot be verified against the vendor.";
+const MODIFIED_ADVICE = 'If this copy did not come from the vendor, replace it with a licensed copy from the vendor.';
+// no error log on the site (REPORT-SPEC Part 3, leftover L3): what to do to get one; a log that exists but could not be read is said separately (result.js)
+const NO_LOG_HELP = ['No error log was found on this site.',
+    'To see what is going wrong, turn error logging on. First make a backup with UpdraftPlus. Then, in the file wp-config.php, set WP_DEBUG to true, WP_DEBUG_LOG to true and WP_DEBUG_DISPLAY to false. Load the page that shows the problem once, then run this report again.',
+    'This does not mean nothing went wrong.'];
 const cap = s => String(s).replace(/^./, c => c.toUpperCase());
 const plural = (n, one, many) => (n === 1 ? one : many);
 const plural2 = (n, one, many) => (n > 1 ? many : one);   // the status line: "0 likely cause", "1 likely cause", "2 likely causes"
@@ -35,9 +41,11 @@ const itemName = c => `the ${c.kind === 'theme' ? 'theme' : c.kind === 'mu' ? 'm
 const base = f => String(f || '').split('/').pop();
 
 function statusLine(n) {
-    if (!n.likely && !n.confirmed && !n.check) return EMPTY_STATUS;
+    const signs = n.signs || 0;   // Case 3: counted only when present, so a line without signs is unchanged
+    if (!n.likely && !n.confirmed && !n.check && !signs) return EMPTY_STATUS;
     const parts = [`${n.likely} likely ${plural2(n.likely, 'cause', 'causes')}${n.likely ? ' (not confirmed)' : ''}`];
     parts.push(`${n.check} ${plural2(n.check, 'thing', 'things')} to check`, `${n.confirmed} confirmed`);
+    if (signs) parts.push(`${signs} ${plural(signs, 'sign', 'signs')} that a copy was modified`);
     return parts.join(' · ') + (!n.likely && !n.confirmed ? '. This does not mean the site is healthy.' : '');
 }
 
@@ -58,7 +66,8 @@ function evidenceWhere(x) {
     return ev;
 }
 
-// f: the findings object (gate fields already set). ctx: { comps, facts: { hasLog, hasCode, phpSkipped, probeRan, sandboxRan, sandboxFailed, sandboxReproduced, php, crash }, probePages, templates, modified, causeDetail }
+// f: the findings object (gate fields already set). ctx: { comps, facts: { hasLog, hasCode, phpSkipped, probeRan, sandboxRan, sandboxFailed, sandboxReproduced, php, crash }, probePages, templates, modified, causeDetail, logHelp }
+// modified: issue/modified-signs.js scan() ({ lines, count, files }), or a plain list of sign texts
 function build(f, ctx) {
     const box = f.what_is_wrong || null, bc = box && box.case ? box.case : null;
     const boxId = box ? ((f.likely || []).find(x => x.box === box) || (f.findings || []).find(x => x.box === box) || {}).id : null;
@@ -66,7 +75,11 @@ function build(f, ctx) {
     const named = ref => { const c = (ctx.comps || []).find(k => k.ref === ref || k.slug === ref); return c ? itemName({ kind: c.kind, name: c.name || c.slug, version: c.version }) : plain.plainRef(ref, names); };
     const sent = t => cap(String(t || '').replace(/[.\s]+$/, ''));
     const nonComp = (f.findings || []).filter(x => x.label !== 'compromise');
-    const compromise = (f.findings || []).filter(x => x.label === 'compromise');
+    // Case 3 data: an eval-of-an-encoded-string match in a third-party theme or plugin file is listed once, under Case 3 (issue/modified-signs.js); the compromise case keeps the rest
+    const mod = Array.isArray(ctx.modified) ? { lines: ctx.modified.map(String), count: ctx.modified.length, files: [] } : ctx.modified && ctx.modified.count ? ctx.modified : null;
+    const modFiles = new Set((mod && mod.files) || []);
+    const inCase3 = x => modFiles.size > 0 && (/obfuscated-exec/.test(String(x.type || '')) || /runs obfuscated code/.test(String(x.title || ''))) && (x.evidence || []).some(e => e.file) && (x.evidence || []).filter(e => e.file).every(e => modFiles.has(e.file));
+    const compromise = (f.findings || []).filter(x => x.label === 'compromise' && !inCase3(x));
     const cases = [];
     const sureLive = bc && bc.live ? bc.live : null;
     const facts = ctx.facts || {}, sbx = facts.sandboxReproduced === 'yes' || facts.sandboxReproduced === true ? 'yes' : facts.sandboxReproduced === 'no' || facts.sandboxReproduced === false ? 'no' : null;
@@ -141,9 +154,9 @@ function build(f, ctx) {
             cases.push({ kind: 'check', heading: CHECK, rows, advisory: true });
         }
     }
-    // signs that a copy was modified: only a hook; the data arrives with the cracked-copy part and nothing here detects it
-    if (Array.isArray(ctx.modified) && ctx.modified.length) cases.push({ kind: 'signs', heading: SIGNS, rows: [['Signs', ctx.modified.map(String)], ['How sure', [MODIFIED_NOTE]]] });
-    const n = { likely: cases.filter(c => c.kind === 'likely').length, confirmed: cases.filter(c => c.kind === 'confirmed').length, check: cases.filter(c => c.kind === 'check').length };
+    // signs that a copy was modified (issue/modified-signs.js): the file and the sign, the "cannot be verified" sentence, and the advice as a condition
+    if (mod) cases.push({ kind: 'signs', heading: SIGNS, rows: [['Signs', mod.lines], ['How sure', [MODIFIED_NOTE]], ['What to do', [MODIFIED_ADVICE]]] });
+    const n = { likely: cases.filter(c => c.kind === 'likely').length, confirmed: cases.filter(c => c.kind === 'confirmed').length, check: cases.filter(c => c.kind === 'check').length, ...(mod ? { signs: mod.count } : {}) };
     // a crash with no likely and no confirmed cause: say so, and an advisory ("something else to check") carries no Case number, so Case 1 is never an advisory
     const noCause = !!facts.crash && !n.likely && !n.confirmed && cases.some(c => c.advisory);
     let k = 0;
@@ -169,7 +182,7 @@ function build(f, ctx) {
     if (f.log_note) dev.push(f.log_note);
     return {
         title: f.issue_title_short || f.issue.title,
-        status: { ...n, line: statusLine(n), looked: looked.line, php: looked.php, note: f.log_note || null, sandbox_note: ctx.sandboxNote || null, empty: !n.likely && !n.confirmed && !n.check },
+        status: { ...n, line: statusLine(n), looked: looked.line, php: looked.php, note: f.log_note || null, sandbox_note: ctx.sandboxNote || null, ...(ctx.logHelp && ctx.logHelp.length ? { log_help: ctx.logHelp.slice() } : {}), empty: !n.likely && !n.confirmed && !n.check && !n.signs },
         see, no_cause_note: noCause ? NO_CAUSE_NOTE : null, cases, checked, developer: dev,
         excerpt: box && cd && cd.excerpt && cd.excerpt.available ? { title: `${cd.excerpt.file}, lines ${cd.excerpt.from} to ${cd.excerpt.to} (line ${cd.excerpt.cited} is marked with >)`, lines: causeDetail.excerptLines(cd.excerpt) } : null
     };
@@ -182,6 +195,7 @@ function markdown(cf, esc) {
     if (cf.status.php) L.push(e(cf.status.php), '');
     if (cf.status.note) L.push(e(cf.status.note), '');
     if (cf.status.sandbox_note) L.push(e(cf.status.sandbox_note), '');
+    if (cf.status.log_help) cf.status.log_help.forEach((t, i) => L.push(i ? e(t) : `**${e(t)}**`, ''));
     L.push('## What you see', '', ...cf.see.map(s => `- ${e(s)}`), '');
     if (cf.no_cause_note) L.push(`**${e(cf.no_cause_note)}**`, '');
     for (const c of cf.cases) {
@@ -200,7 +214,7 @@ function markdownDeveloper(cf, esc) {
     return L;
 }
 function cli(cf) {
-    const L = [cf.title, '', `STATUS  ${cf.status.line}`, `        ${cf.status.looked}`, ...(cf.status.php ? [`        ${cf.status.php}`] : []), ...(cf.status.note ? [`        ${cf.status.note}`] : []), ...(cf.status.sandbox_note ? [`        ${cf.status.sandbox_note}`] : []), '', 'WHAT YOU SEE', ...cf.see.map(s => `  ${s}`)];
+    const L = [cf.title, '', `STATUS  ${cf.status.line}`, `        ${cf.status.looked}`, ...(cf.status.php ? [`        ${cf.status.php}`] : []), ...(cf.status.note ? [`        ${cf.status.note}`] : []), ...(cf.status.sandbox_note ? [`        ${cf.status.sandbox_note}`] : []), ...(cf.status.log_help ? cf.status.log_help.map(t => `        ${t}`) : []), '', 'WHAT YOU SEE', ...cf.see.map(s => `  ${s}`)];
     if (cf.no_cause_note) L.push('', cf.no_cause_note);
     for (const c of cf.cases) {
         L.push('', c.n ? `CASE ${c.n}  ${c.heading.toUpperCase()}` : c.heading.toUpperCase());
@@ -214,4 +228,4 @@ function cli(cf) {
     return L.join('\n');
 }
 
-module.exports = { build, markdown, markdownDeveloper, cli, statusLine, lookedAt, confirmedSentence, LIKELY, CHECK, CONFIRMED, SIGNS, EMPTY_STATUS, NOT_CONFIRMED_SENTENCE, NO_CAUSE_NOTE, NOT_LIVE_SENTENCE, PHP_NOT_STATED, MODIFIED_NOTE };
+module.exports = { build, markdown, markdownDeveloper, cli, statusLine, lookedAt, confirmedSentence, LIKELY, CHECK, CONFIRMED, SIGNS, EMPTY_STATUS, NOT_CONFIRMED_SENTENCE, NO_CAUSE_NOTE, NOT_LIVE_SENTENCE, PHP_NOT_STATED, MODIFIED_NOTE, MODIFIED_ADVICE, NO_LOG_HELP };

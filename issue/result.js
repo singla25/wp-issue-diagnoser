@@ -31,7 +31,7 @@ function verdict(val, retests, bis) {
     return { label, confidence, symptom_reproduced: sym, notes };
 }
 
-function build(id, { validation, plans, dir, gate = false, verbose = false }) {
+function build(id, { validation, plans, dir, gate = false, verbose = false, policy = null }) {
     const issue = store.load(id), W = f => readJson(path.join(dir, 'work', f)), R = f => readJson(path.join(dir, 'result', f));
     const retests = R('retests.json') || [];
     const lastFixed = retests.filter(r => r.fixed_verified).pop();
@@ -79,7 +79,7 @@ function build(id, { validation, plans, dir, gate = false, verbose = false }) {
         limits: LIMITS
     };
     f.counts = Object.fromEntries(ORDER.concat(['REJECTED_FALSE_POSITIVE']).map(s => [s, hyps.filter(h => h.status === s).length]));
-    if (gate) applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixed, issue, dir });
+    if (gate) applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixed, issue, dir, policy });
     // stable id for every hypothesis comes from hypotheses.js (a hash of its key); findings get the same id so reruns line up
     f.finding_ids = hyps.map(h => schema.stableId('fnd', id.replace(/^iss-.*/, 'issue'), h.id));
     return f;
@@ -100,12 +100,16 @@ function limitsFirst(sandbox) {
 }
 
 // ---------------------------------------------------------------- the gate (step 7b): only with { gate: true }; without it nothing below runs and the output is unchanged
+const modifiedSigns = require('./modified-signs');
+// the log steps when no log was read: one reader sentence (findings.json keeps each step's own text)
+const NO_LOG_STEP = 'No error log was found on this site. This does not mean nothing went wrong.';
+const LOG_STEP = t => t && t.status !== 'PASSED' && (t.id === 'intake-log' || (t.id === 'logs' && /no debug\.log or error_log found/.test(String(t.reason || ''))));
 const caseFileMod = require('./case-file'), causeDetailMod = require('./cause-detail'), oracleMod = require('./oracle'), whatsWrong = require('./whats-wrong'), gateMod = require('./gate'), summaryMod = require('./summary'), rollbackMod = require('./rollback'), ctMod = require('./conflict-type');
 const TYPE_TEXT = {
     'plugin-plugin': 'two plugins clash', 'theme-plugin': 'your theme and a plugin clash', hook: 'two parts of the site act on the same WordPress step',
     'plugin-core-php': 'a problem involving PHP or WordPress itself', 'environment-server': 'a limit or a setting of your hosting', compromise: 'possible compromise signs', unclassified: 'a single plugin, theme or file'
 };
-function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixed, issue, dir }) {
+function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixed, issue, dir, policy }) {
     const cc = W('custom-code.json') || { observations: [] }, comps = (W('components.json') || { components: [] }).components || [];
     const obsById = new Map((cc.observations || []).map(o => [o.id, o]));
     const names = {}, kinds = {};
@@ -240,9 +244,18 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
         if (cd) f.cause_detail = cd;
         const probePages = (probe && probe.pages) || [];
         const crash = oracleMod.CRASH_SYMPTOMS.has(issue.symptom) || probePages.some(p => p && p.status >= 500 && p.status < 600);
+        // Case 3, signs that a copy was modified (issue/modified-signs.js): read-only on the issue's copy; third-party themes and plugins only
+        const ms = issue.root ? modifiedSigns.scan(issue.root, { policy }) : null;
+        if (ms && ms.count) f.modified_signs = { count: ms.count, files_read: ms.files_read, complete: ms.complete, signs: ms.signs };
+        // no error log on the site: the plain steps to turn logging on; a log that exists but could not be read is said as it is
+        const hasLog = !!((lg.files || []).length || (lg.entries || []).length);
+        const ikLog = ((ik.steps || []).find(s => s && s.id === 'intake-log')) || null;
+        const logHelp = hasLog ? null : ikLog && ikLog.log_state === 'unreadable' ? [ikLog.reason] : caseFileMod.NO_LOG_HELP;
+        if (!hasLog) for (const t of f.timeline) if (LOG_STEP(t)) f.not_tested_text[t.id] = `${t.label}: ${ikLog && ikLog.log_state === 'unreadable' && t.id === 'intake-log' ? ikLog.reason : NO_LOG_STEP}`;
         f.case_file = caseFileMod.build(f, {
             sandboxNote: ((f.summary.lines || []).find(l => /sandbox test could not run/.test(l)) || '').trim() || null,
-            comps, probePages, templates: (cc.observations || []).filter(o => o.type === 'template-override-outdated'), causeDetail: cd,
+            comps, probePages, templates: (cc.observations || []).filter(o => o.type === 'template-override-outdated'), causeDetail: cd, logHelp,
+            modified: ms && ms.count ? { lines: ms.lines, count: ms.count, files: ms.files } : null,
             facts: { hasLog: !!((lg.files || []).length || (lg.entries || []).length), hasCode: !!issue.root, phpSkipped: Number(ik.php_skipped) > 0, probeRan: ran.probe, sandboxRan: ran.sandbox, sandboxFailed: !!(sbx && sbx.could_not_run),
                 sandboxReproduced: sbx ? sbx.reproduced_in_sandbox : null, php: issue.php_version || null, crash }
         });
@@ -294,7 +307,12 @@ function gateMarkdown(f) {
 function stepLines(f, esc) {
     const L = [];
     const keep = new Set(f.not_tested || f.timeline.map(s => s.id));
-    for (const s of f.timeline) if (s.status === 'PASSED' || keep.has(s.id)) L.push(`- ${stepWord(s.status)}: ${esc(s.label)}${s.reason ? `: ${esc(plainNames.readerFiles(s.reason)).slice(0, 200)}` : ''}`);
+    for (const s of f.timeline) {
+        if (!(s.status === 'PASSED' || keep.has(s.id))) continue;
+        // a log step when no log was read: the same reader sentence as the page (f.not_tested_text)
+        if (LOG_STEP(s) && f.case_file && f.case_file.status.log_help && f.not_tested_text && f.not_tested_text[s.id]) { L.push(`- ${stepWord(s.status)}: ${esc(f.not_tested_text[s.id])}`); continue; }
+        L.push(`- ${stepWord(s.status)}: ${esc(s.label)}${s.reason ? `: ${esc(plainNames.readerFiles(s.reason)).slice(0, 200)}` : ''}`);
+    }
     L.push('');
     return L;
 }
@@ -369,7 +387,7 @@ function tasks(f, { root, policy }) {
 }
 
 function write(id, { validation, plans, dir, root, policy, gate = false, verbose = false }) {
-    const f = build(id, { validation, plans, dir, gate, verbose });
+    const f = build(id, { validation, plans, dir, gate, verbose, policy: policy || null });
     const R = (...p) => path.join(dir, 'result', ...p);
     fs.mkdirSync(R('patches', 'shims'), { recursive: true, mode: 0o700 });
     for (const old of fs.readdirSync(R('patches'))) if (/\.(diff)$/.test(old)) fs.rmSync(R('patches', old));
@@ -385,6 +403,8 @@ function write(id, { validation, plans, dir, root, policy, gate = false, verbose
     try { require('./index-page').write(); } catch { /* the index is a convenience; the issue's own files are written */ }
     fs.writeFileSync(R('ISSUE-REPORT.md'), gate ? gateMarkdown(f) : markdown(f), { mode: 0o600 });
     fs.writeFileSync(R('tasks.md'), t.markdown, { mode: 0o600 });
+    // FIX-PLAN.md (gate on only; issue/fix-plan.js): written when there is a cause or a sign to plan for, from findings.json and the saved plan answers; no file otherwise
+    if (gate) require('./fix-plan').writeFor(id, dir, f);
     return { findings: f, tasks: t.count, dir: R() };
 }
 

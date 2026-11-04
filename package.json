@@ -84,6 +84,9 @@
     "selftest:checkpoints": "node scripts/selftest-checkpoints.js",
     "selftest:names-class": "node scripts/selftest-names-class.js",
     "selftest:reader-fixes": "node scripts/selftest-reader-fixes.js",
+    "selftest:names-how": "node scripts/selftest-names-how.js",
+    "selftest:fix-plan": "node scripts/selftest-fix-plan.js",
+    "selftest:modified-signs": "node scripts/selftest-modified-signs.js",
     "checkpoints": "node scripts/gen-checkpoints.js"
   },
   "license": "ISC",

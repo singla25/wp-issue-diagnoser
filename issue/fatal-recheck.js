@@ -174,7 +174,7 @@ function recheck({ h, clues, root, probe, issue, intake, components = [], sandbo
     const cls = clue.value, file = loc.detail.file, line = loc.detail.line;   // `cls` is the class, or the function / method for a "Call to undefined" fatal
     const fileKind = kindOfFile(file);
     const checks = [], log = (clue.detail && clue.detail.log) || {};
-    const res = { kind: isFn ? 'function' : 'class', class: cls, file, line, file_kind: fileKind, count: log.count || 1, last_seen: log.last_seen || null, checks, rule: null, supports: [], line_ok: false, repeated: false, provider: null, scan: null, blocked: null, text: null };
+    const res = { kind: isFn ? 'function' : 'class', class: cls, file, line, file_kind: fileKind, count: log.count || 1, last_seen: log.last_seen || null, checks, rule: null, supports: [], line_ok: false, repeated: false, provider: null, scan: null, blocked: null, text: null, names_how: null, names_line: null };
     const add = (id, status, reason) => checks.push({ id, status, reason });
 
     // 1. the cited file and line, re-read
@@ -190,6 +190,7 @@ function recheck({ h, clues, root, probe, issue, intake, components = [], sandbo
             const nc = namesClass(lines, line, full, isFn, short);
             const named = nc.ok;
             res.line_ok = named;
+            res.names_how = nc.how; res.names_line = nc.line;   // DATA ONLY: the report shows how the line named the class; no rule reads these
             if (isFn) add('fatal-line', named ? 'PASSED' : 'FAILED', named ? `line ${line} of ${file} (re-read) names ${short}` : `no line within ${WINDOW} lines of ${line} in ${file} names ${short}`);
             else add('fatal-line', named ? 'PASSED' : 'FAILED', named ? `line ${nc.line} of ${file} (re-read${nc.line !== line ? `, within ${WINDOW} lines of line ${line}` : ''}) ${nc.how}` : `no line within ${WINDOW} lines of ${line} in ${file} uses the class ${full} (by its full name, an alias imported in this file, or its import)`);
         }

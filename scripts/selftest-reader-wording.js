@@ -158,6 +158,33 @@ const readerMd = md => md.split(/^(?=## )/m).filter(s => !/^## (What was checked
             await ctx.close();
         }
     }
+    // ---- REPORT-SPEC Part 3: FIX-PLAN.md, the choice questions, Case 3 and the no-log text (whole terms; ids, review status, gate, null, .json, raw timestamps too) ----
+    group('Part 3: FIX-PLAN.md, the choice questions, Case 3, the log text, the page header');
+    const MORE = [/\b(theme|mu|plugin):[a-z0-9._-]+/i, /PROBABLE[ _]NEEDS[ _]REVIEW/i, /\bgate\b/i, /\bnull\b/, /\.json\b/, /\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/];
+    const scan3 = (label, text) => { scan(label, text); const b = MORE.filter(re => re.test(String(text))).map(String); ok(!b.length, `${label}: no id, review status, "gate", null, .json name or raw timestamp${b.length ? ' -> ' + b.join(' ') : ''}`); };
+    const PQ = require('../issue/plan-questions'), fixPlan = require('../issue/fix-plan'), caseFile = require('../issue/case-file'), modSigns = require('../issue/modified-signs');
+    const planFile = path.join(base.dir, 'result', 'FIX-PLAN.md');
+    ok(fs.existsSync(planFile), 'the ews fixture has a FIX-PLAN.md');
+    if (fs.existsSync(planFile)) scan3('FIX-PLAN.md (ews)', fs.readFileSync(planFile, 'utf8'));
+    scan3('FIX-PLAN.md (every option chosen)', fixPlan.options(fixPlan.context(base.f), {}).options.map(o => fixPlan.build(base.f, { plan: o.id, update: 'not-sure', licence: 'not-sure', copy: 'no' })).join('\n'));
+    const qs = [...PQ.questionsFor(base.f), PQ.planQuestion(base.f)].filter(Boolean);
+    ok(qs.length === 4, 'the four choice questions for the ews case');
+    scan3('the choice questions', qs.map((q, i) => PQ.render(q, i + 1, qs.length)).join('\n'));
+    const sroot = path.join(tmp, 'signs', 'wp');
+    w(sroot, 'wp-content/plugins/gallery-pro/gallery-pro.php', "<?php\n/**\n * Plugin Name: Gallery Pro Nulled\n * Version: 2.0\n */\neval(base64_decode('ZWNobyAxOw=='));\n");
+    const sg = modSigns.scan(sroot);
+    ok(sg.count === 2, 'a signs fixture (a "Nulled" header and eval(base64_decode(...)))');
+    scan3('Case 3 (heading, signs, how sure, what to do)', [caseFile.SIGNS, ...sg.lines, caseFile.MODIFIED_NOTE, caseFile.MODIFIED_ADVICE, caseFile.statusLine({ likely: 0, confirmed: 0, check: 0, signs: sg.count })].join('\n'));
+    scan3('the no-log text', caseFile.NO_LOG_HELP.join('\n'));
+    if (browser) {
+        const ctx = await browser.newContext({ serviceWorkers: 'block' }), pg = await ctx.newPage();
+        await pg.route('**/*', rt => (rt.request().url().startsWith('file://') ? rt.continue() : rt.abort()));
+        await pg.goto('file://' + path.join(base.dir, 'result', 'issue.html'));
+        const meta = await pg.evaluate(() => document.getElementById('meta').textContent);
+        ok(!/\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(meta) && /generated \d{1,2} [A-Z][a-z]{2} \d{4}, \d{2}:\d{2}$/.test(meta), `the page header: no raw timestamp ("${meta.replace(/^.* · generated /, 'generated ')}")`);
+        await ctx.close();
+    }
+
     if (browser) await browser.close();
 
     fs.rmSync(tmp, { recursive: true, force: true });
