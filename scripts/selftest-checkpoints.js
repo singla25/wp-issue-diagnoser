@@ -178,6 +178,12 @@ const T = rows => cpMod.tally(rows);
     const src = fs.readFileSync(path.join(__dirname, '..', 'issue', 'checkpoints.js'), 'utf8').replace(/\/\/.*$/gm, '');
     ok(!/CONFIRMED|REPRODUCIBLE|REJECTED_FALSE_POSITIVE|FIXED_VERIFIED/.test(src.replace(/h\.status !== 'REJECTED_FALSE_POSITIVE'/, '')) && !/require\(['"](https?|net|child_process|dns)['"]\)|fetch\(/.test(src), 'issue/checkpoints.js assigns no verdict and makes no network or process call');
 
+    group('7. breaks_site and the tie context (classification only)');
+    ok(cps.every(c => ['yes', 'no', 'depends'].includes(c.breaks_site)) && cps.find(c => c.id === 'cp-27').breaks_site === 'yes' && cps.find(c => c.id === 'cp-02').breaks_site === 'no', 'every checkpoint has breaks_site (yes / no / depends); syntax errors yes, a duplicate constant no');
+    const tiedRows = cpMod.evaluate({ work: cpMod.loadWork(ews.dir), validation: ews.val, ran: { probe: false }, hasRoot: true, tie: { components: ['theme:unicamp'], files: [] } });
+    const tt = T(tiedRows);
+    ok(tt.pass === T(rEws).pass && tt.not_checked === T(rEws).not_checked && tt.fail + tt.also_noticed === T(rEws).fail && tiedRows.every(r => ['PASS', 'FAIL', 'ALSO NOTICED', 'NOT CHECKED'].includes(r.result)), 'a tie context only splits the old FAILs into FAIL and ALSO NOTICED; PASS and NOT CHECKED do not move');
+
     fs.rmSync(tmp, { recursive: true, force: true });
     console.log(failures ? `\n${failures} FAILED` : '\nAll checkpoint checks passed.');
     process.exit(failures ? 1 : 0);

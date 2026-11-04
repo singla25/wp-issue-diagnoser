@@ -7,6 +7,7 @@ const COMPROMISE_SENTENCE = 'Possible compromise signs were found (pattern match
 const COMPROMISE_ADVICE = 'Do not delete files yourself; ask your host or a security professional to check, and keep a backup.';
 const NO_CHECK = 'Note: no live check or sandbox test was run, so nothing here was seen failing on your website.';
 const NOT_HEALTHY = 'This does not mean the site is healthy.';
+const WHAT_IS_WRONG = 'What is wrong';
 const cap = s => String(s).replace(/^./, c => c.toUpperCase());
 const plural = (n, one, many) => (n === 1 ? one : many);
 
@@ -64,10 +65,20 @@ function summarise(split, { ran = {}, verbose = false, checkpointSentence = null
     if (nothingRan && !causes.length && !compromise.length && !adv.length) lines.push(NOT_HEALTHY);
     // the web page never says "run with --verbose": it names the advisories (they are listed, collapsed, on the page)
     const withExtras = ls => ls.slice(0, extraAt).concat(extras, ls.slice(extraAt));
-    const reportLines = withExtras(lines);
+    // the report (Markdown, command line) shows the headline once and puts a "What is wrong" line before the box; the page and `lines` keep their own layout
+    let repBase = lines.slice(), repAt = extraAt;
+    if (split.box) {
+        const hi = repBase.indexOf(`${split.box.heading}:`);
+        if (hi >= 0) {
+            let at = hi;
+            if (repBase[0] === split.box.heading) { repBase.shift(); repAt--; at--; }
+            repBase.splice(at, 0, WHAT_IS_WRONG); repAt++;
+        }
+    }
+    const reportLines = repBase.slice(0, repAt).concat(extras, repBase.slice(repAt));
     const linesHtml = withExtras(advHint ? lines.map(l => (l === advHint ? `${adv.length} possible ${plural(adv.length, 'cause is', 'causes are')} listed under Advisories: ${advisoryNames(adv).join('; ')}.` : l)) : lines);
     const cut = ls => ls.filter(l => !(split.box && (l === `${split.box.heading}:` || split.box.lines.some(b => l === `  ${b}`))));
     return { headline, lines, text: lines.join('\n'), counts: split.counts, report_lines: reportLines, text_report: reportLines.join('\n'), lines_html: linesHtml, ...(split.box ? { lines_html_without_box: cut(linesHtml) } : {}), compromise_sentence: compromise.length ? COMPROMISE_SENTENCE : null, ...(split.box ? { box: split.box, lines_without_box: lines.filter(l => !(l === `${split.box.heading}:` || split.box.lines.some(b => l === `  ${b}`))) } : {}) };
 }
 
-module.exports = { summarise, advisoryNames, COMPROMISE_SENTENCE, COMPROMISE_ADVICE, NO_CHECK, NOT_HEALTHY };
+module.exports = { WHAT_IS_WRONG, summarise, advisoryNames, COMPROMISE_SENTENCE, COMPROMISE_ADVICE, NO_CHECK, NOT_HEALTHY };

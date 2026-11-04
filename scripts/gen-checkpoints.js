@@ -33,6 +33,17 @@ const NO_EVALUATOR = {
     47: 'no scripted checkout exists (writing to a shop is not allowed)',
     53: 'no check looks for redirects that depend on the visitor'
 };
+// breaks_site, per evaluator key: can what the check finds, ON ITS OWN, stop the site from loading?
+//   'yes'      yes: a fatal error, a blank page or a server error follows from it by itself (a redeclared function, a syntax error, a removed PHP function, running out of memory, 5xx, a redirect loop)
+//   'no'       no: it is a warning, a notice, a header mismatch or a duplicated setting; the site keeps loading
+//   'depends'  it breaks only in some situations (which hook runs when, which file is loaded) and the report cannot say which; also every row without an evaluator
+// Deterministic: a fixed table, no run data. The report uses it as a label only; it never changes a result.
+const BREAKS_SITE = {
+    'duplicate-declaration': 'yes', 'removed-functions': 'yes', 'php-version-code': 'yes', 'syntax-error': 'yes', 'log-limits': 'yes', 'log-extensions': 'yes',
+    'white-screen': 'yes', 'http-5xx': 'yes', 'critical-error-page': 'yes', 'redirect-loop': 'yes', 'php-in-uploads': 'depends',
+    'duplicate-constant': 'no', 'duplicate-shortcode': 'no', 'duplicate-post-type': 'no', 'shared-option': 'no', 'version-headers': 'no', 'template-override': 'no', 'duplicate-purpose': 'no',
+    'home-siteurl': 'no', 'https': 'no', 'js-errors': 'no', 'failed-assets': 'no', 'obfuscated-code': 'no', 'dropins': 'no', 'theme-post-type': 'no'
+};
 const CLASSIC_ONLY = 'only the classic scan checks this';
 
 // split a table row on pipes that are not inside backticks
@@ -67,7 +78,7 @@ function build(source = SOURCE) {
         const reached = REACHED[c[3]];
         if (!reached) throw new Error(`${source}: row ${n}: "Reached in" is "${c[3]}"`);
         const evaluator = coverage === 'NOT DETECTED' || reached === 'Classic' ? null : (KEYS[n] || null);
-        const cp = { id: `cp-${String(n).padStart(2, '0')}`, title: plain(c[1]), section, coverage, reached_in: reached, where: short(c[4]), missing: plain(c[5]), evaluator };
+        const cp = { id: `cp-${String(n).padStart(2, '0')}`, title: plain(c[1]), section, coverage, reached_in: reached, where: short(c[4]), missing: plain(c[5]), evaluator, breaks_site: (evaluator && BREAKS_SITE[evaluator]) || 'depends' };
         if (!evaluator) cp.no_evaluator_reason = reached === 'Classic' ? CLASSIC_ONLY : NO_EVALUATOR[n] || '';
         cps.push(cp);
     }
@@ -76,7 +87,7 @@ function build(source = SOURCE) {
     return JSON.stringify({ schema: 1, source: 'docs/COVERAGE.md', counts: { total: cps.length, detected: count('DETECTED'), partial: count('PARTIAL'), not_detected: count('NOT DETECTED') }, checkpoints: cps }, null, 2) + '\n';
 }
 
-module.exports = { build, SOURCE, OUT, KEYS, NO_EVALUATOR, CLASSIC_ONLY };
+module.exports = { build, SOURCE, OUT, KEYS, BREAKS_SITE, NO_EVALUATOR, CLASSIC_ONLY };
 
 if (require.main === module) {
     const argv = process.argv.slice(2), opt = n => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] : null; };

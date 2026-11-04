@@ -116,21 +116,39 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
     for (const x of split.findings) { x.type_text = TYPE_TEXT[x.label]; x.rollback = rollbackMod.rollbackFor(planOf.get(x.id)); }
     for (const x of split.advisories) x.type_text = TYPE_TEXT[x.label];
     // the "What is wrong" box: for the first most-likely cause, else the first finding that is a re-checked log fatal
+    // outdated template copies: ONE count, the code check's (checkpoint "Outdated template override"); the advisories are only the (at most five) hypotheses the analysis kept
+    const tplTotal = (cc.observations || []).filter(o => o.type === 'template-override-outdated').length;
     const boxItem = (split.likely || [])[0] || split.findings.find(x => (hyps.find(h => h.id === x.id) || {}).fatal_recheck);
     if (boxItem) {
         const hy = hyps.find(h => h.id === boxItem.id), fileComp = hy.fatal_recheck.file ? require('../lib/ownership').componentOf(hy.fatal_recheck.file) : null;
-        split.box = whatsWrong.build(hy.fatal_recheck, { components: comps, issue, probePages: (probe && probe.pages) || [], advisories: split.advisories, ran, fileComponent: fileComp ? fileComp.replace(/^plugin:/, '') : '' }, split.likely && split.likely[0] === boxItem ? 'likely' : 'confirmed');
+        split.box = whatsWrong.build(hy.fatal_recheck, { components: comps, issue, probePages: (probe && probe.pages) || [], advisories: split.advisories, templateTotal: tplTotal, ran, fileComponent: fileComp ? fileComp.replace(/^plugin:/, '') : '' }, split.likely && split.likely[0] === boxItem ? 'likely' : 'confirmed');
         boxItem.box = split.box;
     }
     for (const x of split.likely || []) { x.type_text = TYPE_TEXT[x.label]; x.rollback = rollbackMod.rollbackFor(planOf.get(x.id)); }
     // the checkpoints (issue/checkpoints.js): counts and items stay in findings.json; the reader gets a sentence and, with --verbose, one plain line each
-    const cpMod = require('./checkpoints'), cpRows = cpMod.evaluate({ work: cpMod.loadWork(dir), validation, ran, hasRoot: !!issue.root, issue });
+    // the crash evidence a finding must be tied to to count as a FAIL: components and files of the shown findings / likely cause, the log fatal's file, its provider and the plugins / themes in its stack trace
+    const tie = { components: [], files: [] };
+    for (const x of [...split.findings, ...(split.likely || [])]) {
+        const h = hyps.find(y => y.id === x.id) || {};
+        tie.components.push(...(h.components || []), ...(x.components || []));
+        tie.files.push(...(h.supports || []).map(sp => sp.file).filter(Boolean), ...(x.evidence || []).map(e => e.file).filter(Boolean));
+        const fr = h.fatal_recheck;
+        if (fr) {
+            if (fr.file) tie.files.push(fr.file);
+            if (fr.provider && fr.provider.known && fr.provider.slug) tie.components.push(fr.provider.slug);
+            for (const e of ((W('logs.json') || {}).entries || [])) {
+                if (!/fatal|parse/i.test(e.level || '') || e.file !== fr.file) continue;
+                tie.components.push(...(e.components || [])); tie.files.push(...(e.trace || []).map(t => t.file).filter(Boolean));
+            }
+        }
+    }
+    const cpMod = require('./checkpoints'), cpRows = cpMod.evaluate({ work: cpMod.loadWork(dir), validation, ran, hasRoot: !!issue.root, issue, tie });
     const cpCounts = cpMod.tally(cpRows);
-    f.checkpoints = { counts: cpCounts, items: cpRows.map(r => ({ id: r.id, title: r.title, result: r.result, reason: r.reason })) };
+    f.checkpoints = { counts: cpCounts, items: cpRows.map(r => ({ id: r.id, title: r.title, result: r.result, tied_to_crash: !!r.tied_to_crash, breaks_site: r.breaks_site, reason: r.reason })) };
     const cpText = plainNames.checkpointText(cpRows.map(r => ({ ...r, title: plainNames.plainText(r.title, comps), reason: plainNames.plainText(r.reason, comps) })), cpCounts);
     f.checkpoint_text = { sentence: cpText.sentence, lines: verbose ? cpText.lines : [] };
     // a site log larger than the read cap: only its end was read
-    const logNote = plainNames.logNote(W('logs.json'));
+    const logNote = plainNames.logNote(W('logs.json'), (W('intake.json') || {}).steps);
     if (logNote) { f.log_note = logNote; if (split.box) split.box.note = logNote; }
     f.findings = split.findings;
     if (split.likely) f.likely = split.likely;
@@ -199,10 +217,16 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
 const shown = f => new Set((f.findings || []).map(x => x.id));
 const refLine = e => `${e.file}${e.line ? `:${e.line}` : ''}`;
 
+// The gate report is read as plain text: it never carries HTML entities (the text is escaped ONCE, here, for Markdown: a "<" or an entity-like "&x;" gets a backslash, nothing is turned into &lt; / &amp;).
+// The classic report keeps its own `esc` (HTML entities) and is not touched.
+const escG = t => one(t).replace(/&(?=#?\w+;)/g, '\\&').replace(/</g, '\\<').replace(/`/g, "'").replace(/\|/g, '\\|').replace(/^>/, '\\>');
+// step status in plain words (gate report only): the status itself stays in findings.json
+const STEP_WORD = { PASSED: 'Done', NOT_RUN: 'Not done', SKIPPED: 'Not done' };
+const stepWord = s => STEP_WORD[s] || 'Could not run';
 function gateMarkdown(f) {
-    const L = [];
+    const esc = escG, L = [];
     L.push(`# Issue report: ${esc(f.issue_title_short || f.issue.title)}`, '', `Issue ${code(f.issue.id)} · symptom ${code(f.issue.symptom)} · environment ${code(f.issue.environment)}`, '');
-    L.push('## Summary', '', ...(f.summary.report_lines || f.summary.lines).map(l => (l.startsWith('  •') ? `- ${esc(l.replace(/^\s*•\s*/, ''))}` : esc(l))), '', esc(f.confidence_text), '');
+    L.push('## Summary', '', ...(f.summary.report_lines || f.summary.lines).flatMap(l => (l === summaryMod.WHAT_IS_WRONG ? ['', `### ${l}`, ''] : [l.startsWith('  •') ? `- ${esc(l.replace(/^\s*•\s*/, ''))}` : esc(l)])), '', esc(f.confidence_text), '');
     if (f.gate.verbose && f.checkpoint_text) L.push('## All checks', '', ...f.checkpoint_text.lines.map(l => `- ${esc(l)}`), '');
     else if (f.checkpoint_text) L.push('_Run with --verbose to list every check._', '');
     L.push(f.findings.length ? `## Findings (${f.findings.length})` : '## Findings', '');
@@ -220,7 +244,7 @@ function gateMarkdown(f) {
         L.push(`## Advisories (${f.advisories.length})`, '', '_Possible causes that were not confirmed, or not seen to break the site. They are listed so nothing disappears._', '');
         if (!f.advisories.length) L.push('_None._', '');
         for (const a of f.advisories) {
-            L.push(`- **${esc(a.cause.replace(/^./, c => c.toUpperCase()))}** — not shown because it is ${esc(a.why_not_shown.text)}${a.why_not_shown.all.length > 1 ? ` (also: ${a.why_not_shown.all.slice(1).map(esc).join(', ')})` : ''}. Kind: ${esc(a.type_text)}. Status: ${esc(plainNames.statusWord(a.status))}.`);
+            L.push(`- **${esc(a.cause.replace(/^./, c => c.toUpperCase()))}** — ${a.why_not_shown.primary === 'not-established' ? 'Not confirmed.' : `not shown because it is ${esc(a.why_not_shown.text)}${a.why_not_shown.all.length > 1 ? ` (also: ${a.why_not_shown.all.slice(1).map(esc).join(', ')})` : ''}.`} Kind: ${esc(a.type_text)}. Status: ${esc(plainNames.statusWord(a.status))}.`);
             for (const b of a.backed_by_log || []) L.push(`    - A log error names ${code(b.file)}${b.component ? ` (${esc(plainNames.componentLabel(b))})` : ''}.`);
         }
         L.push('');
@@ -228,7 +252,7 @@ function gateMarkdown(f) {
     L.push('## What was checked', '');
     // steps that were not done are listed only when they are tied to the answer (--verbose lists them all)
     const keep = new Set(f.not_tested || f.timeline.map(s => s.id));
-    for (const s of f.timeline) if (s.status === 'PASSED' || keep.has(s.id)) L.push(`- ${s.status} ${esc(s.label)}${s.reason ? `: ${esc(s.reason).slice(0, 200)}` : ''}`);
+    for (const s of f.timeline) if (s.status === 'PASSED' || keep.has(s.id)) L.push(`- ${stepWord(s.status)}: ${esc(s.label)}${s.reason ? `: ${esc(s.reason).slice(0, 200)}` : ''}`);
     L.push('', '## Limits', '');
     for (const l of f.limits) L.push(`- ${esc(l)}`);
     L.push('');

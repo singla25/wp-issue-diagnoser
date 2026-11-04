@@ -52,7 +52,9 @@ function build(fr, ctx, tier) {
     if (vs.length) L.push(`Versions: ${vs.join(' · ')}.`);
     // a second thing worth checking, when the analysis flagged it
     const tpl = (ctx.advisories || []).find(a => a.type === 'template-override-outdated');
-    if (tpl) L.push(`A second thing to check: an outdated template override${tpl.merged > 1 ? ` (${tpl.merged} templates)` : ''} is listed under Advisories${tpl.components && tpl.components.length ? ` (${tpl.components.map(c => (byRef(c) ? compName(byRef(c)) : c)).join(' + ')})` : ''}.`);
+    // the count is the code check's (all outdated copies found); the Advisories keep at most five of them as possible causes, so both numbers are said when they differ
+    const tplShown = tpl ? tpl.merged || 1 : 0, tplAll = Math.max(ctx.templateTotal || 0, tplShown);
+    if (tpl) L.push(`A second thing to check: ${tplAll > tplShown ? `outdated template overrides (${tplAll} templates in all, ${tplShown} of them are` : `an outdated template override${tpl.merged > 1 ? ` (${tpl.merged} templates)` : ''} is`} listed under Advisories${tplAll > tplShown ? ')' : ''}${tpl.components && tpl.components.length ? ` (${tpl.components.map(c => (byRef(c) ? compName(byRef(c)) : c)).join(' + ')})` : ''}.`);
     // live check
     const five = (ctx.probePages || []).find(p => p && p.status >= 500 && p.status < 600);
     L.push(five ? `Live check: a live page answered HTTP ${five.status}${five.url ? ` (${five.url})` : ''}.` : ctx.ran && ctx.ran.probe ? 'Live check: the live pages that were loaded did not answer with an error.' : 'Live check: none was run, so nothing here was seen failing on your website.');

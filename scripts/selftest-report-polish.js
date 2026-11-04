@@ -66,7 +66,7 @@ async function run(name, { verbose = false, complete = false, log = 'ews', title
 }
 const cliText = (r, verbose) => { const out = []; cli.printGate(r.res, r.plans, { gate: true, verbose }, t => out.push(t), r.dir); return out.join('\n'); };
 const INTERNAL = /\bcp-\d+|\bnull\b|\bundefined\b|could-not-test|NOT_RUN|PASSED|FAILED|\bNaN\b/;
-const COUNTS = /We looked at (\d+) things: (\d+) pass, (\d+) fail, (\d+) not checked\./;
+const COUNTS = /We looked at (\d+) things: (\d+) pass, (\d+) fail, (\d+) also noticed, (\d+) not checked\./;
 
 (async () => {
     const r = await run('base');
@@ -75,13 +75,13 @@ const COUNTS = /We looked at (\d+) things: (\d+) pass, (\d+) fail, (\d+) not che
 
     group('1. the checkpoints: JSON, order, counts, the full list only with --verbose');
     const cp = r.f.checkpoints, cj = require('../issue/checkpoints');
-    ok(cp && cp.items.length > 40 && cp.counts.total === cp.items.length && cp.counts.pass + cp.counts.fail + cp.counts.not_checked === cp.counts.total, 'findings.json: checkpoints.counts and items (ids stay in the JSON)');
+    ok(cp && cp.items.length > 40 && cp.counts.total === cp.items.length && cp.counts.pass + cp.counts.fail + (cp.counts.also_noticed || 0) + cp.counts.not_checked === cp.counts.total, 'findings.json: checkpoints.counts and items (ids stay in the JSON)');
     ok(cp.items.every(i => /^cp-\d+$/.test(i.id) && i.title && ['PASS', 'FAIL', 'NOT CHECKED'].includes(i.result) && i.reason), 'every item has id, title, result and reason');
     ok(JSON.stringify(cp.counts) === JSON.stringify(cj.tally(cj.evaluate({ work: cj.loadWork(r.dir), validation: validate.run(r.id, { root: store.load(r.id).root, config: path.join(store.load(r.id).root, 'plugin-guard.config.json'), lint: () => ({ ok: true, message: '' }) }), ran: { probe: false, sandbox: false }, hasRoot: true }))), 'the counts are the ones evaluate() gives');
     const m = COUNTS.exec(r.f.summary.text_report);
-    ok(m && Number(m[1]) === cp.counts.total && Number(m[2]) === cp.counts.pass && Number(m[3]) === cp.counts.fail && Number(m[4]) === cp.counts.not_checked, 'the Summary has the counts sentence "N pass, N fail, N not checked"');
+    ok(m && Number(m[1]) === cp.counts.total && Number(m[2]) === cp.counts.pass && Number(m[3]) === cp.counts.fail && Number(m[4]) === (cp.counts.also_noticed || 0) && Number(m[5]) === cp.counts.not_checked, 'the Summary has the counts sentence "N pass, N fail, N also noticed, N not checked"');
     const rl = r.f.summary.report_lines;
-    ok(rl.indexOf(box.heading) >= 0 && rl.indexOf(box.heading) < rl.findIndex(l => COUNTS.test(l)), 'Summary: What is wrong first, then the counts');
+    ok(rl.indexOf('What is wrong') >= 0 && rl.indexOf('What is wrong') < rl.findIndex(l => COUNTS.test(l)), 'Summary: What is wrong first, then the counts');
     ok(r.md.indexOf(box.lines[0]) > 0 && r.md.indexOf(box.lines[0]) < r.md.search(COUNTS), 'Markdown: What is wrong first, then the counts');
     const c1 = cliText(r, false);
     ok(c1.indexOf(box.lines[0]) >= 0 && c1.indexOf(box.lines[0]) < c1.search(COUNTS), 'command line: What is wrong first, then the counts');

@@ -16,7 +16,8 @@
       "reached_in": "Both",
       "where": "Issue: issue/custom.js analyse() → duplicate-declaration (declarations from issue/phpast.js analyse(), guarded = inside function_exists/class_exists). Classic: checks/conflicts.js run() §1 ...",
       "missing": "Issue mode compares third-party declarations only where the syntax tree was built (custom code, themes, plugins the evidence names) or for a name found in a log Cannot redeclare. Two unlogged third-party plugins are not compared. Classic uses a regex scan that lists class methods as functions and covers active plugins only.",
-      "evaluator": "duplicate-declaration"
+      "evaluator": "duplicate-declaration",
+      "breaks_site": "yes"
     },
     {
       "id": "cp-02",
@@ -26,7 +27,8 @@
       "reached_in": "Both",
       "where": "Issue: issue/custom.js analyse() → duplicate-constant (two unguarded define() in different components; phpast.js now records guarded for if ( ! defined( NAME ) )). Classic: checks/conflicts.js §4 ...",
       "missing": "Syntax-tree components only (the regex surface records no constants). Family \"config\": PHP only warns, so it is never ranked as a fatal. Third-party pairs need a clue (issue/clue-match.js).",
-      "evaluator": "duplicate-constant"
+      "evaluator": "duplicate-constant",
+      "breaks_site": "no"
     },
     {
       "id": "cp-03",
@@ -36,7 +38,8 @@
       "reached_in": "Both",
       "where": "Issue: issue/custom.js → duplicate-shortcode (all components, tags compared without case). Classic: checks/conflicts.js §4 shared-shortcode. Tests: selftest-issue-dups.js.",
       "missing": "Third-party pairs (regex surface) are recorded but become a hypothesis only with a clue: a named component, a file in a log, or a symptom of the same family.",
-      "evaluator": "duplicate-shortcode"
+      "evaluator": "duplicate-shortcode",
+      "breaks_site": "no"
     },
     {
       "id": "cp-04",
@@ -46,7 +49,8 @@
       "reached_in": "Issue",
       "where": "issue/graph.js build() → edge duplicate-post-type from cpts + taxonomies facts.",
       "missing": "The edge goes to graph.json / the slice only. issue/hypotheses.js turns only hook-same-priority and graph.problems into hypotheses, so it is never ranked or reported as a cause.",
-      "evaluator": "duplicate-post-type"
+      "evaluator": "duplicate-post-type",
+      "breaks_site": "no"
     },
     {
       "id": "cp-05",
@@ -56,7 +60,8 @@
       "reached_in": "Issue",
       "where": "issue/custom.js → duplicate-rest-route (namespace + route, a leading slash ignored). Tests: selftest-issue-dups.js.",
       "missing": "Routes built at run time (dynamic) are not compared. Same clue rule for third-party pairs.",
-      "evaluator": "duplicate-rest-route"
+      "evaluator": "duplicate-rest-route",
+      "breaks_site": "depends"
     },
     {
       "id": "cp-06",
@@ -66,7 +71,8 @@
       "reached_in": "Both",
       "where": "Issue: issue/custom.js → duplicate-ajax-action (logged-in and nopriv handlers are different names; admin_post_* counts). Classic: checks/conflicts.js §4 shared-ajax-action. Tests ...",
       "missing": "Dynamic action names are skipped. Same clue rule for third-party pairs.",
-      "evaluator": "duplicate-ajax-action"
+      "evaluator": "duplicate-ajax-action",
+      "breaks_site": "depends"
     },
     {
       "id": "cp-07",
@@ -76,7 +82,8 @@
       "reached_in": "Issue",
       "where": "issue/custom.js → duplicate-script-handle (the same script/style handle registered by two components with different files; the same file, and WordPress core handles, are not reported). Tests ...",
       "missing": "Needs the source of the registration, so only syntax-tree components (the regex surface has no sources).",
-      "evaluator": "duplicate-script-handle"
+      "evaluator": "duplicate-script-handle",
+      "breaks_site": "depends"
     },
     {
       "id": "cp-08",
@@ -86,7 +93,8 @@
       "reached_in": "Issue",
       "where": "issue/graph.js build() → edge shared-option (one component writes an option another one uses; WordPress's own options are ignored).",
       "missing": "Weak edge in the graph only: no observation, no hypothesis. It does not say that the two write different shapes of data to the same key.",
-      "evaluator": "shared-option"
+      "evaluator": "shared-option",
+      "breaks_site": "no"
     },
     {
       "id": "cp-09",
@@ -96,7 +104,8 @@
       "reached_in": "Both",
       "where": "Issue: issue/graph.js build() → hook-same-priority, ranked by issue/hypotheses.js. Classic: checks/conflicts.js §2b hook-priority.",
       "missing": "Issue: only hooks in TRANSFORM_HOOKS plus the feature hooks of the report. Classic: only ORDER_HOOKS (security hooks, login_redirect, wp_redirect, template_include, send_headers). Hooks such as init or wp_enqueue_scripts are not compared in either.",
-      "evaluator": "hook-same-priority"
+      "evaluator": "hook-same-priority",
+      "breaks_site": "depends"
     },
     {
       "id": "cp-10",
@@ -106,7 +115,8 @@
       "reached_in": "Both",
       "where": "Issue: issue/custom.js analyse() → removes-other-component-hook and remove-wrong-priority (the removal is compared with the original add_action priority). Classic: checks/conflicts.js §3 hook-removed.",
       "missing": "Issue mode trusts removals only from syntax-tree components (custom, theme, evidence-named); closures and dynamic callbacks are never matched. Classic matches plain functions and Class::method only.",
-      "evaluator": "hook-removal"
+      "evaluator": "hook-removal",
+      "breaks_site": "depends"
     },
     {
       "id": "cp-11",
@@ -116,7 +126,8 @@
       "reached_in": "Both",
       "where": "JavaScript: issue/collide.js run() → library-version-conflict / duplicate-library (16 known libraries, version read from file name or banner; core jQuery counted). PHP: checks/conflicts.js §1 notes ...",
       "missing": "PHP libraries (Guzzle, Composer packages, Action Scheduler…) are not version-compared; classic only downgrades a redeclare to P2 when both copies sit in bundled folders.",
-      "evaluator": "library-clash"
+      "evaluator": "library-clash",
+      "breaks_site": "depends"
     },
     {
       "id": "cp-12",
@@ -126,7 +137,8 @@
       "reached_in": "Both",
       "where": "Classic: checks/conflicts.js §5 duplicate-feature using lib/categories.js (firewall, login-limit, captcha, security-headers, login-url, caching, seo, backup, smtp, redirect, image-optimizer). Issue ...",
       "missing": "In issue mode only page-cache plugins are covered (10 KB entries in data/known-conflicts.json). SEO, SMTP, backup, captcha and security pairs are classic-only.",
-      "evaluator": "duplicate-purpose"
+      "evaluator": "duplicate-purpose",
+      "breaks_site": "no"
     },
     {
       "id": "cp-13",
@@ -136,7 +148,8 @@
       "reached_in": "Both",
       "where": "Issue: issue/graph.js build() → graph.problems (missing-declared-dependency from \"Requires Plugins\", missing-parent-theme, missing-implied-dependency from lib/implied.js), turned into hypotheses by ...",
       "missing": "lib/implied.js knows only 10 code patterns (Elementor, WooCommerce, …).",
-      "evaluator": "missing-dependency"
+      "evaluator": "missing-dependency",
+      "breaks_site": "depends"
     },
     {
       "id": "cp-14",
@@ -146,7 +159,8 @@
       "reached_in": "Issue",
       "where": "issue/custom.js templateOverrides() / analyse() → template-override-outdated (reads @version from the theme's copy and the plugin's copy, semver compare).",
       "missing": "WooCommerce templates only (wp-content/themes/<t>/woocommerce/). Other plugins that support overrides are not read. Classic: nothing.",
-      "evaluator": "template-override"
+      "evaluator": "template-override",
+      "breaks_site": "no"
     },
     {
       "id": "cp-15",
@@ -156,7 +170,8 @@
       "reached_in": "Issue",
       "where": "issue/custom.js analyse() → handle-removed / handle-replaced (themes are always parsed with the syntax tree; reported when the handle is core, registered by another component, or replaced).",
       "missing": "Handles built at run time (dynamic names) are not seen.",
-      "evaluator": "handle-removal"
+      "evaluator": "handle-removal",
+      "breaks_site": "depends"
     },
     {
       "id": "cp-16",
@@ -167,6 +182,7 @@
       "where": "Nothing reads theme templates for these calls (lib/patches.js only contains a wp_head removal for wp_generator).",
       "missing": "A theme without wp_head() (plugin scripts never print) is not reported.",
       "evaluator": null,
+      "breaks_site": "depends",
       "no_evaluator_reason": "no check reads the theme templates for this yet"
     },
     {
@@ -178,6 +194,7 @@
       "where": "issue/index.js build() lists every provider of a feature named in the report, themes included.",
       "missing": "A listing, not a finding: no code decides that the theme and a plugin do the same job. Classic duplicate-feature considers plugins and mu-plugins only.",
       "evaluator": null,
+      "breaks_site": "depends",
       "no_evaluator_reason": "Plugin Guard only lists who provides a feature; no check decides that the theme repeats a plugin"
     },
     {
@@ -188,7 +205,8 @@
       "reached_in": "Issue",
       "where": "The theme is parsed with the syntax tree (cpts facts); graph.js duplicate-post-type fires if a plugin registers the same slug.",
       "missing": "A theme registering a CPT at all (content disappears when the theme changes) is not flagged.",
-      "evaluator": "theme-post-type"
+      "evaluator": "theme-post-type",
+      "breaks_site": "no"
     },
     {
       "id": "cp-19",
@@ -198,7 +216,8 @@
       "reached_in": "Issue",
       "where": "lib/implied.js (e.g. Elementor classes → implied dependency); data/known-conflicts.json cache-plugin-with-elementor; issue/kb.js.",
       "missing": "No check of builder widget/addon versions, Oxygen/Divi/Bricks, or builder template overrides.",
-      "evaluator": "page-builder"
+      "evaluator": "page-builder",
+      "breaks_site": "depends"
     },
     {
       "id": "cp-20",
@@ -208,7 +227,8 @@
       "reached_in": "Issue",
       "where": "issue/phpast.js records wp_redirect, wp_safe_redirect and header( 'Location: …' ) with the function, method and class around them; issue/redirects.js build() matches them to the add_action / ...",
       "missing": "Closures, file-scope calls and functions that nothing in the component registers are reported as \"unknown hook context\" (no matching through a second function that calls the redirecting one). A redirect on template_redirect or a login hook is only a clue unless a redirect was observed. Syntax-tree components only.",
-      "evaluator": "redirect-on-hook"
+      "evaluator": "redirect-on-hook",
+      "breaks_site": "depends"
     },
     {
       "id": "cp-21",
@@ -218,7 +238,8 @@
       "reached_in": "Both",
       "where": "Issue: data/known-conflicts.json rest-authentication-errors-contention (issue/kb.js hook-contention: more than one component filters the hook); graph.js lists it in TRANSFORM_HOOKS. Classic ...",
       "missing": "What the callback returns (an error object that blocks REST) is never evaluated, and rest_endpoints is not looked at anywhere.",
-      "evaluator": "rest-auth-hook"
+      "evaluator": "rest-auth-hook",
+      "breaks_site": "depends"
     },
     {
       "id": "cp-22",
@@ -228,7 +249,8 @@
       "reached_in": "Issue",
       "where": "issue/graph.js TRANSFORM_HOOKS contains the_content (and the_title, the_excerpt, script_loader_tag, …); asset conflicts for wp_enqueue_scripts are covered by the handle/collision checks.",
       "missing": "template_redirect and init are compared only if the report's feature taxonomy names them.",
-      "evaluator": "content-hooks"
+      "evaluator": "content-hooks",
+      "breaks_site": "depends"
     },
     {
       "id": "cp-23",
@@ -239,6 +261,7 @@
       "where": "Classic only computes a recommended order (checks/conflicts.js orderFor) for a priority collision.",
       "missing": "The real order (active_plugins option, mu-plugins first, alphabetical load) is never read or used.",
       "evaluator": null,
+      "breaks_site": "depends",
       "no_evaluator_reason": "the real load order of the plugins is not read yet"
     },
     {
@@ -249,7 +272,8 @@
       "reached_in": "Issue",
       "where": "issue/compat.js + data/removed-wp-functions.json: plain calls (no method, static or namespaced call; not guarded by function_exists; not defined anywhere on the site) to PHP functions that no longer ...",
       "missing": "No WordPress-level entry is verified yet, so a function removed from WordPress core is not caught. Merely deprecated functions are never reported (they still exist). Only syntax-tree components are read (custom code, themes, components the evidence names).",
-      "evaluator": "removed-functions"
+      "evaluator": "removed-functions",
+      "breaks_site": "yes"
     },
     {
       "id": "cp-25",
@@ -259,7 +283,8 @@
       "reached_in": "Issue",
       "where": "Removed functions only (row above), compared with the PHP version the reporter gives (issue.php_version, --php) or the sandbox PHP (8.3). The host PHP is never used.",
       "missing": "Typed properties, match, named arguments and other syntax a newer or older PHP rejects are still not checked statically (php -l, row 27, runs on the host PHP only).",
-      "evaluator": "php-version-code"
+      "evaluator": "php-version-code",
+      "breaks_site": "yes"
     },
     {
       "id": "cp-26",
@@ -269,7 +294,8 @@
       "reached_in": "Both",
       "where": "Classic: checks/dependencies.js (dep-php-version, dep-wp-version). Issue: issue/compat.js reads Requires PHP / Requires at least from the header and Tested up to from readme.txt (style.css for a ...",
       "missing": "A mismatch is the plugin's own statement, not an observed failure.",
-      "evaluator": "version-headers"
+      "evaluator": "version-headers",
+      "breaks_site": "no"
     },
     {
       "id": "cp-27",
@@ -279,7 +305,8 @@
       "reached_in": "Both",
       "where": "Issue: issue/custom.js deepFacts() → phpast.phpLint() → observation syntax-error (white-screen family). Classic 3-agent flow: agents/code.js runs php -l on custom files (php-syntax-error, capped by ...",
       "missing": "Issue: only for files in custom/theme/evidence-named components and only after php-parser has failed. Needs php on the host.",
-      "evaluator": "syntax-error"
+      "evaluator": "syntax-error",
+      "breaks_site": "yes"
     },
     {
       "id": "cp-28",
@@ -290,6 +317,7 @@
       "where": "The sandbox uses one pinned image (data/sandbox-images.json, WordPress on PHP 8.3).",
       "missing": "No rerun on another PHP version; issue/sandbox-config.js has no PHP version setting.",
       "evaluator": null,
+      "breaks_site": "depends",
       "no_evaluator_reason": "the site is tested on one PHP version only"
     },
     {
@@ -301,6 +329,7 @@
       "where": "Classic only reports that a site is multisite (checks/serversettings.js sets config.multisite; checks/database.js multisite-note).",
       "missing": "No check for code that assumes single-site, and the sandbox is single-site.",
       "evaluator": null,
+      "breaks_site": "depends",
       "no_evaluator_reason": "nothing checks code that assumes a single site"
     },
     {
@@ -311,7 +340,8 @@
       "reached_in": "Issue",
       "where": "Only through the log: a PHP fatal \"Allowed memory size … exhausted\" or \"Maximum execution time … exceeded\" that names a component file now makes an error-in-component hypothesis (issue/hypotheses.js) ...",
       "missing": "WP_MEMORY_LIMIT, php.ini values and the sandbox's limits are still not read or reproduced; with no other support the hypothesis stays PROBABLE / UNVERIFIED and is listed as backed by a log error.",
-      "evaluator": "log-limits"
+      "evaluator": "log-limits",
+      "breaks_site": "yes"
     },
     {
       "id": "cp-31",
@@ -321,7 +351,8 @@
       "reached_in": "Issue",
       "where": "Only through the log: a missing PHP extension function (mb_*, curl_*, iconv*, gd, zip_*, …) or class (ZipArchive, DOMDocument, …) arrives as missing-function and is labelled environment-server with ...",
       "missing": "extension_loaded() is never checked and the extension is not named; the list of extension function prefixes is short.",
-      "evaluator": "log-extensions"
+      "evaluator": "log-extensions",
+      "breaks_site": "yes"
     },
     {
       "id": "cp-32",
@@ -332,6 +363,7 @@
       "where": "Classic only *writes* .htaccess advice (lib/patches.js). No code reads the site's .htaccess.",
       "missing": "Rewrite/Redirect rules causing loops are invisible.",
       "evaluator": null,
+      "breaks_site": "depends",
       "no_evaluator_reason": "the .htaccess file is not read yet"
     },
     {
@@ -342,7 +374,8 @@
       "reached_in": "Both",
       "where": "Classic: checks/serversettings.js cfg-http-url; checks/database.js opt-http-siteurl (needs WP-CLI). Issue: issue/classic-adapter.js takes cfg-http-url for the symptom \"redirect\" (test in ...",
       "missing": "Only the http scheme; no comparison between the constants, the database options and the URL being tested. Wizard (plugin-guard, step 8): wp-config.php is not copied as is; it is READ from the original (read-only) and a redacted copy (WP_HOME, WP_SITEURL, WP_DEBUG*, … only) is written into the issue's site-copy/, so this check works on the copy; with no wp-config.php the report timeline says \"wp-config was not read\" and this check does not run.",
-      "evaluator": "home-siteurl"
+      "evaluator": "home-siteurl",
+      "breaks_site": "no"
     },
     {
       "id": "cp-34",
@@ -353,6 +386,7 @@
       "where": "checks/serversettings.js reads the define()s but has no rule for it. (issue/sandbox-config.js sets it to true in the sandbox.)",
       "missing": "—",
       "evaluator": null,
+      "breaks_site": "depends",
       "no_evaluator_reason": "no check looks at the cron setting yet"
     },
     {
@@ -363,7 +397,8 @@
       "reached_in": "Both",
       "where": "Classic: checks/dropins.js (dropin-unrecognised, dropin-orphan, mu-no-header). Issue: lib/components.js discovers them and issue/custom.js parses them when the evidence names them (syntax errors ...",
       "missing": "No check that a drop-in matches the active cache plugin's version or that it loads without error.",
-      "evaluator": "dropins"
+      "evaluator": "dropins",
+      "breaks_site": "no"
     },
     {
       "id": "cp-36",
@@ -374,6 +409,7 @@
       "where": "Classic: checks/serversettings.js perm-world-writable, perm-config-readable.",
       "missing": "Not reached in issue mode.",
       "evaluator": null,
+      "breaks_site": "depends",
       "no_evaluator_reason": "only the classic scan checks this"
     },
     {
@@ -384,7 +420,8 @@
       "reached_in": "Both",
       "where": "Classic: lib/live.js live-no-https, live-http-not-redirected, certificate rules; checks/serversettings.js cfg-force-ssl-admin, cfg-http-url. Issue: the browser's mixed-content messages arrive as ...",
       "missing": "No mixed-content detector of its own; it is seen only if the reporter's oracle (or generic) catches the console message.",
-      "evaluator": "https"
+      "evaluator": "https",
+      "breaks_site": "no"
     },
     {
       "id": "cp-38",
@@ -394,7 +431,8 @@
       "reached_in": "Issue",
       "where": "issue/oracle.js http-5xx and generic. For the symptoms white-screen, redirect and other, generic also says yes for a blank page or a printed Fatal error: / critical-error text served with HTTP ...",
       "missing": "Only for those three symptoms (a layout complaint is not answered with \"blank page\"). A page that has text but is visibly broken is not a white screen.",
-      "evaluator": "white-screen"
+      "evaluator": "white-screen",
+      "breaks_site": "yes"
     },
     {
       "id": "cp-39",
@@ -404,7 +442,8 @@
       "reached_in": "Issue",
       "where": "probe/worker.js stores status per page and viewport; issue/oracle.js http-5xx and generic; probe/safety.js retries once and stops on repeated 5xx.",
       "missing": "—",
-      "evaluator": "http-5xx"
+      "evaluator": "http-5xx",
+      "breaks_site": "yes"
     },
     {
       "id": "cp-40",
@@ -414,7 +453,8 @@
       "reached_in": "Issue",
       "where": "issue/oracle.js generic (symptoms white-screen, redirect, other): the text \"There has been a critical error on this website\" or a printed Fatal error: / Parse error: line on a page with HTTP 200-399 ...",
       "missing": "A critical-error page that answers 500 is reported as a 5xx, not as this text.",
-      "evaluator": "critical-error-page"
+      "evaluator": "critical-error-page",
+      "breaks_site": "yes"
     },
     {
       "id": "cp-41",
@@ -424,7 +464,8 @@
       "reached_in": "Issue",
       "where": "issue/oracle.js new oracle redirect (and generic for the symptoms above): a loop (rec.error holds ERR_TOO_MANY_REDIRECTS, which probe/worker.js already records without counting it toward the stop ...",
       "missing": ".htaccess rules and wp_redirect() callers are still not read (rows below).",
-      "evaluator": "redirect-loop"
+      "evaluator": "redirect-loop",
+      "breaks_site": "yes"
     },
     {
       "id": "cp-42",
@@ -435,6 +476,7 @@
       "where": "The probe never requests /wp-json/. (Classic lib/live.js requests /wp-json/wp/v2/users only to test for user enumeration.)",
       "missing": "—",
       "evaluator": null,
+      "breaks_site": "depends",
       "no_evaluator_reason": "needs a REST probe, which does not exist yet"
     },
     {
@@ -445,7 +487,8 @@
       "reached_in": "Issue",
       "where": "probe/recorder.js collects non-2xx responses and failed requests; issue/oracle.js request-failed with a pattern (admin-ajax) or generic; clues.js ajax-action.",
       "missing": "Only requests the page makes by itself while loading; the probe never POSTs (by design).",
-      "evaluator": "admin-ajax"
+      "evaluator": "admin-ajax",
+      "breaks_site": "depends"
     },
     {
       "id": "cp-44",
@@ -455,7 +498,8 @@
       "reached_in": "Issue",
       "where": "probe/recorder.js (console errors and page errors with the source component); issue/oracle.js console-error, generic; issue/clues.js js-error, js-not-defined.",
       "missing": "—",
-      "evaluator": "js-errors"
+      "evaluator": "js-errors",
+      "breaks_site": "no"
     },
     {
       "id": "cp-45",
@@ -465,7 +509,8 @@
       "reached_in": "Issue",
       "where": "probe/recorder.js error_responses / failed_requests with assetSource(); issue/oracle.js request-failed, generic.",
       "missing": "—",
-      "evaluator": "failed-assets"
+      "evaluator": "failed-assets",
+      "breaks_site": "no"
     },
     {
       "id": "cp-46",
@@ -476,6 +521,7 @@
       "where": "probe/sandbox-actions.js login() (sandbox only, with PG_TEST_USER/PG_TEST_PASSWORD) returns {ok} from the wordpress_logged_in cookie; issue/oracle.js refuses to answer \"needs a logged-in user\" on a ...",
       "missing": "No oracle for \"login fails\"; the login result is only a precondition for other oracles.",
       "evaluator": null,
+      "breaks_site": "depends",
       "no_evaluator_reason": "no check for a failing login exists; the sandbox login is only a first step for other tests"
     },
     {
@@ -487,6 +533,7 @@
       "where": "Indirect: clues.js woocommerce-notice, oracles click-changes (sandbox) and text-present, KB page-cache-with-woocommerce.",
       "missing": "No scripted add-to-cart/checkout step (writes are forbidden outside the sandbox and not implemented inside it).",
       "evaluator": null,
+      "breaks_site": "depends",
       "no_evaluator_reason": "no scripted checkout exists (writing to a shop is not allowed)"
     },
     {
@@ -498,6 +545,7 @@
       "where": "Classic: checks/database.js db-injected-posts / db-injected-options (regex for eval(, base64_decode(, hidden <iframe, document.write(unescape; needs WP-CLI).",
       "missing": "Theme/plugin JS and HTML files are not scanned for injected <script> tags.",
       "evaluator": null,
+      "breaks_site": "depends",
       "no_evaluator_reason": "only the classic scan checks this"
     },
     {
@@ -508,7 +556,8 @@
       "reached_in": "Both",
       "where": "Classic: checks/integrity.js PATTERNS. Issue: issue/classic-adapter.js runs integrity.localPatterns() offline and returns class compromise observations (never capped); validate.js re-finds the ...",
       "missing": "The adapter's other compromise patterns share the same code path but only obfuscated-exec and php-in-uploads are covered by a test.",
-      "evaluator": "obfuscated-code"
+      "evaluator": "obfuscated-code",
+      "breaks_site": "no"
     },
     {
       "id": "cp-50",
@@ -518,7 +567,8 @@
       "reached_in": "Both",
       "where": "Classic: checks/integrity.js integrity-php-in-uploads. Issue: through issue/classic-adapter.js (class compromise, P0, passes without a clue). Tests: selftest-classic-adapter.js.",
       "missing": "—",
-      "evaluator": "php-in-uploads"
+      "evaluator": "php-in-uploads",
+      "breaks_site": "depends"
     },
     {
       "id": "cp-51",
@@ -529,6 +579,7 @@
       "where": "Classic: checks/integrity.js core() → integrity-core-modified/added/missing against the wordpress.org checksums.",
       "missing": "Opt-in: needs outsideLookups.wordpressOrg; skipped (and said so) otherwise. Not reached in issue mode.",
       "evaluator": null,
+      "breaks_site": "depends",
       "no_evaluator_reason": "only the classic scan checks this"
     },
     {
@@ -540,6 +591,7 @@
       "where": "Classic: checks/dropins.js mu-no-header (and the malware patterns above run over mu-plugin code).",
       "missing": "An mu-plugin with a header but unknown to the owner is not flagged; there is no allow-list of expected mu-plugins.",
       "evaluator": null,
+      "breaks_site": "depends",
       "no_evaluator_reason": "only the classic scan checks this"
     },
     {
@@ -551,6 +603,7 @@
       "where": "No pattern for user-agent/referrer-conditional redirects in PHP or .htaccess.",
       "missing": "—",
       "evaluator": null,
+      "breaks_site": "depends",
       "no_evaluator_reason": "no check looks for redirects that depend on the visitor"
     }
   ]

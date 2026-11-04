@@ -131,6 +131,13 @@ const readerMd = md => md.split(/^(?=## )/m).filter(s => !/^## (What was checked
         scan(`${name}: the resolution reader wording`, r.f.resolution.flatMap(x => [...(x.what_to_try || []), ...x.options.flatMap(o => [o.reader_title, o.reader_detail].filter(Boolean))]).join('\n'));
         group(`${name}: Markdown`);
         scan(`${name}: ISSUE-REPORT.md (without "What was checked" and "Limits")`, readerMd(r.md));
+        // the lists of the gate Markdown ("All checks", "What was checked") are read too: no HTML entity (escaped once, with a backslash), no null / undefined, no raw status word
+        const mdSec = h => (r.md.split(/^(?=## )/m).find(x => x.startsWith(`## ${h}`)) || '');
+        for (const h of verbose ? ['All checks', 'What was checked'] : ['What was checked']) {
+            const t = mdSec(h);
+            ok(t.length > 0 && !/&gt;|&lt;|&amp;|\bnull\b|\bundefined\b/.test(t), `${name}: Markdown "${h}": no &gt; &lt; &amp; null undefined`);
+        }
+        ok(!/\b(NOT_RUN|PASSED|FAILED|SKIPPED|BLOCKED)\b/.test(mdSec('What was checked')), `${name}: Markdown "What was checked": no raw status word`);
         group(`${name}: command-line text`);
         const comps = []; // the gate branch of issue-cli prints the summary and the option titles; the validation lines come from the shared reader helper
         const cli = [r.f.summary.text, ...r.plans.flatMap(p => p.options.map(o => plain.plainText(o.title, comps)))].join('\n');
