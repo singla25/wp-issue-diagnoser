@@ -17,6 +17,7 @@ const COMPROMISE = 'Possible compromise signs (a pattern match, not proof)';
 const EMPTY_STATUS = '0 likely cause · 0 confirmed. This does not mean the site is healthy.';
 const NOT_CONFIRMED_SENTENCE = 'Not reproduced on a test copy of your site.';
 const NO_CAUSE_NOTE = 'No likely cause was found for the crash.';
+const NOT_LIVE_SENTENCE = 'Not checked on the live site.';
 const PHP_NOT_STATED = 'PHP: not stated.';
 const NUM_WORD = ['zero', 'one', 'two', 'three', 'four', 'five', 'six'];
 // "How sure" of a confirmed case: only what the data shows (n = validated independent checks; sandbox = 'yes' | 'no' | null)
@@ -72,6 +73,11 @@ function build(f, ctx) {
     // validated independent checks of a hypothesis: its independent kinds, or the two supports of a fatal re-check rule (validate.js counts those as the two)
     const checksOf = id => { const h = (f.hypotheses || []).find(x => x.id === id) || {}; const fr = h.fatal_recheck; return Math.max((h.independent_kinds || []).length, fr && fr.rule && (fr.supports || []).length === 2 ? 2 : 0); };
 
+    // a confirmed case: the evidence lines, the log entry's date on its own line, and whether the live site was looked at (no page loaded: "Not checked on the live site.")
+    const confirmedSure = () => {
+        const sure = bc.last_seen ? bc.sure.map(l => l.replace(`, last seen ${bc.last_seen}`, '')) : bc.sure;
+        return [...sure, ...(sureLive ? [sureLive] : []), ...(bc.last_seen ? [`Last seen in your log on ${bc.last_seen}.`] : []), ...(facts.probeRan ? [] : [NOT_LIVE_SENTENCE])];
+    };
     const addBox = () => {
         const likely = box.tier === 'likely';
         const nChecks = checksOf(boxId);
@@ -81,8 +87,8 @@ function build(f, ctx) {
         rows.push(['Where', [`${bc.where.who}: ${bc.where.file}, line ${bc.where.line}`]]);
         rows.push(['Why', bc.why]);
         if (likely) rows.push(['How sure', [...bc.sure, ...(sureLive ? [sureLive] : []), notConfirmedSentence(sbx)]]);
-        else if (nChecks >= 2) rows.push(['How sure', [confirmedSentence(nChecks, sbx), ...bc.sure, ...(sureLive ? [sureLive] : [])]]);
-        else rows.push(['How sure', [...bc.sure, ...(sureLive ? [sureLive] : []), 'Marked as confirmed; the details for a developer show what it rests on.']]);
+        else if (nChecks >= 2) rows.push(['How sure', [confirmedSentence(nChecks, sbx), ...confirmedSure()]]);
+        else rows.push(['How sure', [...confirmedSure(), 'Marked as confirmed; the details for a developer show what it rests on.']]);
         if (box.note) rows.push(['Note', [box.note]]);
         rows.push(['What to do', bc.todo]);
         cases.push({ kind: likely ? 'likely' : 'confirmed', heading: likely ? (box.age === 'old' ? `${LIKELY}, old log entry` : LIKELY) : CONFIRMED, rows });
@@ -208,4 +214,4 @@ function cli(cf) {
     return L.join('\n');
 }
 
-module.exports = { build, markdown, markdownDeveloper, cli, statusLine, lookedAt, confirmedSentence, LIKELY, CHECK, CONFIRMED, SIGNS, EMPTY_STATUS, NOT_CONFIRMED_SENTENCE, NO_CAUSE_NOTE, PHP_NOT_STATED, MODIFIED_NOTE };
+module.exports = { build, markdown, markdownDeveloper, cli, statusLine, lookedAt, confirmedSentence, LIKELY, CHECK, CONFIRMED, SIGNS, EMPTY_STATUS, NOT_CONFIRMED_SENTENCE, NO_CAUSE_NOTE, NOT_LIVE_SENTENCE, PHP_NOT_STATED, MODIFIED_NOTE };

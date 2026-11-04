@@ -28,6 +28,7 @@ function build(fr, ctx, tier) {
     L.push(`Where: the ${kind} file ${fr.file}, line ${fr.line}${fileComp ? ` (${kind} ${compName(fileComp)}${fileComp.version ? ` ${fileComp.version}` : ''})` : ''}.`);
     cs.where = { who: fileComp ? `the ${kind} ${compName(fileComp)}${fileComp.version ? ` ${fileComp.version}` : ''}` : `the ${kind}`, file: fr.file, line: fr.line };
     const seen = dateOf(fr.last_seen);
+    cs.last_seen = seen;   // the log entry's date in words (a confirmed case states it on its own line)
     cs.sure.push(`Found in your log ${fr.count} times${seen ? `, last seen ${seen}` : ''}${age === 'old' ? ` (an old entry: more than ${FRESH_DAYS} days before this report)` : ''}.`, `The file and line were read again (line ${fr.line} names ${isFn ? String(fr.class).split(/::|\\/).pop() : String(fr.class).replace(/^.*\\/, '')}).`);
     L.push(`What was checked: found in your log, repeated ${fr.count} times, file and line re-read (line ${fr.line} names ${isFn ? String(fr.class).split(/::|\\/).pop() : String(fr.class).replace(/^.*\\/, '')}).`);
     L.push(age === 'old' ? `Old log entry: last seen in your log on ${seen || 'an unknown date'}, more than ${FRESH_DAYS} days before this report.` : `Last seen in your log on ${seen || 'an unknown date'}.`);

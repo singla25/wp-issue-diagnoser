@@ -171,6 +171,18 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
     for (const h of f.hypotheses) { pair(h.title, true); pair(h.mechanism, false); }
     for (const r of f.resolution) for (const o of r.options) { pair(o.title, false); pair(o.detail, false); }
     f.plain_text = [...pairs.entries()].sort((a, b) => b[0].length - a[0].length || (a[0] < b[0] ? -1 : 1));
+    // the provider of a missing class (fatal_recheck.provider: a known provider from the fixed map, installed) is involved too: add it to the Involved components table
+    for (const h of hyps) {
+        const pr = h.fatal_recheck && h.fatal_recheck.provider;
+        if (!pr || !pr.known || !pr.installed || !pr.slug) continue;
+        const c = comps.find(k => k.slug === pr.slug && (pr.kind === 'theme' ? k.kind === 'theme' : k.kind !== 'theme')) || comps.find(k => k.slug === pr.slug);
+        if (!c) continue;
+        const row = f.components.find(x => x.ref === c.ref);
+        if (row) { if (!row.in_hypotheses.includes(h.title)) row.in_hypotheses = [...row.in_hypotheses, h.title].sort(); continue; }
+        f.components.push({ ref: c.ref, name: c.name, kind: c.kind, version: c.version || null, ownership: c.kind === 'core' ? 'core' : c.ownership === 'custom' || c.inspection_only === false ? 'custom' : 'third-party',
+            roles: [`expected to provide the class ${h.fatal_recheck.class}`], in_hypotheses: [h.title], evidence: [] });
+    }
+    f.components.sort((a, b) => (a.ref < b.ref ? -1 : a.ref > b.ref ? 1 : 0));
     // the Involved components table: the same advisory five times is one line with a count (the same merge as the advisories list), and the component has a plain name
     for (const c of f.components) {
         c.label = plainNames.plainRef(c.ref, plainNames.namesOf(comps));
@@ -224,7 +236,7 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
         const lg = W('logs.json') || {}, ik = W('intake.json') || {};
         // the cause detail for a developer (issue/cause-detail.js): read-only reads of the issue's copy of the site and of the log entries; only for the cause that has the box
         const boxHyp = boxItem ? hyps.find(h => h.id === boxItem.id) : null;
-        const cd = boxHyp && boxHyp.fatal_recheck ? causeDetailMod.build(boxHyp.fatal_recheck, { root: issue.root || null, logs: lg, components: comps }) : null;
+        const cd = boxHyp && boxHyp.fatal_recheck ? causeDetailMod.build(boxHyp.fatal_recheck, { root: issue.root || null, logs: lg, components: comps, facts: cc.facts || null }) : null;
         if (cd) f.cause_detail = cd;
         const probePages = (probe && probe.pages) || [];
         const crash = oracleMod.CRASH_SYMPTOMS.has(issue.symptom) || probePages.some(p => p && p.status >= 500 && p.status < 600);
@@ -235,6 +247,12 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
                 sandboxReproduced: sbx ? sbx.reproduced_in_sandbox : null, php: issue.php_version || null, crash }
         });
         f.summary.text_report = caseFileMod.cli(f.case_file);
+        // the developer Verdict sentence agrees with Case 1: what the live site showed is read from the "How sure" lines of a confirmed Case 1
+        const c1 = f.case_file.cases.find(c => c.n === 1);
+        const sure1 = c1 && c1.kind === 'confirmed' ? ((c1.rows.find(r => r[0] === 'How sure') || [])[1] || []) : [];
+        const seen5 = sure1.map(t => /^The live page answered HTTP (\d{3})\.$/.exec(t)).find(Boolean);
+        const live1 = !sure1.length ? null : seen5 ? { status: Number(seen5[1]) } : sure1.includes(caseFileMod.NOT_LIVE_SENTENCE) ? 'not-checked' : sure1.some(t => /^The live pages that were loaded did not answer with an error\.$/.test(t)) ? 'fine' : null;
+        if (live1) f.confidence_text = plainNames.confidenceSentence(f.verdict.confidence, f.verdict.label, { reproduced: split.findings.some(x => x.status === 'REPRODUCIBLE'), live: live1 });
         // the Limits in reader words (findings.json `limits` keeps the internal text): the first sentence says what "confirmed" means and whether a test copy was used, from the data
         f.limits_text = [limitsFirst(ran.sandbox ? 'ran' : sbx && sbx.could_not_run ? 'failed' : 'none'), ...f.limits.slice(1)];
     }

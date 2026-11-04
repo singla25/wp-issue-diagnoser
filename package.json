@@ -82,6 +82,8 @@
     "selftest:reader-wording": "node scripts/selftest-reader-wording.js",
     "selftest:validate-symptom": "node scripts/selftest-validate-symptom.js",
     "selftest:checkpoints": "node scripts/selftest-checkpoints.js",
+    "selftest:names-class": "node scripts/selftest-names-class.js",
+    "selftest:reader-fixes": "node scripts/selftest-reader-fixes.js",
     "checkpoints": "node scripts/gen-checkpoints.js"
   },
   "license": "ISC",

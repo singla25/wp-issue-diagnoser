@@ -35,6 +35,75 @@ const shortOf = cls => String(cls).replace(/^.*\\/, '');
 const kindOfFile = f => (/^wp-content\/themes\//.test(f) ? 'theme' : /^wp-content\/mu-plugins\//.test(f) ? 'mu' : 'plugin');
 const KIND_WORD = { theme: 'theme', plugin: 'plugin', mu: 'must-use plugin' };
 
+// ---------- does the cited line name the class? ----------
+// Each line up to `upto`, split into its code (string literals and comments removed) and the contents of its string literals. A /* ... */ block is followed from the file start.
+// A plain scan, not a parser: a string that runs over several lines is not followed (the line keeps what was read).
+function scanLines(lines, upto) {
+    const out = [];
+    let inBlock = false;
+    for (let i = 0; i < upto; i++) {
+        const s = lines[i] || '';
+        let code = '', buf = '', q = null, j = 0;
+        const strs = [];
+        while (j < s.length) {
+            const c = s[j], d = s[j + 1];
+            if (inBlock) { if (c === '*' && d === '/') { inBlock = false; code += ' '; j += 2; } else j++; continue; }
+            if (q) { if (c === '\\') { buf += c + (d === undefined ? '' : d); j += 2; continue; } if (c === q) { strs.push(buf); buf = ''; q = null; code += ' '; j++; continue; } buf += c; j++; continue; }
+            if (c === '/' && d === '*') { inBlock = true; j += 2; continue; }
+            if ((c === '/' && d === '/') || c === '#') break;
+            if (c === "'" || c === '"') { q = c; j++; continue; }
+            code += c; j++;
+        }
+        if (q) strs.push(buf);
+        out.push({ code, strs });
+    }
+    return out;
+}
+// a class reference: not a variable ($Alias), not part of a longer name or a namespace (\w, \ before or after), not a property / constant / method (->, ::)
+const refRe = name => new RegExp(`(?<![\\w$\\\\])(?<!::)(?<!->)${esc(name)}(?![\\w\\\\])`, 'i');
+// lines, line (1-based, the cited line), full (the name without a leading backslash), isFn, short -> { ok, line, how }
+// isFn: the function-fatal branch keeps its earlier matching exactly (the full name anywhere in the window, or the short name after a non-word character).
+// class: a line within WINDOW of the cited line names the class only by (a) its full name, (b) an alias this file declares with `use Full as Alias;`, or (c) its short name when
+// this file imports it unaliased (`use Full;`) or is in the class's own namespace. `use` and `namespace` lines and comment-only lines never count; a bare short name never counts.
+// Group use (`use A\{B, C as D};`) and comma lists are not parsed (out of scope): a class imported only that way is not treated as imported, so the check fails rather than guesses.
+function namesClass(lines, line, full, isFn, short) {
+    const lo = Math.max(0, line - 1 - WINDOW), hi = Math.min(lines.length, line + WINDOW);
+    if (isFn) {
+        const i = lines.slice(lo, hi).findIndex(l => l.replace(/\\\\/g, '\\').toLowerCase().includes(full.toLowerCase()) || new RegExp(`(^|[^\\w$])${esc(short)}\\b`, 'i').test(l));
+        return { ok: i >= 0, line: i >= 0 ? lo + i + 1 : null, how: i >= 0 ? `names ${short}` : null };
+    }
+    const fullL = full.toLowerCase(), clsNs = fullL.includes('\\') ? fullL.replace(/\\[^\\]*$/, '') : '';
+    const text = lines.join('\n').replace(/\\\\/g, '\\');
+    // the imports of THIS file: `use \?Name;` and `use \?Name as Alias;` (case-insensitive; `use function` / `use const` are not class imports)
+    const imports = [...text.matchAll(/^[ \t]*use[ \t]+(?!function\b|const\b)\\?([A-Za-z_][\w\\]*)(?:[ \t]+as[ \t]+([A-Za-z_]\w*))?[ \t]*;/gim)].map(m => ({ name: m[1].toLowerCase(), alias: m[2] || null }));
+    const mine = imports.filter(m => m.name === fullL);
+    const aliases = [...new Set(mine.filter(m => m.alias).map(m => m.alias))];
+    const imported = mine.some(m => !m.alias);
+    const fileNs = ((/^[ \t]*namespace[ \t]+\\?([A-Za-z_][\w\\]*)[ \t]*[;{]/im.exec(text) || [])[1] || '').toLowerCase();
+    // the short name is taken by another import (`use Other\Color;` or `... as Color;`): then it never means this class
+    const shortTaken = imports.some(m => m.name !== fullL && (m.alias || m.name.replace(/^.*\\/, '')).toLowerCase() === short.toLowerCase());
+    const shortOk = !shortTaken && (imported || (!!clsNs && fileNs === clsNs));
+    // the full name as a class reference: not after $, \w, \ (other than its own one leading backslash), :: or ->; not followed by \w or \.
+    // In code, a name written without a leading backslash resolves against the file's namespace, so it counts only when the file declares none; inside a string a
+    // class name is always fully qualified (class_exists( 'A\\B' )), so there the leading backslash is not needed, but only a string that is just the name counts.
+    const fullRe = new RegExp(`(?<![\\w$\\\\])(?<!::)(?<!->)(\\\\)?${esc(full)}(?![\\w\\\\])`, 'gi');
+    const fullIn = t => [...t.replace(/\\\\/g, '\\').matchAll(fullRe)].some(m => !!m[1] || !fileNs);
+    // a string names the class only when its WHOLE content (trimmed, `\\` folded to `\`) is the name, with at most one leading backslash
+    const strIs = x => x.replace(/\\\\/g, '\\').trim().replace(/^\\/, '').toLowerCase() === fullL;
+    const scanned = scanLines(lines, hi);
+    for (let i = lo; i < hi; i++) {
+        const t = String(lines[i] || '').trim();
+        if (/^(\/\/|#|\/\*|\*)/.test(t) || /^(use|namespace)\b/i.test(t)) continue;
+        const { code, strs } = scanned[i];
+        if (!code.trim()) continue;                                      // only a comment (or inside a /* ... */ block)
+        if (fullIn(code) || strs.some(strIs)) return { ok: true, line: i + 1, how: 'names the class by its full name' };
+        const al = aliases.find(a => refRe(a).test(code));
+        if (al) return { ok: true, line: i + 1, how: `names it through its alias ${al}` };
+        if (shortOk && refRe(short).test(code)) return { ok: true, line: i + 1, how: imported ? 'names it through its import' : "names it through the file's own namespace" };
+    }
+    return { ok: false, line: null, how: null };
+}
+
 // ---------- definition scan ----------
 // -> { defined: [{ file, component }], scanned, unread: [rel], complete }
 function findDefinition(root, cls, { maxFiles = MAX_FILES } = {}) {
@@ -118,9 +187,11 @@ function recheck({ h, clues, root, probe, issue, intake, components = [], sandbo
         if (!(line >= 1 && line <= lines.length)) add('fatal-line', 'FAILED', `the file has ${lines.length} lines, so line ${line} does not exist`);
         else {
             const short = isFn ? String(cls).split(/::|\\/).pop() : shortOf(cls), full = cls.replace(/^\\/, '');
-            const named = lines.slice(Math.max(0, line - 1 - WINDOW), Math.min(lines.length, line + WINDOW)).some(l => l.replace(/\\\\/g, '\\').toLowerCase().includes(full.toLowerCase()) || new RegExp(`(^|[^\\w$])${esc(short)}\\b`, 'i').test(l));
+            const nc = namesClass(lines, line, full, isFn, short);
+            const named = nc.ok;
             res.line_ok = named;
-            add('fatal-line', named ? 'PASSED' : 'FAILED', named ? `line ${line} of ${file} (re-read) names ${short}` : `no line within ${WINDOW} lines of ${line} in ${file} names ${short}`);
+            if (isFn) add('fatal-line', named ? 'PASSED' : 'FAILED', named ? `line ${line} of ${file} (re-read) names ${short}` : `no line within ${WINDOW} lines of ${line} in ${file} names ${short}`);
+            else add('fatal-line', named ? 'PASSED' : 'FAILED', named ? `line ${nc.line} of ${file} (re-read${nc.line !== line ? `, within ${WINDOW} lines of line ${line}` : ''}) ${nc.how}` : `no line within ${WINDOW} lines of ${line} in ${file} uses the class ${full} (by its full name, an alias imported in this file, or its import)`);
         }
     }
     res.repeated = res.count >= 2;
@@ -208,4 +279,4 @@ function wording(r, { probeSaw5xx, fresh }) {
     return { cause, lines };
 }
 
-module.exports = { recheck, findDefinition, providerOf, wording, PROVIDERS, kindOfFile };
+module.exports = { recheck, findDefinition, providerOf, wording, namesClass, PROVIDERS, kindOfFile, WINDOW };

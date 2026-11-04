@@ -78,6 +78,45 @@ function stackOf(logs, file, line) {
     return { available: true, frames, hooks, more: withTrace.trace.length > frames.length ? withTrace.trace.length - frames.length : 0 };
 }
 
+// (3b) where each method of the call chain is registered: a frame "Class->method()" or "Class::method()" is looked up in the syntax-tree hook facts of the component that defines
+// the class (custom-code.json `facts`, phpast.js: op, type, owner_class, hook, callback, priority, line, and the file the merge adds), with the same matching as the redirect map
+// (issue/redirects.js hooksFor). Never a guessed hook name: a registration whose hook name is built at run time, a callback held in a variable, [$this, 'm'] written in another
+// class (a parent or child may be meant) and a closure are "unknown". -> [{ frame, call, class, method, component, result: registered | not-registered | unknown | not-analysed, hooks, reason }]
+const FRAME_CALL = /^\\?([A-Za-z_][\w\\]*)(->|::)([A-Za-z_]\w*)\(/;
+const lastSeg = s => String(s || '').replace(/^\\+/, '').split('\\').pop().toLowerCase();
+function registrationsOf(frames, facts, components) {
+    if (!facts || typeof facts !== 'object') return [];
+    const refs = Object.keys(facts).sort();
+    const named = ref => { const c = (components || []).find(k => k.ref === ref); const kind = /^theme:/.test(ref) ? 'theme' : /^mu:/.test(ref) ? 'must-use plugin' : 'plugin'; return `the ${kind} ${c ? c.name || c.slug : ref.replace(/^(theme|mu|plugin):/, '')}`; };
+    const out = [], seen = new Set();
+    frames.forEach((f, i) => {
+        const call = String(f.call || '');
+        if (/\{closure/.test(call)) { if (!seen.has('{closure}')) { seen.add('{closure}'); out.push({ frame: i, call: '{closure}', class: null, method: null, component: null, result: 'unknown', hooks: [], reason: 'a closure cannot be matched to the add_action or add_filter that registers it' }); } return; }
+        const m = FRAME_CALL.exec(call);
+        if (!m) return;                                                  // a plain function (do_action, ...) is not a method of the site's code
+        const cls = m[1].replace(/^\\/, ''), method = m[3], key = `${cls.toLowerCase()}${m[2]}${method.toLowerCase()}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        const want = cls.toLowerCase();
+        const byClass = refs.find(r => (facts[r].classes || []).some(c => String(c.name || '').replace(/^\\/, '').toLowerCase() === want));
+        const ref = byClass || null;                                     // only the component whose analysed code defines the class: nothing is said about code that was not analysed
+        const base = { frame: i, call: `${cls}${m[2]}${method}()`, class: cls, method, component: ref || null };
+        if (!ref) { out.push({ ...base, result: 'not-analysed', hooks: [], reason: `the class ${cls} was not found in the code that was analysed` }); return; }
+        const hooks = (facts[ref].hooks || []).filter(h => h.op === 'add');
+        const hit = require('./redirects').hooksFor({ in: { kind: 'method', name: method, class: cls } }, hooks)
+            .map(h => ({ hook: h.hook, type: h.type, priority: h.priority === undefined ? null : h.priority, file: h.file || null, line: h.line || null }))
+            .sort((a, b) => (a.hook < b.hook ? -1 : a.hook > b.hook ? 1 : 0) || (a.priority || 0) - (b.priority || 0) || String(a.file).localeCompare(String(b.file)) || (a.line || 0) - (b.line || 0));
+        if (hit.length) { out.push({ ...base, result: 'registered', hooks: hit, reason: null }); return; }
+        // the method name is registered, but the class or the hook cannot be known from the code
+        const maybe = hooks.filter(h => h.callback && h.callback.kind === 'method' && String(h.callback.name).toLowerCase() === method.toLowerCase() && (!h.hook
+            || /^\$/.test(String(h.callback.class)) || h.callback.class === 'parent' || (['$this', 'self', 'static'].includes(h.callback.class) && lastSeg(h.owner_class) !== lastSeg(cls))));
+        if (maybe.length) { out.push({ ...base, result: 'unknown', hooks: [], reason: `${named(ref)} registers a method called ${method}, but which class or which WordPress step it belongs to cannot be known from the code` }); return; }
+        out.push({ ...base, result: 'not-registered', hooks: [], reason: `no add_action or add_filter names this method in ${named(ref)}` });
+    });
+    return out;
+}
+const regText = r => (r.result === 'registered' ? `registered on ${r.hooks.map(h => `${h.hook} at ${h.priority === null ? 'an unknown priority' : `priority ${h.priority}`} (${h.file ? `${h.file}, ` : ''}line ${h.line})`).join(' and on ')}` : r.result === 'unknown' ? `unknown (${r.reason})` : r.reason);
+
 // (4) other files of the same theme or plugin that use the same symbol
 function sameSymbol(root, fr, compName) {
     const dir = componentDir(fr.file);
@@ -133,7 +172,7 @@ function candidatesOf(root, fr) {
 }
 
 // fr: hypothesis.fatal_recheck. ctx: { root, logs (work/logs.json), components } -> the cause_detail object (findings.json) with its plain lines
-function build(fr, { root = null, logs = null, components = [] } = {}) {
+function build(fr, { root = null, logs = null, components = [], facts = null } = {}) {
     if (!fr || !fr.file || !fr.line || !fr.class) return null;
     const isFn = fr.kind === 'function';
     const kind = KIND_WORD[fr.file_kind] || 'file';
@@ -144,6 +183,7 @@ function build(fr, { root = null, logs = null, components = [] } = {}) {
     const symbolText = isFn ? `the function ${fr.class}()` : `the class ${fr.class}`;
     const excerpt = excerptOf(root, fr.file, fr.line);
     const stack = stackOf(logs, fr.file, fr.line);
+    if (stack.available) stack.registrations = registrationsOf(stack.frames, facts, components);
     const same = sameSymbol(root, fr, compName);
     const cand = candidatesOf(root, fr);
     const p = fr.provider || {};
@@ -152,6 +192,8 @@ function build(fr, { root = null, logs = null, components = [] } = {}) {
     L.push(excerpt.available ? `Code around line ${fr.line}, read from the copy of your site (lines ${excerpt.from} to ${excerpt.to}; anything that looks like a password or key is masked${excerpt.capped ? '; long lines are shortened' : ''}).` : `Code around line ${fr.line}: not shown, because ${excerpt.reason}.`);
     if (stack.available) {
         L.push(`Call chain from your log, most recent call first: ${stack.frames.map((f, i) => `#${i} ${f.call} (${f.file}:${f.line})`).join('; ')}${stack.more ? `; and ${stack.more} more` : ''}.`);
+        const regs = (stack.registrations || []).filter(r => r.result !== 'not-analysed'), skippedRegs = (stack.registrations || []).filter(r => r.result === 'not-analysed');
+        if (regs.length) L.push(`Where the methods in that call chain are registered: ${regs.map(r => `#${r.frame} ${r.call}: ${regText(r)}`).join('; ')}${skippedRegs.length ? `; not looked up, because their code was not analysed: ${skippedRegs.map(r => r.call).join(', ')}` : ''}.`);
         if (stack.hooks.length) L.push(`WordPress steps named in that call chain: ${stack.hooks.join(', ')}.`);
     } else L.push(`Call chain: ${stack.reason}, so the calls that led to it are not known.`);
     if (same.searched) {
@@ -181,4 +223,4 @@ function excerptLines(ex) {
     return ex.lines.map(l => `${l.cited ? '>' : ' '} ${String(l.n).padStart(w)} | ${l.text}`);
 }
 
-module.exports = { build, excerptLines, componentDir, EXCERPT_BEFORE, EXCERPT_AFTER };
+module.exports = { build, excerptLines, componentDir, registrationsOf, EXCERPT_BEFORE, EXCERPT_AFTER };
