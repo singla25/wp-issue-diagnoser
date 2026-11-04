@@ -74,6 +74,7 @@
     "selftest:sandbox-copy-names": "node scripts/selftest-sandbox-copy-names.js",
     "selftest:fatal-recheck": "node scripts/selftest-fatal-recheck.js",
     "selftest:likely-cause": "node scripts/selftest-likely-cause.js",
+    "selftest:case-file": "node scripts/selftest-case-file.js",
     "selftest:polish": "node scripts/selftest-polish.js",
     "selftest:report-polish": "node scripts/selftest-report-polish.js",
     "selftest:report-real": "node scripts/selftest-report-real.js",

@@ -129,6 +129,8 @@ const readerMd = md => md.split(/^(?=## )/m).filter(s => !/^## (What was checked
         scan(`${name}: Verdict cause line, confidence sentence, symptom, Tested and Fix lines`, [r.f.verdict_cause_line, r.f.confidence_text, r.f.symptom_text, r.f.tested_text, r.f.fix_text].filter(Boolean).join('\n'));
         scan(`${name}: the log note (both variants)`, [{ files: [{ truncated: true, bytes: 5 * 1048576 }], entries: [{ level: 'warning', count: 9 }] }, { files: [{ truncated: true, bytes: 5 * 1048576 }], entries: [{ level: 'fatal error', count: 9 }] }].map(plain.logNote).join('\n'));
         scan(`${name}: the resolution reader wording`, r.f.resolution.flatMap(x => [...(x.what_to_try || []), ...x.options.flatMap(o => [o.reader_title, o.reader_detail].filter(Boolean))]).join('\n'));
+        group(`${name}: the case-file layout`);
+        scan(`${name}: case file (title, status, cases, counts, list)`, [r.f.case_file.title, r.f.case_file.status.line, r.f.case_file.status.looked, ...r.f.case_file.see, ...r.f.case_file.cases.flatMap(c => [c.heading, ...c.rows.flatMap(([k, v]) => [k, ...v])]), r.f.case_file.checked.line, r.f.case_file.checked.sentence, r.f.case_file.checked.legend, ...r.f.case_file.checked.items].join('\n'));
         group(`${name}: Markdown`);
         scan(`${name}: ISSUE-REPORT.md (without "What was checked" and "Limits")`, readerMd(r.md));
         // the lists of the gate Markdown ("All checks", "What was checked") are read too: no HTML entity (escaped once, with a backslash), no null / undefined, no raw status word
@@ -150,7 +152,7 @@ const readerMd = md => md.split(/^(?=## )/m).filter(s => !/^## (What was checked
             const ctx = await browser.newContext({ serviceWorkers: 'block' }), page = await ctx.newPage();
             await page.route('**/*', rt => (rt.request().url().startsWith('file://') ? rt.continue() : rt.abort()));
             await page.goto('file://' + path.join(r.dir, 'result', 'issue.html'));
-            const areas = await page.evaluate(() => ['summary', 'whatswrong', 'findings', 'advisories', 'verdict', 'resolution'].map(id => { const s = document.getElementById(id); return [id, s ? s.textContent.replace(/\n\s*\n+/g, '\n') : '']; }));
+            const areas = await page.evaluate(() => ['status', 'see', 'case-1', 'case-2', 'checked', 'summary', 'whatswrong', 'findings', 'advisories', 'verdict', 'resolution'].map(id => { const s = document.getElementById(id); return [id, s ? s.textContent.replace(/\n\s*\n+/g, '\n') : '']; }));
             for (const [id, t] of areas) scan(`${name}: page section "${id}" (closed "Why this status" lists included)`, t);
             ok(areas.find(a => a[0] === 'resolution')[1].includes('Why this status'), 'the "Why this status" list is on the page');
             await ctx.close();

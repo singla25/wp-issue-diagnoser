@@ -22,13 +22,17 @@ function build(fr, ctx, tier) {
     const last = fr.last_seen ? new Date(fr.last_seen).getTime() : NaN;
     const age = Number.isFinite(last) && Number.isFinite(ref) && Math.abs(ref - last) > FRESH_DAYS * DAY ? 'old' : 'recent';
     const L = [];
+    const cs = { sure: [], todo: [], second: null, live: null, why: [], where: null, versions: [] };   // the same facts, split for the case-file layout (lib: issue/case-file.js); the lines below are unchanged
     const isFn = fr.kind === 'function';
     L.push(`Error in your log: PHP Fatal error: ${isFn ? `Call to undefined function ${fr.class}()` : `Class "${fr.class}" not found`}.`);
     L.push(`Where: the ${kind} file ${fr.file}, line ${fr.line}${fileComp ? ` (${kind} ${compName(fileComp)}${fileComp.version ? ` ${fileComp.version}` : ''})` : ''}.`);
+    cs.where = { who: fileComp ? `the ${kind} ${compName(fileComp)}${fileComp.version ? ` ${fileComp.version}` : ''}` : `the ${kind}`, file: fr.file, line: fr.line };
     const seen = dateOf(fr.last_seen);
+    cs.sure.push(`Found in your log ${fr.count} times${seen ? `, last seen ${seen}` : ''}${age === 'old' ? ` (an old entry: more than ${FRESH_DAYS} days before this report)` : ''}.`, `The file and line were read again (line ${fr.line} names ${isFn ? String(fr.class).split(/::|\\/).pop() : String(fr.class).replace(/^.*\\/, '')}).`);
     L.push(`What was checked: found in your log, repeated ${fr.count} times, file and line re-read (line ${fr.line} names ${isFn ? String(fr.class).split(/::|\\/).pop() : String(fr.class).replace(/^.*\\/, '')}).`);
     L.push(age === 'old' ? `Old log entry: last seen in your log on ${seen || 'an unknown date'}, more than ${FRESH_DAYS} days before this report.` : `Last seen in your log on ${seen || 'an unknown date'}.`);
     // the class: only a known provider whose files were searched can be said not to contain it
+    const classAt = L.length;
     if (!isFn) {
         const p = fr.provider || {};
         const searched = fr.scan && fr.scan.complete;
@@ -41,6 +45,8 @@ function build(fr, ctx, tier) {
         else L.push("The class: its owner could not be identified.");
         if (fr.blocked && /could not check all code/.test(fr.blocked)) L.push(`Could not check all code: ${fr.blocked.replace(/^could not check all code: ?/, '')}.`);
     }
+    cs.why = [`The file asks for ${isFn ? `the function ${fr.class}()` : `the class ${fr.class}`}, and the log says it was not found.`, ...L.slice(classAt)];
+    cs.why.push(isFn ? 'This is a function that is not defined, not two pieces of code fighting over the same WordPress step.' : 'This is a class that is not there, not two plugins or two pieces of code fighting over the same WordPress step.');
     // versions: the theme or plugin of the file, the provider and WooCommerce (when installed)
     const vs = [];
     const add = (label, c) => { if (c && c.version && !vs.some(v => v.startsWith(label))) vs.push(`${label} ${c.version}`); };
@@ -50,20 +56,25 @@ function build(fr, ctx, tier) {
     const woo = byRef('woocommerce');
     if (woo && woo !== prov && woo !== fileComp) add(compName(woo) || 'WooCommerce', woo);
     if (vs.length) L.push(`Versions: ${vs.join(' · ')}.`);
+    cs.versions = vs;
+    cs.comps = [fileComp, prov && prov !== fileComp ? prov : null].filter(Boolean).map(c => ({ ref: c.ref || c.slug, name: compName(c), version: c.version || null, kind: c.kind }));
     // a second thing worth checking, when the analysis flagged it
     const tpl = (ctx.advisories || []).find(a => a.type === 'template-override-outdated');
     // the count is the code check's (all outdated copies found); the Advisories keep at most five of them as possible causes, so both numbers are said when they differ
     const tplShown = tpl ? tpl.merged || 1 : 0, tplAll = Math.max(ctx.templateTotal || 0, tplShown);
+    cs.second = tpl ? { total: tplAll } : null;
     if (tpl) L.push(`A second thing to check: ${tplAll > tplShown ? `outdated template overrides (${tplAll} templates in all, ${tplShown} of them are` : `an outdated template override${tpl.merged > 1 ? ` (${tpl.merged} templates)` : ''} is`} listed under Advisories${tplAll > tplShown ? ')' : ''}${tpl.components && tpl.components.length ? ` (${tpl.components.map(c => (byRef(c) ? compName(byRef(c)) : c)).join(' + ')})` : ''}.`);
     // live check
     const five = (ctx.probePages || []).find(p => p && p.status >= 500 && p.status < 600);
+    cs.live = five ? `The live page answered HTTP ${five.status}.` : ctx.ran && ctx.ran.probe ? 'The live pages that were loaded did not answer with an error.' : null;
     L.push(five ? `Live check: a live page answered HTTP ${five.status}${five.url ? ` (${five.url})` : ''}.` : ctx.ran && ctx.ran.probe ? 'Live check: the live pages that were loaded did not answer with an error.' : 'Live check: none was run, so nothing here was seen failing on your website.');
     // what to try
     const who = fileComp ? `${kind} ${compName(fileComp)}` : `the ${kind}`;
     const prName = fr.provider && fr.provider.name;
     L.push(isFn ? `What to try: update ${who}; make sure the plugin that provides ${fr.class}() is installed and active; test with a default theme.`
         : `What to try: update ${who}${prName ? `; use a version of ${prName} that has this class` : '; make sure the plugin that provides this class is installed and active'}; test with a default theme to see whether the error goes away.`);
-    return { title: 'What is wrong', tier, heading: tier === 'likely' ? (age === 'old' ? LIKELY_OLD : LIKELY_PHRASE) : 'Cause found in your log', age, lines: L };
+    cs.todo = (L[L.length - 1].replace(/^What to try: /, '').replace(/\.$/, '').split('; ').map(t => t.trim()).filter(Boolean).map(t => t.replace(/^./, c => c.toUpperCase())));
+    return { title: 'What is wrong', case: cs, tier, heading: tier === 'likely' ? (age === 'old' ? LIKELY_OLD : LIKELY_PHRASE) : 'Cause found in your log', age, lines: L };
 }
 
 module.exports = { build, FRESH_DAYS };

@@ -94,7 +94,7 @@ const LIMITS = [
 ];
 
 // ---------------------------------------------------------------- the gate (step 7b): only with { gate: true }; without it nothing below runs and the output is unchanged
-const whatsWrong = require('./whats-wrong'), gateMod = require('./gate'), summaryMod = require('./summary'), rollbackMod = require('./rollback'), ctMod = require('./conflict-type');
+const caseFileMod = require('./case-file'), whatsWrong = require('./whats-wrong'), gateMod = require('./gate'), summaryMod = require('./summary'), rollbackMod = require('./rollback'), ctMod = require('./conflict-type');
 const TYPE_TEXT = {
     'plugin-plugin': 'two plugins clash', 'theme-plugin': 'your theme and a plugin clash', hook: 'two parts of the site act on the same WordPress step',
     'plugin-core-php': 'a problem involving PHP or WordPress itself', 'environment-server': 'a limit or a setting of your hosting', compromise: 'possible compromise signs', unclassified: 'a single plugin, theme or file'
@@ -189,7 +189,7 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
     f.symptom_text = plainNames.symptomSentence(f.verdict.symptom_reproduced);
     f.tested_text = plainNames.testedSentence(f);
     f.issue_title_short = plainNames.shortTitle(issue.title, issue.description);
-    f.findings_empty_text = (split.likely || []).length ? "No confirmed cause. See 'What is wrong' above." : 'No confirmed cause was found.';
+    f.findings_empty_text = (split.likely || []).length ? 'No confirmed cause. See Case 1.' : 'No confirmed cause was found.';
     if (boxItem) {
         // one short pointer line for the Verdict: plain names, "not confirmed", never the sentence of the box
         const hy = hyps.find(h => h.id === boxItem.id), fr = hy.fatal_recheck, names2 = plainNames.namesOf(comps);
@@ -199,7 +199,7 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
         const what = fr.kind === 'function' ? 'calls a function that is not defined'
             : pr.known && pr.installed && fr.scan && fr.scan.complete && !(fr.scan.defined || []).length ? `uses a class ${pr.name}${pr.version ? ` ${pr.version}` : ''} does not have`
             : pr.known ? `uses a class that comes from ${pr.name}${pr.version ? ` ${pr.version}` : ''}` : 'uses a class that could not be found';
-        f.verdict_cause_line = `${who.replace(/^./, c => c.toUpperCase())}, in a file that ${what} (${split.box && split.box.tier === 'likely' ? 'not confirmed' : 'confirmed'}). Details: see "What is wrong".`;
+        f.verdict_cause_line = `${who.replace(/^./, c => c.toUpperCase())}, in a file that ${what} (${split.box && split.box.tier === 'likely' ? 'not confirmed' : 'confirmed'}). Details: see Case 1.`;
         // "What to try" is the one list: the resolution page repeats it and its options do not contradict it
         const tryLine = (split.box.lines || []).find(l => l.startsWith('What to try: '));
         const items = tryLine ? tryLine.replace(/^What to try: /, '').replace(/\.$/, '').split('; ').map(t => t.trim()).filter(Boolean).map(t => t.replace(/^./, c => c.toUpperCase())) : [];
@@ -213,6 +213,16 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
             }
         }
     }
+    // the case-file layout (issue/case-file.js): one object, rendered as the Markdown report, the command-line summary and the page
+    {
+        const lg = W('logs.json') || {}, ik = W('intake.json') || {};
+        f.case_file = caseFileMod.build(f, {
+            sandboxNote: ((f.summary.lines || []).find(l => /sandbox test could not run/.test(l)) || '').trim() || null,
+            comps, probePages: (probe && probe.pages) || [], templates: (cc.observations || []).filter(o => o.type === 'template-override-outdated'),
+            facts: { hasLog: !!((lg.files || []).length || (lg.entries || []).length), hasCode: !!issue.root, phpSkipped: Number(ik.php_skipped) > 0, probeRan: ran.probe, sandboxRan: ran.sandbox, sandboxFailed: !!(sbx && sbx.could_not_run) }
+        });
+        f.summary.text_report = caseFileMod.cli(f.case_file);
+    }
 }
 const shown = f => new Set((f.findings || []).map(x => x.id));
 const refLine = e => `${e.file}${e.line ? `:${e.line}` : ''}`;
@@ -225,21 +235,13 @@ const STEP_WORD = { PASSED: 'Done', NOT_RUN: 'Not done', SKIPPED: 'Not done' };
 const stepWord = s => STEP_WORD[s] || 'Could not run';
 function gateMarkdown(f) {
     const esc = escG, L = [];
-    L.push(`# Issue report: ${esc(f.issue_title_short || f.issue.title)}`, '', `Issue ${code(f.issue.id)} · symptom ${code(f.issue.symptom)} · environment ${code(f.issue.environment)}`, '');
-    L.push('## Summary', '', ...(f.summary.report_lines || f.summary.lines).flatMap(l => (l === summaryMod.WHAT_IS_WRONG ? ['', `### ${l}`, ''] : [l.startsWith('  •') ? `- ${esc(l.replace(/^\s*•\s*/, ''))}` : esc(l)])), '', esc(f.confidence_text), '');
-    if (f.gate.verbose && f.checkpoint_text) L.push('## All checks', '', ...f.checkpoint_text.lines.map(l => `- ${esc(l)}`), '');
-    else if (f.checkpoint_text) L.push('_Run with --verbose to list every check._', '');
-    L.push(f.findings.length ? `## Findings (${f.findings.length})` : '## Findings', '');
-    if (!f.findings.length) L.push(`_${esc(f.findings_empty_text || 'None: nothing passed the gate (established AND seen to break the site).')}_`, '');
-    f.findings.forEach((x, i) => {
-        L.push(`### ${i + 1}. ${esc(x.cause.replace(/^./, c => c.toUpperCase()))}`, '', `- Kind of problem: ${esc(x.type_text)} (${code(x.label)})`, `- Status: ${esc(plainNames.statusWord(x.status))} · shown because: ${esc(x.shown_because)}`);
-        const ev = (x.evidence || []).filter(e => e.file).slice(0, 4).map(refLine);
-        if (ev.length) L.push(`- Where: ${ev.map(code).join(', ')}`);
-        for (const b of x.breaking_because || []) L.push(`- Seen: ${esc(b.reason)}`);
-        L.push(`- How to undo: ${esc(x.rollback.intro)}`);
-        for (const o of x.rollback.options) L.push(`    - ${esc(o.title)}: ${esc(o.undo)}`);
-        L.push('');
-    });
+    const cf = f.case_file;
+    L.push(`# ${esc(cf.title)}`, '', `Issue ${code(f.issue.id)} · symptom ${code(f.issue.symptom)} · environment ${code(f.issue.environment)}`, '');
+    L.push(...caseFileMod.markdown(cf, esc));
+    L.push('## What was checked', '', esc(cf.checked.line), '', esc(cf.checked.sentence), '', esc(cf.checked.legend), '');
+    L.push(...stepLines(f, esc));
+    if (!f.gate.verbose) L.push('_Run with --verbose to list every check._', '');
+    if (f.gate.verbose) L.push('## All checks', '', ...f.checkpoint_text.lines.map(l => `- ${esc(l)}`), '');
     if (f.gate.verbose) {
         L.push(`## Advisories (${f.advisories.length})`, '', '_Possible causes that were not confirmed, or not seen to break the site. They are listed so nothing disappears._', '');
         if (!f.advisories.length) L.push('_None._', '');
@@ -249,16 +251,20 @@ function gateMarkdown(f) {
         }
         L.push('');
     }
-    L.push('## What was checked', '');
-    // steps that were not done are listed only when they are tied to the answer (--verbose lists them all)
-    const keep = new Set(f.not_tested || f.timeline.map(s => s.id));
-    for (const s of f.timeline) if (s.status === 'PASSED' || keep.has(s.id)) L.push(`- ${stepWord(s.status)}: ${esc(s.label)}${s.reason ? `: ${esc(s.reason).slice(0, 200)}` : ''}`);
-    L.push('', '## Limits', '');
+    if (cf.developer.length) L.push('## For a developer', '', ...cf.developer.map(l => `- ${esc(l)}`), '');
+    L.push('## Limits', '');
     for (const l of f.limits) L.push(`- ${esc(l)}`);
     L.push('');
     return L.join('\n');
 }
-
+// the steps that were done or not done (kept under "What was checked"); steps that were not done are listed only when tied to the answer
+function stepLines(f, esc) {
+    const L = [];
+    const keep = new Set(f.not_tested || f.timeline.map(s => s.id));
+    for (const s of f.timeline) if (s.status === 'PASSED' || keep.has(s.id)) L.push(`- ${stepWord(s.status)}: ${esc(s.label)}${s.reason ? `: ${esc(s.reason).slice(0, 200)}` : ''}`);
+    L.push('');
+    return L;
+}
 function markdown(f) {
     const L = [];
     L.push(`# Issue report: ${esc(f.issue.title)}`, '', `Issue ${code(f.issue.id)} · symptom ${code(f.issue.symptom)} · environment ${code(f.issue.environment)}`, '');

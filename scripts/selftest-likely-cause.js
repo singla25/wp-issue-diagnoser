@@ -87,7 +87,7 @@ const H = '"Most likely cause found in your log (not confirmed)"';
     ok(!l.f.what_is_wrong.lines.some(x => /\bconfirmed\b/i.test(x)) && !/\bconfirmed\b/i.test(l.f.what_is_wrong.heading.replace(/ \(not confirmed\)$/, "")), 'no "confirmed" in the box or its heading');
     ok(!l.f.advisories.some(a => a.id === l.f.likely[0].id), 'it is not also listed as an advisory');
     ok(l.f.what_is_wrong.lines.some(x => /Could not check all code/.test(x)), 'the box says "Could not check all code" when the copy skipped PHP');
-    ok(l.html.includes('Most likely cause found in your log (not confirmed)') && l.html.includes("sec('whatswrong'") && !/\.innerHTML\s*=|insertAdjacentHTML/.test(l.html), 'the HTML carries the box in its data, builds it with textContent (no innerHTML assignment)');
+    ok(l.html.includes('Most likely cause found in your log (not confirmed)') && l.html.includes("sec('case-' + c.n") && !/\.innerHTML\s*=|insertAdjacentHTML/.test(l.html), 'the HTML carries the box in its data, builds the case from it with textContent (no innerHTML assignment)');
     ok(l.html.includes('not confirmed'), 'the HTML says "not confirmed"');
 
     group('an old log entry is still shown, and labelled');

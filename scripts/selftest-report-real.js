@@ -143,15 +143,16 @@ const COUNTS = /We looked at (\d+) things: (\d+) pass, (\d+) fail, (\d+) also no
     ok(n === 8 && nums.includes(8), `the checkpoint and the box both count ${n} outdated template copies (box: ${line.slice(0, 120)})`);
     ok(nums.length === 1 || /in all/.test(line), 'if the Advisories keep fewer, the box says both numbers plainly ("in all")');
 
-    group('7. no duplicate headline, a "What is wrong" heading, a verbose Advisories entry that is not "not shown"');
-    const LIKELY = plain.LIKELY_PHRASE, sum = section(r.md, 'Summary');
-    ok(sum.split(LIKELY).length - 1 === 1, 'the headline phrase appears once in the Summary');
-    ok(/\n### What is wrong\n/.test(sum) && sum.indexOf('### What is wrong') < sum.indexOf(LIKELY), 'a "### What is wrong" sub-heading comes before the box lines');
-    ok(!/See 'What is wrong' above/.test(r.md) || /### What is wrong/.test(r.md), "the Findings text that points to 'What is wrong' has that heading to point to");
+    group('7. the phrase once, a "Case 1" heading, a verbose Advisories entry that is not "not shown"');
+    const LIKELY = plain.LIKELY_PHRASE.replace(/^Most likely cause found in your log/, 'Likely cause'), sum = r.md;
+    ok(sum.split(LIKELY).length - 1 === 1, 'the phrase "Likely cause (not confirmed)" appears once in the Status / Case 1 text of the report (the case heading)');
+    ok(r.f.summary.report_lines.join('\n').split(plain.LIKELY_PHRASE).length - 1 === 1, 'the headline phrase appears once in the Summary lines (findings.json)');
+    ok(/\n## Case 1: Likely cause \(not confirmed\)\n/.test(sum) && sum.indexOf('## Case 1') < sum.indexOf('Where: the theme'), 'a "## Case 1" heading comes before the Where line');
+    ok(!/See 'What is wrong' above/.test(r.md), "no text points to a 'What is wrong' heading that no longer exists");
     const cliOut = []; cli.printGate(r.res, r.plans, { gate: true, verbose: false }, t => cliOut.push(t), r.dir);
     const ct = cliOut.join('\n');
-    ok(ct.split(LIKELY).length - 1 === 1 && /^What is wrong$/m.test(ct), 'the command line: the headline once and a "What is wrong" line');
-    ok(r.f.summary.lines_html.filter(l => l === LIKELY).length <= 1, 'the page layout (lines_html) is unchanged');
+    ok(ct.split(LIKELY.toUpperCase()).length - 1 === 1 && /^CASE 1  /m.test(ct), 'the command line: the phrase once and a "CASE 1" line');
+    ok(r.f.summary.lines_html.filter(l => l === plain.LIKELY_PHRASE).length <= 1, 'the page layout (lines_html) is unchanged');
     const adv = section(rv.md, 'Advisories');
     ok(/Not confirmed\./.test(adv) && !/not shown because it is not confirmed/.test(adv), 'verbose Advisories: "Not confirmed." only, not "not shown because it is not confirmed"');
 

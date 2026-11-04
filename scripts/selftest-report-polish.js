@@ -82,9 +82,9 @@ const COUNTS = /We looked at (\d+) things: (\d+) pass, (\d+) fail, (\d+) also no
     ok(m && Number(m[1]) === cp.counts.total && Number(m[2]) === cp.counts.pass && Number(m[3]) === cp.counts.fail && Number(m[4]) === (cp.counts.also_noticed || 0) && Number(m[5]) === cp.counts.not_checked, 'the Summary has the counts sentence "N pass, N fail, N also noticed, N not checked"');
     const rl = r.f.summary.report_lines;
     ok(rl.indexOf('What is wrong') >= 0 && rl.indexOf('What is wrong') < rl.findIndex(l => COUNTS.test(l)), 'Summary: What is wrong first, then the counts');
-    ok(r.md.indexOf(box.lines[0]) > 0 && r.md.indexOf(box.lines[0]) < r.md.search(COUNTS), 'Markdown: What is wrong first, then the counts');
+    ok(r.md.indexOf('## Case 1') > 0 && r.md.indexOf('## Case 1') < r.md.search(COUNTS), 'Markdown: Case 1 first, then the counts');
     const c1 = cliText(r, false);
-    ok(c1.indexOf(box.lines[0]) >= 0 && c1.indexOf(box.lines[0]) < c1.search(COUNTS), 'command line: What is wrong first, then the counts');
+    ok(c1.indexOf('CASE 1') >= 0 && c1.indexOf('CASE 1') < c1.search(COUNTS), 'command line: Case 1 first, then the counts');
     const titles = cp.items.map(i => i.title);
     ok(!titles.some(t => r.md.includes(t)) && !titles.some(t => c1.includes(t)) && !/## All checks/.test(r.md), 'without --verbose: no checkpoint title in the Markdown or on the command line');
     ok(/--verbose/.test(r.md) && /--verbose/.test(c1), 'Markdown and the command line may hint at --verbose');
@@ -114,32 +114,35 @@ const COUNTS = /We looked at (\d+) things: (\d+) pass, (\d+) fail, (\d+) also no
     if (browser) {
         pr = await page(r); pv = await page(rv);
         group('2. the page: order, counts, no "--verbose", the list only collapsed with --verbose');
-        ok(pr.ids[0] === 'whatswrong' && pr.ids[1] === 'summary', 'the page: What is wrong, then the Summary');
-        const sm = await pr.sec('summary');
-        ok(COUNTS.test(sm), 'the Summary has the counts sentence');
-        ok(!titles.some(t => pr.body.includes(t)) && !(await pr.sec('summary')).includes('All '), 'without --verbose: no checkpoint title anywhere on the page');
-        ok(!/--verbose|run with|run again/i.test(pr.body) && !/--verbose/.test(await pr.sec('summary')), 'the page never says "run with --verbose"');
+        ok(pr.ids[0] === 'status' && pr.ids[1] === 'see' && pr.ids[2] === 'case-1', 'the page: Status, What you see, then Case 1');
+        const sm = await pr.sec('checked');
+        ok(COUNTS.test(sm), 'What was checked has the counts sentence');
+        ok(!titles.some(t => pr.body.includes(t)) && !(await pr.sec('checked')).includes('All '), 'without --verbose: no checkpoint title anywhere on the page');
+        ok(!/--verbose|run with|run again/i.test(pr.body) && !/--verbose/.test(await pr.sec('checked')), 'the page never says "run with --verbose"');
         ok(!/--verbose|run with|run again/i.test(pv.body), 'the page with --verbose does not say it either');
-        const dv = await pv.sec('summary');
-        ok(titles.every(t => dv.includes(t)) && /All \d+ checks/.test(dv), 'with --verbose: the whole list is in the Summary, in a collapsed section');
+        const dv = await pv.sec('checked');
+        ok(titles.every(t => dv.includes(t)) && /All \d+ checks/.test(dv), 'with --verbose: the whole list is in What was checked, in a collapsed section');
     }
 
-    group('3. (a) the empty Findings text agrees with the What-is-wrong box');
+    group('3. (a) the empty Findings text agrees with Case 1');
     ok(r.f.findings.length === 0 && r.f.what_is_wrong && r.f.what_is_wrong.tier === 'likely', 'fixture: no finding, a most likely cause');
-    ok(r.f.findings_empty_text === "No confirmed cause. See 'What is wrong' above.", "with a most likely cause: \"No confirmed cause. See 'What is wrong' above.\"");
-    ok(r.md.includes("No confirmed cause. See 'What is wrong' above.") && !/Nothing passed the gate|nothing passed the gate/.test(r.md + r.html.replace(/<script[\s\S]*?<\/script>/g, '')), 'Markdown has it; the old sentence is gone');
+    ok(r.f.findings_empty_text === 'No confirmed cause. See Case 1.', 'with a most likely cause: "No confirmed cause. See Case 1."');
+    ok(r.md.includes('## Case 1: Likely cause (not confirmed)') && !r.md.includes("See 'What is wrong' above") && !/Nothing passed the gate|nothing passed the gate/.test(r.md + r.html.replace(/<script[\s\S]*?<\/script>/g, '')), 'Markdown has Case 1; the old sentence is gone');
     const none = await run('nolog', { log: 'none' });
-    ok(!none.f.what_is_wrong && none.f.findings_empty_text === 'No confirmed cause was found.' && none.md.includes('No confirmed cause was found.'), 'with no cause at all: "No confirmed cause was found."');
+    ok(!none.f.what_is_wrong && none.f.findings_empty_text === 'No confirmed cause was found.' && none.md.includes('This does not mean the site is healthy.'), 'with no cause at all: "No confirmed cause was found." (JSON) and the status line says it does not mean the site is healthy (Markdown)');
     if (browser) {
-        ok((await pr.sec('findings')).includes("No confirmed cause. See 'What is wrong' above."), 'page: the Findings box says it');
-        const pn = await page(none); ok((await pn.sec('findings')).includes('No confirmed cause was found.') && !pn.ids.includes('whatswrong'), 'page, no cause: the plain sentence and no What-is-wrong box'); await pn.close();
+        ok((await pr.sec('case-1')).includes('Likely cause (not confirmed)') && (await pr.sec('case-1')).includes(r.f.findings_empty_text.replace(/^No confirmed cause\. See Case 1\.$/, 'Not confirmed by a second, independent test.')), 'page: Case 1 says "Likely cause (not confirmed)" and the not-confirmed sentence');
+        ok((await pr.sec('status')).includes('1 likely cause'), 'page: Status says "1 likely cause"');
+        const pn = await page(none); ok((await pn.sec('status')).includes('This does not mean the site is healthy.') && !pn.ids.some(i => ['findings', 'whatswrong', 'summary'].includes(i)), 'page, no cause: the plain sentence and no Findings / What-is-wrong / Summary section');
+        const caseTexts = await Promise.all(pn.ids.filter(i => /^case-/.test(i)).map(i => pn.sec(i)));
+        ok(!pn.ids.includes('whatswrong') && !caseTexts.some(t => /Likely cause/.test(t)) && none.f.case_file.status.likely === 0, 'page, no cause: no Likely-cause case exists (Case 1 here is the "something else to check" template advisory)'); await pn.close();
     }
 
     group('4. (b) the Verdict cause line is a short pointer, not the box sentence');
     const cl = r.f.verdict_cause_line;
-    ok(cl === 'The theme Unicamp, in a file that uses a class that comes from Elementor 3.35.7 (not confirmed). Details: see "What is wrong".', 'the pointer names the theme, the class owner and its version, "not confirmed" (the code of the copy was not read completely)');
+    ok(cl === 'The theme Unicamp, in a file that uses a class that comes from Elementor 3.35.7 (not confirmed). Details: see Case 1.', 'the pointer names the theme, the class owner and its version, "not confirmed" (the code of the copy was not read completely)');
     const cm = await run('complete', { complete: true });
-    ok(cm.f.verdict_cause_line === 'The theme Unicamp, in a file that uses a class Elementor 3.35.7 does not have (confirmed). Details: see "What is wrong".' && !cm.f.verdict_cause_line.includes(cm.f.what_is_wrong.lines[0]), 'every PHP file read: "a class Elementor 3.35.7 does not have", and a confirmed cause says "confirmed"');
+    ok(cm.f.verdict_cause_line === 'The theme Unicamp, in a file that uses a class Elementor 3.35.7 does not have (confirmed). Details: see Case 1.' && !cm.f.verdict_cause_line.includes(cm.f.what_is_wrong.lines[0]), 'every PHP file read: "a class Elementor 3.35.7 does not have", and a confirmed cause says "confirmed"');
     ok(cl !== box.lines[0] && !cl.includes(box.lines[0]) && !box.lines.some(l => l === cl) && !cl.includes('Elementor\\Core') && !/PHP Fatal error/.test(cl), 'it is not the first line of the box (nor any line of it) and carries no class path');
     if (browser) ok((await pr.dd('Cause')) === cl, 'page: the Verdict "Cause" is the pointer line');
 
@@ -157,10 +160,12 @@ const COUNTS = /We looked at (\d+) things: (\d+) pass, (\d+) fail, (\d+) also no
     group('6. (d) the page names the advisory and shows the Advisories collapsed');
     const adv = /1 possible cause is listed under Advisories: an outdated template override \((\d+) templates\)\./;
     ok(adv.test(r.f.summary.lines_html.join('\n')) && !/--verbose/.test(r.f.summary.lines_html.join('\n')) && !/--verbose/.test(r.f.summary.lines_html_without_box.join('\n')), 'the page text names it: "an outdated template override (N templates)" and has no --verbose hint');
-    ok(/run with --verbose to see it/.test(r.md) && /run with --verbose to see it/.test(c1), 'Markdown and the command line keep the --verbose hint');
+    ok(/_Run with --verbose to list every check\._/.test(r.md) && /\(run again with --verbose to list the Advisories\)/.test(c1), 'Markdown and the command line keep the --verbose hint (exact wording)');
     if (browser) {
-        const sm = await pr.sec('summary');
-        ok(adv.test(sm), 'page: the Summary names the advisory');
+        const sm = await pr.sec('case-2');
+        const tplAdv = r.f.advisories.find(a => a.type === 'template-override-outdated'), cpN = Number((/^(\d+) template cop/.exec(r.f.checkpoints.items.find(x => x.id === 'cp-14').reason.replace(/^the theme Unicamp and the plugin WooCommerce: /, '')) || [])[1]);
+        const what = r.f.case_file.cases.find(c => c.kind === 'check').rows.find(x => x[0] === 'What')[1][0];
+        ok(!!tplAdv && sm.includes(what) && sm.includes(`${cpN} templates`) && tplAdv.components.every(c => sm.includes(r.f.components.find(k => k.ref === c).label.replace(/^the (theme|plugin) /, ''))), 'page: Case 2 names the advisory, with the template count and the components taken from the fixture data');
         ok(pr.ids.includes('advisories') && pr.openDetails.length === 1 && pr.openDetails[0] === false, 'page: the Advisories section is there, collapsed');
         ok(/old copy of a plugin template/.test(await pr.sec('advisories')), 'page: the collapsed Advisories hold the advisory');
         ok(pv.ids.includes('advisories') && pv.openDetails.length === 0, 'page with --verbose: the Advisories are open (not collapsed)');
@@ -187,7 +192,8 @@ const COUNTS = /We looked at (\d+) things: (\d+) pass, (\d+) fail, (\d+) also no
     const C = (c, l, o) => plain.confidenceSentence(c, l, o);
     ok(C('none', 'x').startsWith('How sure we are: not very.') && C('low', 'x').startsWith('How sure we are: not very.') && C('medium', 'x').startsWith('How sure we are: fairly.') && C('medium-high', 'x').startsWith('How sure we are: fairly.') && C('high', 'x').startsWith('How sure we are: very.'), 'levels: none/low not very, medium/medium-high fairly, high very');
     ok(/in your log/.test(C('medium-high', 'Confirmed cause found in your logs')) && /reproduced in a test copy/.test(C('high', 'Confirmed breaking cause found', { reproduced: true })) && /retest/.test(C('high', 'Fixed and verified')), 'the reason follows the verdict tier (log, reproduced, retest)');
-    ok(r.md.includes(r.f.confidence_text) && cliText(r, false).length > 0, 'Markdown carries the sentence');
+    const NC = require('../issue/case-file').NOT_CONFIRMED_SENTENCE;
+    ok(r.md.includes(NC) && cliText(r, false).length > 0 && cliText(r, false).includes(NC) && r.f.case_file.cases[0].rows.some(x => x[0] === 'How sure' && x[1].includes(NC)), 'Markdown and the command line carry the plain sentence that replaces "Confidence: low" (from the case-file data)');
     // the command line prints the sentence under VERDICT (checked on the source: investigate() logs confidence_text)
     ok(/confidence_text/.test(fs.readFileSync(path.join(__dirname, '..', 'lib', 'issue-cli.js'), 'utf8')), 'issue-cli prints the sentence under VERDICT in gate mode');
     if (browser) ok(pr.meta.includes(r.f.confidence_text) && !/Confidence: /.test(pr.meta), 'page: the Verdict shows the sentence, not "Confidence: low"');
@@ -211,7 +217,7 @@ const COUNTS = /We looked at (\d+) things: (\d+) pass, (\d+) fail, (\d+) also no
     const st = rt.f.issue_title_short;
     ok(st.endsWith('\u2026') && D.startsWith(st.slice(0, -1)) && /\s/.test(D[st.length - 1]) && st.length < T.length, `cut at a word boundary with an ellipsis: "${st}"`);
     ok(rt.f.issue.title === T, 'findings.json keeps the stored title');
-    ok(rt.md.split('\n')[0] === `# Issue report: ${st}`, 'ISSUE-REPORT.md heading uses the short title');
+    ok(rt.md.split('\n')[0] === `# ${st}`, 'ISSUE-REPORT.md heading uses the short title');
     ok(plain.shortTitle('Critical error', 'The site shows a critical error') === 'Critical error' && plain.shortTitle('Site is broken', 'Site is broken after the update') === 'Site is broken' && plain.shortTitle('abc', 'abcdef') === 'abc', 'a title that is not cut is unchanged');
     ok(r.f.issue_title_short === 'Critical error', 'the normal title is unchanged');
     if (browser) { const pt = await page(rt); ok(pt.h1 === st && pt.title === `Issue report: ${st}`, 'page: heading and <title> use it'); await pt.close(); }
@@ -250,8 +256,8 @@ const COUNTS = /We looked at (\d+) things: (\d+) pass, (\d+) fail, (\d+) also no
     ok(plain.logNote({ files: [{ truncated: false, bytes: 1000 }], entries: [] }) === null && plain.logNote(null) === null, 'not truncated: null');
     if (browser) {
         const pn = await page(noisy);
-        ok((await pn.sec('summary')).includes(N1) && ((await pn.sec('whatswrong')) || '').includes(N1), 'page: the note is in the Summary and in the box area');
-        ok(!(await pr.sec('summary')).includes('very large'), 'page, small log: no note');
+        ok((await pn.sec('status')).includes(N1) && ((await pn.sec('case-1')) || '').includes(N1), 'page: the note is in Status and in Case 1');
+        ok(!(await pr.sec('status')).includes('very large'), 'page, small log: no note');
         await pn.close();
     }
 

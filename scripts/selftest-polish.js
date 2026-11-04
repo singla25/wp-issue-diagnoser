@@ -63,7 +63,7 @@ const BAD = [/theme:/i, /\bplugin theme\b/i, /PROBABLE NEEDS REVIEW/, /PROBABLE_
     ok(r.f.summary.headline === PH && r.f.summary.lines[0] === PH, 'the Summary says the one phrase');
     ok(r.f.verdict.label === PH, 'the Verdict says the one phrase');
     ok(!r.f.summary.text.includes('No confirmed breaking cause was found') && !r.md.includes('No confirmed breaking cause was found') && !r.html.includes('No confirmed breaking cause was found'), 'never "No confirmed breaking cause was found" next to the same item');
-    ok(r.md.includes(PH), 'the Markdown carries the phrase');
+    ok(r.md.includes(r.f.case_file.cases[0].heading) && r.f.case_file.cases[0].heading === PH.replace(/^Most likely cause found in your log/, 'Likely cause'), 'the Markdown carries the phrase (the case heading, derived from the data and from PH)');
     const none = await run('none-is-unchanged', {}); // same site; the wording without a log-backed cause is checked on the summary module directly
     const sum = require('../issue/summary').summarise({ findings: [], advisories: [], counts: {} }, { ran: {} });
     ok(sum.headline === 'No confirmed breaking cause was found.', 'with no log-backed likely cause the old wording stays');
@@ -78,7 +78,7 @@ const BAD = [/theme:/i, /\bplugin theme\b/i, /PROBABLE NEEDS REVIEW/, /PROBABLE_
     ok(r.f.hypotheses.every(h => h.status && /^[A-Z_]+$/.test(h.status)) && r.f.hypotheses.some(h => (h.components || []).includes('theme:unicamp') && /theme:unicamp/.test(h.title)), 'statuses, hypothesis titles and component ids stay technical in findings.json');
     ok(plain.statusWord('PROBABLE_NEEDS_REVIEW') === 'Needs review', 'status word: "Needs review"');
     ok(plain.plainRef('theme:some-theme', {}) === 'the theme Some Theme' && plain.plainRef('woocommerce', {}) === 'the plugin Woocommerce', 'no header name known: the folder name, capitalised');
-    ok(!/Findings \(0\)/.test(r.md) && /^## Findings$/m.test(r.md), 'Markdown: an empty "Findings" heading has no (0)');
+    ok(!/Findings \(0\)/.test(r.md) && /^## Status$/m.test(r.md), 'Markdown: no "Findings (0)" heading; the Status heading replaces it');
     ok(!/broken because|is hacked/i.test(r.md + r.f.summary.text) && !/used to exist|no longer exist/i.test(r.md + r.f.summary.text), 'no "broken because", "hacked" or "the class used to exist"');
     // the command line text (the gate branch prints the summary and the option titles)
     const cliText = r.f.summary.text + '\n' + r.plans.flatMap(p => p.options).map(o => plain.plainText(o.title, [{ ref: 'theme:unicamp', name: 'Unicamp', slug: 'unicamp' }, { ref: 'woocommerce', name: 'WooCommerce', slug: 'woocommerce' }])).join('\n');
