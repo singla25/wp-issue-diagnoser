@@ -53,7 +53,7 @@ ok(!applies('what', ctx({ symptom: 'layout' })) && !applies('what', ctx({ sympto
 ok(!applies('what', ctx({ symptom: 'other', questions: ANSWERED('what') })), 'already answered');
 const qWhat = Q.RULES.what.build(ctx({ symptom: 'other' }, { clues: [{ type: 'php-fatal' }] }));
 ok(qWhat.choices.some(c => /logs point to this/.test(c.label) && c.value === 'white-screen'), 'a log fatal marks "blank white page" as the suggestion');
-ok(Q.proposeOracle('white-screen', [{ type: 'php-fatal' }]).type === 'debug-log' && Q.proposeOracle('js-error', [{ type: 'js-not-defined', detail: { symbol: 'jQuery.fn.slick' } }]).value === 'jQuery.fn.slick' && Q.proposeOracle('layout', [{ type: 'php-fatal' }]) === null, 'an oracle is proposed from the clues only where the clue fits the symptom');
+ok(Q.proposeOracle('white-screen', [{ type: 'php-fatal' }]) === null && Q.proposeOracle('js-error', [{ type: 'js-not-defined', detail: { symbol: 'jQuery.fn.slick' } }]).value === 'jQuery.fn.slick' && Q.proposeOracle('layout', [{ type: 'php-fatal' }]) === null, 'an oracle is proposed from the clues only where the clue fits the symptom (a crash keeps its default oracle, which judges the 5xx page itself)');
 
 group('rule 5: the site\'s PHP version');
 const compat = [{ type: 'removed-function-call' }];

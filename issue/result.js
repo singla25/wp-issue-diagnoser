@@ -93,8 +93,14 @@ const LIMITS = [
     'Plugin Guard never edits the site. Patches and shims are files in this report for a person (or a separate Claude Code session) to review and apply on a copy.'
 ];
 
+// the first Limits sentence for the reader (gate mode): exact owner wording; the middle sentence follows what ran
+function limitsFirst(sandbox) {
+    const copy = sandbox === 'ran' ? 'one was run this time' : sandbox === 'failed' ? 'one was started this time but could not run' : 'none was run this time';
+    return `A cause is shown as confirmed only when at least two independent checks agree after re-checking the code. A test on a copy of your site is a stronger check; ${copy}. Neither proves that a change will fix the problem: only running this report again after changing a copy does.`;
+}
+
 // ---------------------------------------------------------------- the gate (step 7b): only with { gate: true }; without it nothing below runs and the output is unchanged
-const caseFileMod = require('./case-file'), whatsWrong = require('./whats-wrong'), gateMod = require('./gate'), summaryMod = require('./summary'), rollbackMod = require('./rollback'), ctMod = require('./conflict-type');
+const caseFileMod = require('./case-file'), causeDetailMod = require('./cause-detail'), oracleMod = require('./oracle'), whatsWrong = require('./whats-wrong'), gateMod = require('./gate'), summaryMod = require('./summary'), rollbackMod = require('./rollback'), ctMod = require('./conflict-type');
 const TYPE_TEXT = {
     'plugin-plugin': 'two plugins clash', 'theme-plugin': 'your theme and a plugin clash', hook: 'two parts of the site act on the same WordPress step',
     'plugin-core-php': 'a problem involving PHP or WordPress itself', 'environment-server': 'a limit or a setting of your hosting', compromise: 'possible compromise signs', unclassified: 'a single plugin, theme or file'
@@ -216,12 +222,21 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
     // the case-file layout (issue/case-file.js): one object, rendered as the Markdown report, the command-line summary and the page
     {
         const lg = W('logs.json') || {}, ik = W('intake.json') || {};
+        // the cause detail for a developer (issue/cause-detail.js): read-only reads of the issue's copy of the site and of the log entries; only for the cause that has the box
+        const boxHyp = boxItem ? hyps.find(h => h.id === boxItem.id) : null;
+        const cd = boxHyp && boxHyp.fatal_recheck ? causeDetailMod.build(boxHyp.fatal_recheck, { root: issue.root || null, logs: lg, components: comps }) : null;
+        if (cd) f.cause_detail = cd;
+        const probePages = (probe && probe.pages) || [];
+        const crash = oracleMod.CRASH_SYMPTOMS.has(issue.symptom) || probePages.some(p => p && p.status >= 500 && p.status < 600);
         f.case_file = caseFileMod.build(f, {
             sandboxNote: ((f.summary.lines || []).find(l => /sandbox test could not run/.test(l)) || '').trim() || null,
-            comps, probePages: (probe && probe.pages) || [], templates: (cc.observations || []).filter(o => o.type === 'template-override-outdated'),
-            facts: { hasLog: !!((lg.files || []).length || (lg.entries || []).length), hasCode: !!issue.root, phpSkipped: Number(ik.php_skipped) > 0, probeRan: ran.probe, sandboxRan: ran.sandbox, sandboxFailed: !!(sbx && sbx.could_not_run) }
+            comps, probePages, templates: (cc.observations || []).filter(o => o.type === 'template-override-outdated'), causeDetail: cd,
+            facts: { hasLog: !!((lg.files || []).length || (lg.entries || []).length), hasCode: !!issue.root, phpSkipped: Number(ik.php_skipped) > 0, probeRan: ran.probe, sandboxRan: ran.sandbox, sandboxFailed: !!(sbx && sbx.could_not_run),
+                sandboxReproduced: sbx ? sbx.reproduced_in_sandbox : null, php: issue.php_version || null, crash }
         });
         f.summary.text_report = caseFileMod.cli(f.case_file);
+        // the Limits in reader words (findings.json `limits` keeps the internal text): the first sentence says what "confirmed" means and whether a test copy was used, from the data
+        f.limits_text = [limitsFirst(ran.sandbox ? 'ran' : sbx && sbx.could_not_run ? 'failed' : 'none'), ...f.limits.slice(1)];
     }
 }
 const shown = f => new Set((f.findings || []).map(x => x.id));
@@ -238,7 +253,7 @@ function gateMarkdown(f) {
     const cf = f.case_file;
     L.push(`# ${esc(cf.title)}`, '', `Issue ${code(f.issue.id)} · symptom ${code(f.issue.symptom)} · environment ${code(f.issue.environment)}`, '');
     L.push(...caseFileMod.markdown(cf, esc));
-    L.push('## What was checked', '', esc(cf.checked.line), '', esc(cf.checked.sentence), '', esc(cf.checked.legend), '');
+    L.push('## What was checked', '', esc(cf.checked.line), '', esc(cf.checked.legend), '');
     L.push(...stepLines(f, esc));
     if (!f.gate.verbose) L.push('_Run with --verbose to list every check._', '');
     if (f.gate.verbose) L.push('## All checks', '', ...f.checkpoint_text.lines.map(l => `- ${esc(l)}`), '');
@@ -251,9 +266,9 @@ function gateMarkdown(f) {
         }
         L.push('');
     }
-    if (cf.developer.length) L.push('## For a developer', '', ...cf.developer.map(l => `- ${esc(l)}`), '');
+    L.push(...caseFileMod.markdownDeveloper(cf, esc));
     L.push('## Limits', '');
-    for (const l of f.limits) L.push(`- ${esc(l)}`);
+    for (const l of f.limits_text || f.limits) L.push(`- ${esc(l)}`);
     L.push('');
     return L.join('\n');
 }
@@ -261,7 +276,7 @@ function gateMarkdown(f) {
 function stepLines(f, esc) {
     const L = [];
     const keep = new Set(f.not_tested || f.timeline.map(s => s.id));
-    for (const s of f.timeline) if (s.status === 'PASSED' || keep.has(s.id)) L.push(`- ${stepWord(s.status)}: ${esc(s.label)}${s.reason ? `: ${esc(s.reason).slice(0, 200)}` : ''}`);
+    for (const s of f.timeline) if (s.status === 'PASSED' || keep.has(s.id)) L.push(`- ${stepWord(s.status)}: ${esc(s.label)}${s.reason ? `: ${esc(plainNames.readerFiles(s.reason)).slice(0, 200)}` : ''}`);
     L.push('');
     return L;
 }

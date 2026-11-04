@@ -183,6 +183,23 @@ const T = rows => cpMod.tally(rows);
     const tiedRows = cpMod.evaluate({ work: cpMod.loadWork(ews.dir), validation: ews.val, ran: { probe: false }, hasRoot: true, tie: { components: ['theme:unicamp'], files: [] } });
     const tt = T(tiedRows);
     ok(tt.pass === T(rEws).pass && tt.not_checked === T(rEws).not_checked && tt.fail + tt.also_noticed === T(rEws).fail && tiedRows.every(r => ['PASS', 'FAIL', 'ALSO NOTICED', 'NOT CHECKED'].includes(r.result)), 'a tie context only splits the old FAILs into FAIL and ALSO NOTICED; PASS and NOT CHECKED do not move');
+    // REPORT-SPEC Part 2 (owner decision, amends HANDOFF decision 25): the weak-tie rows (duplicate AJAX action, same hook / priority, hook removal, outdated template override,
+    // theme dequeuing plugin scripts) are never tied by sharing a component with the crash; only by a FILE of the crash evidence. Symptom rows stay FAIL.
+    const bt = by(tiedRows);
+    ok(cpMod.WEAK_TIE_ROWS && ['cp-06', 'cp-09', 'cp-10', 'cp-14', 'cp-15'].every(id => cpMod.WEAK_TIE_ROWS.has(id)) && cpMod.WEAK_TIE_ROWS.size === 5, 'the five weak-tie rows are cp-06, cp-09, cp-10, cp-14 and cp-15');
+    ok(bt['cp-14'].result === 'ALSO NOTICED' && bt['cp-14'].tied_to_crash === false && tt.fail === 0 && tt.also_noticed === 1, `ews-style tree, the crash in the theme Unicamp: the template copies (same theme) are ALSO NOTICED, not FAIL (was 1 FAIL / 0 also noticed, now ${tt.fail} / ${tt.also_noticed})`);
+    const tplFile = (((cpMod.loadWork(ews.dir).customCode || {}).observations || []).find(o => o.type === 'template-override-outdated' && (o.evidence || []).some(e => e.file)) || { evidence: [{}] }).evidence.find(e => e.file).file;
+    const byTplFile = by(cpMod.evaluate({ work: cpMod.loadWork(ews.dir), validation: ews.val, ran: { probe: false }, hasRoot: true, tie: { components: [], files: [tplFile] } }));
+    ok(tplFile && byTplFile['cp-14'].result === 'FAIL' && byTplFile['cp-14'].tied_to_crash === true, `a weak-tie row is still a FAIL when the crash evidence names one of its own files (${tplFile})`);
+    const tieComp = { components: ['alpha', 'beta', 'theme:zeta'], files: [] };
+    const weakSyn = { ...synth, graph: { edges: [{ id: 'e1', type: 'hook-same-priority', from: 'alpha', to: 'beta', hook: 'wp_footer' }], problems: [], truncated: false },
+        customCode: { ...customCode, observations: [...customCode.observations, { id: 'obs-9', type: 'duplicate-ajax-action', action: 'save', components: ['alpha', 'beta'] }, { id: 'obs-10', type: 'handle-removed', handle: 'zeta-js', components: ['theme:zeta', 'alpha'] }, { id: 'obs-11', type: 'removes-other-component-hook', components: ['alpha', 'beta'] }] } };
+    const ws = by(cpMod.evaluate({ work: weakSyn, validation: { hypotheses: [] }, ran: { probe: false }, hasRoot: true, tie: tieComp }));
+    ok(['cp-06', 'cp-09', 'cp-10', 'cp-15'].every(id => ws[id].result === 'ALSO NOTICED' && ws[id].tied_to_crash === false) && ws['cp-02'].result === 'FAIL', 'synthetic: duplicate AJAX action, same hook / priority, hook removal and a dequeued script that share a crash component are ALSO NOTICED; a duplicate constant with the same components stays FAIL');
+    const wsNoTie = by(cpMod.evaluate({ work: weakSyn, validation: { hypotheses: [] }, ran: { probe: false }, hasRoot: true }));
+    ok(['cp-06', 'cp-09', 'cp-10', 'cp-15'].every(id => wsNoTie[id].result === 'FAIL'), 'without a tie context they are FAIL, as before (nothing is reclassified)');
+    const sym = by(cpMod.evaluate({ work: { ...synth, probe: { planned: 1, protection: null, pages: [pageOf({ status: 503 })] } }, validation: { hypotheses: [] }, ran: { probe: true }, hasRoot: true, tie: { components: ['gamma'], files: [] } }));
+    ok(sym['cp-38'].result === 'FAIL' && sym['cp-39'].result === 'FAIL' && sym['cp-38'].tied_to_crash && sym['cp-39'].tied_to_crash, 'the symptom rows (white screen, HTTP 5xx) stay FAIL with a tie context, tied by what they are');
 
     fs.rmSync(tmp, { recursive: true, force: true });
     console.log(failures ? `\n${failures} FAILED` : '\nAll checkpoint checks passed.');

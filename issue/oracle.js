@@ -182,4 +182,4 @@ function evaluate(spec, obs, { needsLogin = false, symptom = null } = {}) {
     }
 }
 
-module.exports = { evaluate, textFlags, redirectSigns, NEW_GENERIC_SYMPTOMS };
+module.exports = { evaluate, textFlags, redirectSigns, NEW_GENERIC_SYMPTOMS, CRASH_SYMPTOMS };

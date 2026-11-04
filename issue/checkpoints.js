@@ -150,6 +150,10 @@ function attach(c, inp) {
 // probe / log (white screen, HTTP 5xx, critical-error page, redirect loop,): when they found something they are tied by what they are. Without `tie`
 // (a caller that has no crash evidence to give) nothing is classified: every found item is a FAIL, as before.
 const SYMPTOM_ROWS = new Set(['white-screen', 'http-5xx', 'critical-error-page', 'redirect-loop']);
+// weak-tie rows (owner decision, REPORT-SPEC Part 2; amends HANDOFF decision 25): sharing a component with the crash is NOT a tie for these. They are FAIL only when their own
+// evidence names a FILE of the crash evidence (stronger than a shared component); otherwise ALSO NOTICED. Duplicate AJAX action, same hook / same priority, one plugin removing
+// another's hook, outdated template override, theme dequeuing plugin scripts. The ids stay internal (never in reader text).
+const WEAK_TIE_ROWS = new Set(['cp-06', 'cp-09', 'cp-10', 'cp-14', 'cp-15']);
 const normRef = r => String(r || '').replace(/^plugin:/, '');
 const componentOfFile = f => { try { return normRef(require('../lib/ownership').componentOf(f) || ''); } catch { return ''; } };
 function makeTie(inp) {
@@ -158,10 +162,11 @@ function makeTie(inp) {
     return { components: comps, files };
 }
 const PATH_IN_TEXT = /wp-content\/[^\s:()'"]+/g;
-function isTied(x, tie) {
+function isTied(x, tie, { fileOnly = false } = {}) {
     if (!tie) return true;
-    if ((x.c || []).some(r => tie.components.has(normRef(r)))) return true;
     const files = [...(x.f || []), ...(String(x.t).match(PATH_IN_TEXT) || [])];
+    if (fileOnly) return files.some(f => tie.files.has(f));
+    if ((x.c || []).some(r => tie.components.has(normRef(r)))) return true;
     return files.some(f => tie.files.has(f) || (componentOfFile(f) && tie.components.has(componentOfFile(f))));
 }
 
@@ -186,7 +191,7 @@ function evaluate(inp = {}) {
         const found = r.found.filter(Boolean).map(x => (typeof x === 'string' ? { t: x, c: [], f: [] } : x));
         if (found.length) {
             // tied to the crash: a symptom row of the probe / log, or an item that names a component or file of the crash evidence. Items that are tied come first in the reason.
-            const tied = found.filter(x => !tie || SYMPTOM_ROWS.has(cp.evaluator) || isTied(x, tie)), rest = found.filter(x => !tied.includes(x));
+            const tied = found.filter(x => !tie || SYMPTOM_ROWS.has(cp.evaluator) || isTied(x, tie, { fileOnly: WEAK_TIE_ROWS.has(cp.id) })), rest = found.filter(x => !tied.includes(x));
             const order = [...tied, ...rest], text = order[0].t, more = order.length > 1 ? ` (and ${order.length - 1} more)` : '';
             return { ...base, result: tied.length ? 'FAIL' : 'ALSO NOTICED', reason: text + more, tied_to_crash: tied.length > 0, breaks_site: cp.breaks_site || 'depends' };
         }
@@ -198,4 +203,4 @@ function evaluate(inp = {}) {
 
 const tally = rows => ({ pass: rows.filter(r => r.result === 'PASS').length, fail: rows.filter(r => r.result === 'FAIL').length, also_noticed: rows.filter(r => r.result === 'ALSO NOTICED').length, not_checked: rows.filter(r => r.result === 'NOT CHECKED').length, total: rows.length });
 
-module.exports = { SYMPTOM_ROWS, evaluate, loadWork, load, tally, EVALUATORS, PARTIAL_NOTE, FILE };
+module.exports = { SYMPTOM_ROWS, WEAK_TIE_ROWS, evaluate, loadWork, load, tally, EVALUATORS, PARTIAL_NOTE, FILE };

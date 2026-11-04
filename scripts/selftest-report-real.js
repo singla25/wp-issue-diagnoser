@@ -61,7 +61,9 @@ async function run(name, { verbose = false, templates = 5, logStep = REAL_LOG_ST
 }
 const section = (md, h) => { const i = md.indexOf(`\n## ${h}`); if (i < 0) return ''; const j = md.indexOf('\n## ', i + 4); return md.slice(i, j < 0 ? undefined : j); };
 const BAD = /&gt;|&lt;|&amp;|\bnull\b|\bundefined\b/;
-const COUNTS = /We looked at (\d+) things: (\d+) pass, (\d+) fail, (\d+) also noticed, (\d+) not checked\./;
+// REPORT-SPEC Part 2: the counts are the ONE dot line (the old "We looked at N things: ..." sentence is gone); groups: pass, fail, not checked, also noticed
+const COUNTS = /(\d+) pass · (\d+) fail · (\d+) not checked · (\d+) also noticed/;
+const OLD_SENTENCE = /We looked at \d+ things/;
 
 (async () => {
     // ---------------------------------------------------------------- synthetic work files for the tie rules
@@ -92,7 +94,7 @@ const COUNTS = /We looked at (\d+) things: (\d+) pass, (\d+) fail, (\d+) also no
     const rows = Object.values(tied), t = cpMod.tally(rows);
     ok(t.pass + t.fail + t.also_noticed + t.not_checked === t.total && t.also_noticed >= 3, `the four counts add up to the total (${t.pass}/${t.fail}/${t.also_noticed}/${t.not_checked} of ${t.total})`);
     const cp = plain.checkpointText(rows.map(r => ({ ...r })), t);
-    ok(cp.sentence === `We looked at ${t.total} things: ${t.pass} pass, ${t.fail} fail, ${t.also_noticed} also noticed, ${t.not_checked} not checked.`, 'the counts sentence: "N pass, N fail, N also noticed, N not checked."');
+    ok(cp.sentence === `${t.pass} pass · ${t.fail} fail · ${t.not_checked} not checked · ${t.also_noticed} also noticed` && t.pass + t.fail + t.not_checked + t.also_noticed === t.total, 'the counts line: "N pass · N fail · N not checked · N also noticed" (adding up to the total)');
     ok(cp.lines.some(l => /^Also noticed: .+: .+/.test(l)) && cp.lines.some(l => /^Fail: .+: .+/.test(l)) && cp.lines.some(l => /^Pass: /.test(l)) && cp.lines.some(l => /^Not checked: /.test(l)), 'list lines read Pass: / Fail: / Also noticed: title: reason / Not checked:');
 
     group('2. no raw "null" in a REST route');
@@ -117,13 +119,16 @@ const COUNTS = /We looked at (\d+) things: (\d+) pass, (\d+) fail, (\d+) also no
     const r = await run('base'), rv = await run('verbose', { verbose: true }), small = await run('small', { logStep: SMALL_LOG_STEP });
     group('4. the rendered gate report (fixture)');
     const items = r.f.checkpoints.items, c = r.f.checkpoints.counts;
-    ok(c.fail >= 1 && c.also_noticed >= 1 && c.pass + c.fail + c.also_noticed + c.not_checked === c.total, `counts in findings.json: ${c.pass} pass, ${c.fail} fail, ${c.also_noticed} also noticed, ${c.not_checked} not checked`);
-    const m = COUNTS.exec(r.md);
-    ok(m && Number(m[2]) === c.pass && Number(m[3]) === c.fail && Number(m[4]) === c.also_noticed && Number(m[5]) === c.not_checked, 'the Markdown counts line is the new four-part sentence and equals the JSON counts');
+    ok(c.fail === 0 && c.also_noticed >= 2 && c.pass + c.fail + c.also_noticed + c.not_checked === c.total, `counts in findings.json: ${c.pass} pass, ${c.fail} fail, ${c.also_noticed} also noticed, ${c.not_checked} not checked (no probe ran, and the template copies only share a component with the crash: nothing is a FAIL)`);
+    const m = COUNTS.exec(r.md), cliAll = (() => { const o = []; cli.printGate(r.res, r.plans, { gate: true, verbose: false }, x => o.push(x), r.dir); return o.join('\n'); })();
+    const once = t => (t.match(new RegExp(COUNTS.source, 'g')) || []).length === 1;
+    ok(m && Number(m[1]) === c.pass && Number(m[2]) === c.fail && Number(m[4]) === c.also_noticed && Number(m[3]) === c.not_checked && once(r.md) && once(cliAll) && COUNTS.exec(cliAll)[0] === m[0] && !OLD_SENTENCE.test(r.md + cliAll), 'the Markdown and the command line carry the dot line exactly once, equal to the JSON counts, and no "We looked at" sentence');
     const it = id => items.find(x => x.id === id);
-    ok(it('cp-14').result === 'FAIL' && it('cp-14').tied_to_crash === true, 'the Unicamp + WooCommerce template copies (the theme of the crash file) are a FAIL');
+    ok(it('cp-14').result === 'ALSO NOTICED' && it('cp-14').tied_to_crash === false, 'the Unicamp + WooCommerce template copies only share the theme with the crash file: ALSO NOTICED, not FAIL (weak-tie row, owner decision)');
     ok(it('cp-26').result === 'ALSO NOTICED' && it('cp-26').tied_to_crash === false && /Dup A/.test(it('cp-26').reason), 'an unrelated plugin that needs a newer WordPress is ALSO NOTICED, not FAIL');
-    ok(items.every(x => (x.result === 'FAIL') === (x.tied_to_crash && x.result === 'FAIL')) && items.filter(x => x.result === 'ALSO NOTICED').every(x => x.tied_to_crash === false), 'FAIL items are tied, ALSO NOTICED items are not');
+    const p5 = { planned: 1, protection: null, pages: [{ url: 'http://127.0.0.1:9/ews/', viewport: { name: 'laptop', width: 1280 }, loaded: true, status: 500, console_errors: [], page_errors: [], error_responses: [], failed_requests: [], redirects: [], text_flags: { blank: false, critical: false } }] };
+    const symRows = cpMod.evaluate({ work: { ...cpMod.loadWork(r.dir), probe: p5 }, validation: { hypotheses: [] }, ran: { probe: true }, hasRoot: true, tie: { components: ['theme:unicamp'], files: [] } }), sb = Object.fromEntries(symRows.map(x => [x.id, x]));
+    ok(items.every(x => (x.result === 'FAIL') === (x.tied_to_crash && x.result === 'FAIL')) && items.filter(x => x.result === 'ALSO NOTICED').every(x => x.tied_to_crash === false) && ['cp-38', 'cp-39'].every(id => sb[id].result === 'FAIL' && sb[id].tied_to_crash === true) && sb['cp-14'].result === 'ALSO NOTICED' && sb['cp-14'].tied_to_crash === false && symRows.filter(x => x.result === 'FAIL').every(x => x.tied_to_crash === true), 'FAIL items are tied, ALSO NOTICED items are not (same tree with a 500 page: the white-screen and HTTP 5xx rows FAIL and are tied; the template copies stay ALSO NOTICED)');
     ok(rv.f.checkpoint_text.lines.some(l => /^Also noticed: Requires PHP/.test(l)) && rv.f.checkpoint_text.lines.every(l => /^(Pass|Fail|Also noticed|Not checked): /.test(l)), 'verbose list: "Also noticed: title: reason" and no other prefix');
 
     group('5. escaping, plain words, no null');

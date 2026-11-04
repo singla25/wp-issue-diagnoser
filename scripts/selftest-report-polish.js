@@ -66,7 +66,9 @@ async function run(name, { verbose = false, complete = false, log = 'ews', title
 }
 const cliText = (r, verbose) => { const out = []; cli.printGate(r.res, r.plans, { gate: true, verbose }, t => out.push(t), r.dir); return out.join('\n'); };
 const INTERNAL = /\bcp-\d+|\bnull\b|\bundefined\b|could-not-test|NOT_RUN|PASSED|FAILED|\bNaN\b/;
-const COUNTS = /We looked at (\d+) things: (\d+) pass, (\d+) fail, (\d+) also noticed, (\d+) not checked\./;
+// REPORT-SPEC Part 2: the counts are the ONE dot line (the old "We looked at N things: ..." sentence is gone); groups: pass, fail, not checked, also noticed
+const COUNTS = /(\d+) pass · (\d+) fail · (\d+) not checked · (\d+) also noticed/;
+const OLD_SENTENCE = /We looked at \d+ things/;
 
 (async () => {
     const r = await run('base');
@@ -76,10 +78,13 @@ const COUNTS = /We looked at (\d+) things: (\d+) pass, (\d+) fail, (\d+) also no
     group('1. the checkpoints: JSON, order, counts, the full list only with --verbose');
     const cp = r.f.checkpoints, cj = require('../issue/checkpoints');
     ok(cp && cp.items.length > 40 && cp.counts.total === cp.items.length && cp.counts.pass + cp.counts.fail + (cp.counts.also_noticed || 0) + cp.counts.not_checked === cp.counts.total, 'findings.json: checkpoints.counts and items (ids stay in the JSON)');
-    ok(cp.items.every(i => /^cp-\d+$/.test(i.id) && i.title && ['PASS', 'FAIL', 'NOT CHECKED'].includes(i.result) && i.reason), 'every item has id, title, result and reason');
-    ok(JSON.stringify(cp.counts) === JSON.stringify(cj.tally(cj.evaluate({ work: cj.loadWork(r.dir), validation: validate.run(r.id, { root: store.load(r.id).root, config: path.join(store.load(r.id).root, 'plugin-guard.config.json'), lint: () => ({ ok: true, message: '' }) }), ran: { probe: false, sandbox: false }, hasRoot: true }))), 'the counts are the ones evaluate() gives');
+    ok(cp.items.every(i => /^cp-\d+$/.test(i.id) && i.title && ['PASS', 'FAIL', 'ALSO NOTICED', 'NOT CHECKED'].includes(i.result) && i.reason), 'every item has id, title, result and reason');
+    // the crash tie result.js gives evaluate(): the likely cause's components, the fatal's file and its provider
+    const lh = r.f.hypotheses.find(h => h.id === r.f.likely[0].id), lfr = lh.fatal_recheck;
+    const tie0 = { components: [...(lh.components || []), ...(r.f.likely[0].components || []), ...(lfr.provider && lfr.provider.known && lfr.provider.slug ? [lfr.provider.slug] : [])], files: [lfr.file] };
+    ok(JSON.stringify(cp.counts) === JSON.stringify(cj.tally(cj.evaluate({ work: cj.loadWork(r.dir), validation: validate.run(r.id, { root: store.load(r.id).root, config: path.join(store.load(r.id).root, 'plugin-guard.config.json'), lint: () => ({ ok: true, message: '' }) }), ran: { probe: false, sandbox: false }, hasRoot: true, tie: tie0 }))), 'the counts are the ones evaluate() gives (with the same crash tie)');
     const m = COUNTS.exec(r.f.summary.text_report);
-    ok(m && Number(m[1]) === cp.counts.total && Number(m[2]) === cp.counts.pass && Number(m[3]) === cp.counts.fail && Number(m[4]) === (cp.counts.also_noticed || 0) && Number(m[5]) === cp.counts.not_checked, 'the Summary has the counts sentence "N pass, N fail, N also noticed, N not checked"');
+    ok(m && Number(m[1]) + Number(m[2]) + Number(m[3]) + Number(m[4]) === cp.counts.total && Number(m[1]) === cp.counts.pass && Number(m[2]) === cp.counts.fail && Number(m[4]) === (cp.counts.also_noticed || 0) && Number(m[3]) === cp.counts.not_checked && !OLD_SENTENCE.test(r.f.summary.text_report), 'the Summary has the dot line "N pass · N fail · N not checked · N also noticed" (adding up to the total), and no "We looked at" sentence');
     const rl = r.f.summary.report_lines;
     ok(rl.indexOf('What is wrong') >= 0 && rl.indexOf('What is wrong') < rl.findIndex(l => COUNTS.test(l)), 'Summary: What is wrong first, then the counts');
     ok(r.md.indexOf('## Case 1') > 0 && r.md.indexOf('## Case 1') < r.md.search(COUNTS), 'Markdown: Case 1 first, then the counts');
@@ -91,7 +96,7 @@ const COUNTS = /We looked at (\d+) things: (\d+) pass, (\d+) fail, (\d+) also no
     const mv = rv.md, cv = cliText(rv, true);
     ok(/## All checks/.test(mv) && titles.every(t => mv.includes(t)) && titles.every(t => cv.includes(t)), 'with --verbose: every checkpoint is listed in the Markdown and on the command line');
     const lines = rv.f.checkpoint_text.lines;
-    ok(lines.length === cp.items.length && lines.every(l => /^(Pass: .+|Fail: .+: .+|Not checked: .+: .+)$/.test(l)), 'lines read "Pass: title (note)", "Fail: title: reason", "Not checked: title: reason"');
+    ok(lines.length === cp.items.length && lines.every(l => /^(Pass: .+|Fail: .+: .+|Also noticed: .+: .+|Not checked: .+: .+)$/.test(l)), 'lines read "Pass: title (note)", "Fail: title: reason", "Also noticed: title: reason", "Not checked: title: reason"');
     ok(lines.every(l => !INTERNAL.test(l)) && !mv.split('## All checks')[1].match(/cp-\d+/) && !cv.match(/cp-\d+/), 'the list has no cp-NN id and no internal value');
     ok(rv.f.checkpoints.items.length === cp.items.length && JSON.stringify(rv.f.checkpoints.counts) === JSON.stringify(cp.counts), 'the JSON carries the same checkpoints with and without --verbose');
     ok(!r.f.checkpoint_text.lines.length, 'without --verbose the reader list is empty');
@@ -116,7 +121,7 @@ const COUNTS = /We looked at (\d+) things: (\d+) pass, (\d+) fail, (\d+) also no
         group('2. the page: order, counts, no "--verbose", the list only collapsed with --verbose');
         ok(pr.ids[0] === 'status' && pr.ids[1] === 'see' && pr.ids[2] === 'case-1', 'the page: Status, What you see, then Case 1');
         const sm = await pr.sec('checked');
-        ok(COUNTS.test(sm), 'What was checked has the counts sentence');
+        ok(COUNTS.test(sm) && (sm.match(new RegExp(COUNTS.source, 'g')) || []).length === 1 && !OLD_SENTENCE.test(sm), 'What was checked has the dot line once, and no "We looked at" sentence');
         ok(!titles.some(t => pr.body.includes(t)) && !(await pr.sec('checked')).includes('All '), 'without --verbose: no checkpoint title anywhere on the page');
         ok(!/--verbose|run with|run again/i.test(pr.body) && !/--verbose/.test(await pr.sec('checked')), 'the page never says "run with --verbose"');
         ok(!/--verbose|run with|run again/i.test(pv.body), 'the page with --verbose does not say it either');
@@ -131,7 +136,7 @@ const COUNTS = /We looked at (\d+) things: (\d+) pass, (\d+) fail, (\d+) also no
     const none = await run('nolog', { log: 'none' });
     ok(!none.f.what_is_wrong && none.f.findings_empty_text === 'No confirmed cause was found.' && none.md.includes('This does not mean the site is healthy.'), 'with no cause at all: "No confirmed cause was found." (JSON) and the status line says it does not mean the site is healthy (Markdown)');
     if (browser) {
-        ok((await pr.sec('case-1')).includes('Likely cause (not confirmed)') && (await pr.sec('case-1')).includes(r.f.findings_empty_text.replace(/^No confirmed cause\. See Case 1\.$/, 'Not confirmed by a second, independent test.')), 'page: Case 1 says "Likely cause (not confirmed)" and the not-confirmed sentence');
+        ok((await pr.sec('case-1')).includes('Likely cause (not confirmed)') && (await pr.sec('case-1')).includes(r.f.findings_empty_text.replace(/^No confirmed cause\. See Case 1\.$/, require('../issue/case-file').NOT_CONFIRMED_SENTENCE)), 'page: Case 1 says "Likely cause (not confirmed)" and the not-confirmed sentence');
         ok((await pr.sec('status')).includes('1 likely cause'), 'page: Status says "1 likely cause"');
         const pn = await page(none); ok((await pn.sec('status')).includes('This does not mean the site is healthy.') && !pn.ids.some(i => ['findings', 'whatswrong', 'summary'].includes(i)), 'page, no cause: the plain sentence and no Findings / What-is-wrong / Summary section');
         const caseTexts = await Promise.all(pn.ids.filter(i => /^case-/.test(i)).map(i => pn.sec(i)));

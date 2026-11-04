@@ -1,10 +1,13 @@
 // The case-file layout of the gate report (REPORT-SPEC 4, 4.1, 5.1): TITLE, STATUS, WHAT YOU SEE, one block per case, WHAT WAS CHECKED, FOR A DEVELOPER.
 // ONE object (findings.json `case_file`) is built here and rendered three ways (the Markdown report, the command-line summary and the page), so the three agree.
 // Pure and deterministic. It states facts that were already computed (box, findings, advisories, checkpoints, which steps ran); it assigns no status and decides nothing.
-// Wording rules: "Likely cause (not confirmed)" is the one phrase; never "hacked" or "broken because of X"; "Not confirmed by a second, independent test." replaces "confidence: low";
-// where something was not looked at, it says so. Text taken from the site (file names, template names) is data: the renderers escape it.
+// Wording rules: "Likely cause (not confirmed)" is the one phrase; never "hacked" or "broken because of X"; "Not reproduced on a test copy of your site." replaces "confidence: low"
+// (REPORT-SPEC Part 2, owner wording); where something was not looked at, it says so. Text taken from the site (file names, template names, code lines) is data: the renderers escape it.
+// Part 2 adds: the cause detail under FOR A DEVELOPER (issue/cause-detail.js), the PHP version in "Looked at", "No likely cause was found for the crash." with unnumbered
+// advisory cases, and the "How sure" sentences of a confirmed case derived from what was actually checked.
 
 const plain = require('../lib/plain-names');
+const causeDetail = require('./cause-detail');
 
 const LIKELY = 'Likely cause (not confirmed)';
 const CHECK = 'Something else to check (probably not the crash)';
@@ -12,7 +15,17 @@ const CONFIRMED = 'Confirmed cause';
 const SIGNS = 'Signs that a copy was modified';
 const COMPROMISE = 'Possible compromise signs (a pattern match, not proof)';
 const EMPTY_STATUS = '0 likely cause · 0 confirmed. This does not mean the site is healthy.';
-const NOT_CONFIRMED_SENTENCE = 'Not confirmed by a second, independent test.';
+const NOT_CONFIRMED_SENTENCE = 'Not reproduced on a test copy of your site.';
+const NO_CAUSE_NOTE = 'No likely cause was found for the crash.';
+const PHP_NOT_STATED = 'PHP: not stated.';
+const NUM_WORD = ['zero', 'one', 'two', 'three', 'four', 'five', 'six'];
+// "How sure" of a confirmed case: only what the data shows (n = validated independent checks; sandbox = 'yes' | 'no' | null)
+function confirmedSentence(n, sandbox) {
+    const copy = sandbox === 'yes' ? 'Reproduced on a test copy of your site.' : sandbox === 'no' ? 'A test on a copy of your site did not reproduce it.' : 'Not yet tested on a copy of your site.';
+    return `Confirmed by ${NUM_WORD[n] || n} independent checks. ${copy}`;
+}
+// "How sure" of a cause that is not confirmed
+const notConfirmedSentence = sandbox => (sandbox === 'yes' ? 'Reproduced on a test copy of your site, but not confirmed by the re-check of the code.' : NOT_CONFIRMED_SENTENCE);
 const MODIFIED_NOTE = 'These are signs read from the copy; it cannot be verified against the vendor. Replace the copy with a licensed one from the vendor.';
 const cap = s => String(s).replace(/^./, c => c.toUpperCase());
 const plural = (n, one, many) => (n === 1 ? one : many);
@@ -34,7 +47,9 @@ function lookedAt(facts) {
     (facts.probeRan ? yes : no).push('the live page');
     if (facts.hasCode) yes.push(facts.phpSkipped ? 'the code (some PHP files were not read)' : 'the code'); else no.push('the code');
     if (facts.sandboxRan) yes.push('a throwaway test copy'); else no.push(facts.sandboxFailed ? 'a throwaway test copy (it could not run)' : 'a throwaway test copy');
-    return { yes, no, line: `Looked at: ${yes.length ? yes.join(', ') : 'nothing yet'}. Not looked at: ${no.length ? no.join(', ') : 'nothing'}.` };
+    // the PHP version only as the reporter stated it; the host's PHP (or the sandbox image's) is never claimed as the site's
+    if (facts.php) yes.push(`PHP ${facts.php} (you told us)`);
+    return { yes, no, php: facts.php ? null : PHP_NOT_STATED, line: `Looked at: ${yes.length ? yes.join(', ') : 'nothing yet'}. Not looked at: ${no.length ? no.join(', ') : 'nothing'}.` };
 }
 
 function evidenceWhere(x) {
@@ -42,7 +57,7 @@ function evidenceWhere(x) {
     return ev;
 }
 
-// f: the findings object (gate fields already set). ctx: { comps, facts: { hasLog, hasCode, phpSkipped, probeRan, sandboxRan, sandboxFailed }, probePages, templates, modified }
+// f: the findings object (gate fields already set). ctx: { comps, facts: { hasLog, hasCode, phpSkipped, probeRan, sandboxRan, sandboxFailed, sandboxReproduced, php, crash }, probePages, templates, modified, causeDetail }
 function build(f, ctx) {
     const box = f.what_is_wrong || null, bc = box && box.case ? box.case : null;
     const boxId = box ? ((f.likely || []).find(x => x.box === box) || (f.findings || []).find(x => x.box === box) || {}).id : null;
@@ -53,16 +68,21 @@ function build(f, ctx) {
     const compromise = (f.findings || []).filter(x => x.label === 'compromise');
     const cases = [];
     const sureLive = bc && bc.live ? bc.live : null;
+    const facts = ctx.facts || {}, sbx = facts.sandboxReproduced === 'yes' || facts.sandboxReproduced === true ? 'yes' : facts.sandboxReproduced === 'no' || facts.sandboxReproduced === false ? 'no' : null;
+    // validated independent checks of a hypothesis: its independent kinds, or the two supports of a fatal re-check rule (validate.js counts those as the two)
+    const checksOf = id => { const h = (f.hypotheses || []).find(x => x.id === id) || {}; const fr = h.fatal_recheck; return Math.max((h.independent_kinds || []).length, fr && fr.rule && (fr.supports || []).length === 2 ? 2 : 0); };
 
     const addBox = () => {
         const likely = box.tier === 'likely';
-        const kinds = ((f.hypotheses || []).find(h => h.id === boxId) || {}).independent_kinds || [];
+        const nChecks = checksOf(boxId);
         const rows = [];
         const comps = (bc.comps || []).map(c => itemName({ kind: c.kind, name: c.name, version: c.version }));
         if (comps.length) rows.push(['Components', [comps.join(' and ')]]);
         rows.push(['Where', [`${bc.where.who}: ${bc.where.file}, line ${bc.where.line}`]]);
         rows.push(['Why', bc.why]);
-        rows.push(['How sure', [...bc.sure, ...(sureLive ? [sureLive] : []), likely ? NOT_CONFIRMED_SENTENCE : (kinds.length >= 2 ? `Confirmed by ${kinds.length} independent kinds of evidence.` : 'Marked as confirmed; the details for a developer show what it rests on.')]]);
+        if (likely) rows.push(['How sure', [...bc.sure, ...(sureLive ? [sureLive] : []), notConfirmedSentence(sbx)]]);
+        else if (nChecks >= 2) rows.push(['How sure', [confirmedSentence(nChecks, sbx), ...bc.sure, ...(sureLive ? [sureLive] : [])]]);
+        else rows.push(['How sure', [...bc.sure, ...(sureLive ? [sureLive] : []), 'Marked as confirmed; the details for a developer show what it rests on.']]);
         if (box.note) rows.push(['Note', [box.note]]);
         rows.push(['What to do', bc.todo]);
         cases.push({ kind: likely ? 'likely' : 'confirmed', heading: likely ? (box.age === 'old' ? `${LIKELY}, old log entry` : LIKELY) : CONFIRMED, rows });
@@ -75,10 +95,11 @@ function build(f, ctx) {
         if (wh.length) rows.push(['Where', wh]);
         rows.push(['Why', [sent(x.cause) + (x.type_text ? `. Kind of problem: ${x.type_text}.` : '.')]]);
         const sure = [];
+        if (kind === 'confirmed' && checksOf(x.id) >= 2) sure.push(confirmedSentence(checksOf(x.id), sbx));
         if (x.status) sure.push(`${plain.statusWord(x.status)}.`);
         if (x.shown_because) sure.push(`Shown because: ${x.shown_because}.`);
         for (const b of x.breaking_because || []) sure.push(`Seen: ${b.reason}`);
-        if (kind === 'likely') sure.push(NOT_CONFIRMED_SENTENCE);
+        if (kind === 'likely') sure.push(notConfirmedSentence(sbx));
         rows.push(['How sure', sure]);
         if (x.rollback) rows.push(['What to do', [x.rollback.intro, ...x.rollback.options.map(o => `${o.title}: ${o.undo}`)].filter(Boolean)]);
         cases.push({ kind, heading, rows });
@@ -102,7 +123,7 @@ function build(f, ctx) {
             rows.push(['What can break', ['Pages built from these templates (for example cart, checkout or layout) can look or behave wrongly after an update. This is probably not what stops the page from loading.']]);
             rows.push(['How sure', ['Read from the files of the copy. Not confirmed as a cause of the problem.']]);
             rows.push(['What to do', ['Ask the theme author for an update, or compare each copy with the plugin\'s own file on a copy of the site.']]);
-            cases.push({ kind: 'check', heading: CHECK, rows });
+            cases.push({ kind: 'check', heading: CHECK, rows, advisory: true });
         } else {
             const rows = [];
             const comps = (a.components || []).map(named);
@@ -111,15 +132,17 @@ function build(f, ctx) {
             if (wh.length) rows.push(['Where', wh]);
             rows.push(['What', [sent(a.cause) + (a.merged > 1 ? ` (${a.merged} times)` : '') + '.']]);
             rows.push(['How sure', [a.why_not_shown && a.why_not_shown.primary !== 'not-established' ? `It is ${a.why_not_shown.text}.` : 'Not confirmed.', ...(a.backed_by_log || []).map(b => `A log error names ${b.file}.`)]]);
-            cases.push({ kind: 'check', heading: CHECK, rows });
+            cases.push({ kind: 'check', heading: CHECK, rows, advisory: true });
         }
     }
     // signs that a copy was modified: only a hook; the data arrives with the cracked-copy part and nothing here detects it
     if (Array.isArray(ctx.modified) && ctx.modified.length) cases.push({ kind: 'signs', heading: SIGNS, rows: [['Signs', ctx.modified.map(String)], ['How sure', [MODIFIED_NOTE]]] });
-    cases.forEach((c, i) => { c.n = i + 1; });
-
     const n = { likely: cases.filter(c => c.kind === 'likely').length, confirmed: cases.filter(c => c.kind === 'confirmed').length, check: cases.filter(c => c.kind === 'check').length };
-    const looked = lookedAt(ctx.facts || {});
+    // a crash with no likely and no confirmed cause: say so, and an advisory ("something else to check") carries no Case number, so Case 1 is never an advisory
+    const noCause = !!facts.crash && !n.likely && !n.confirmed && cases.some(c => c.advisory);
+    let k = 0;
+    for (const c of cases) { c.n = noCause && c.advisory ? null : ++k; delete c.advisory; }
+    const looked = lookedAt(facts);
     // what the reader sees: only what is known
     const see = [];
     const images = (f.reported && f.reported.images) || [];
@@ -129,15 +152,20 @@ function build(f, ctx) {
     else if (ctx.facts && ctx.facts.probeRan) see.push('The live pages that were loaded did not answer with an error.');
     else see.push('No live check was run, so nothing was seen on the live page.');
     const cp = f.checkpoints ? f.checkpoints.counts : null;
+    // the counts are ONE dot line (the old "We looked at N things" sentence is gone); the full list only with --verbose
     const checked = cp ? { line: `${cp.pass} pass · ${cp.fail} fail · ${cp.not_checked} not checked · ${cp.also_noticed || 0} also noticed`,
-        sentence: f.checkpoint_text.sentence, legend: 'Also noticed, probably not the crash: a check found something, but nothing ties it to this problem.', items: f.checkpoint_text.lines } : null;
+        legend: 'Also noticed, probably not the crash: a check found something, but nothing ties it to this problem.', items: f.checkpoint_text.lines } : null;
+    // FOR A DEVELOPER: the cause detail (issue/cause-detail.js) instead of the lines Case 1 already shows; the versions line and the large-log note stay
     const dev = [];
-    if (box) dev.push(...box.lines);
+    const cd = ctx.causeDetail || null;
+    if (box && cd) dev.push(...cd.lines, ...box.lines.filter(l => /^Versions: /.test(l)));
+    else if (box) dev.push(...box.lines);
     if (f.log_note) dev.push(f.log_note);
     return {
         title: f.issue_title_short || f.issue.title,
-        status: { ...n, line: statusLine(n), looked: looked.line, note: f.log_note || null, sandbox_note: ctx.sandboxNote || null, empty: !n.likely && !n.confirmed && !n.check },
-        see, cases, checked, developer: dev
+        status: { ...n, line: statusLine(n), looked: looked.line, php: looked.php, note: f.log_note || null, sandbox_note: ctx.sandboxNote || null, empty: !n.likely && !n.confirmed && !n.check },
+        see, no_cause_note: noCause ? NO_CAUSE_NOTE : null, cases, checked, developer: dev,
+        excerpt: box && cd && cd.excerpt && cd.excerpt.available ? { title: `${cd.excerpt.file}, lines ${cd.excerpt.from} to ${cd.excerpt.to} (line ${cd.excerpt.cited} is marked with >)`, lines: causeDetail.excerptLines(cd.excerpt) } : null
     };
 }
 
@@ -145,24 +173,39 @@ function build(f, ctx) {
 function markdown(cf, esc) {
     const L = [], e = esc || (t => String(t));
     L.push('## Status', '', `**${e(cf.status.line)}**`, '', e(cf.status.looked), '');
+    if (cf.status.php) L.push(e(cf.status.php), '');
     if (cf.status.note) L.push(e(cf.status.note), '');
     if (cf.status.sandbox_note) L.push(e(cf.status.sandbox_note), '');
     L.push('## What you see', '', ...cf.see.map(s => `- ${e(s)}`), '');
+    if (cf.no_cause_note) L.push(`**${e(cf.no_cause_note)}**`, '');
     for (const c of cf.cases) {
-        L.push(`## Case ${c.n}: ${c.heading}`, '');
+        L.push(c.n ? `## Case ${c.n}: ${c.heading}` : `## ${c.heading}`, '');
         for (const [k, v] of c.rows) { if (v.length === 1) L.push(`- ${k}: ${e(v[0])}`); else { L.push(`- ${k}:`); for (const x of v) L.push(`    - ${e(x)}`); } }
         L.push('');
     }
     return L;
 }
+// the developer block in Markdown: the plain lines, then the code excerpt as a fenced block (site text is data: no fence can be closed from inside)
+function markdownDeveloper(cf, esc) {
+    const L = [], e = esc || (t => String(t));
+    if (!cf.developer.length) return L;
+    L.push('## For a developer', '', ...cf.developer.map(l => `- ${e(l)}`), '');
+    if (cf.excerpt) L.push(e(cf.excerpt.title), '', '```php', ...cf.excerpt.lines.map(l => l.replace(/`/g, "'")), '```', '');
+    return L;
+}
 function cli(cf) {
-    const L = [cf.title, '', `STATUS  ${cf.status.line}`, `        ${cf.status.looked}`, ...(cf.status.note ? [`        ${cf.status.note}`] : []), ...(cf.status.sandbox_note ? [`        ${cf.status.sandbox_note}`] : []), '', 'WHAT YOU SEE', ...cf.see.map(s => `  ${s}`)];
+    const L = [cf.title, '', `STATUS  ${cf.status.line}`, `        ${cf.status.looked}`, ...(cf.status.php ? [`        ${cf.status.php}`] : []), ...(cf.status.note ? [`        ${cf.status.note}`] : []), ...(cf.status.sandbox_note ? [`        ${cf.status.sandbox_note}`] : []), '', 'WHAT YOU SEE', ...cf.see.map(s => `  ${s}`)];
+    if (cf.no_cause_note) L.push('', cf.no_cause_note);
     for (const c of cf.cases) {
-        L.push('', `CASE ${c.n}  ${c.heading.toUpperCase()}`);
+        L.push('', c.n ? `CASE ${c.n}  ${c.heading.toUpperCase()}` : c.heading.toUpperCase());
         for (const [k, v] of c.rows) { if (v.length === 1) L.push(`  ${k}: ${v[0]}`); else { L.push(`  ${k}:`); for (const x of v) L.push(`    - ${x}`); } }
     }
-    if (cf.checked) L.push('', 'WHAT WAS CHECKED', `  ${cf.checked.line}`, `  ${cf.checked.sentence}`, `  ${cf.checked.legend}`);
+    if (cf.checked) L.push('', 'WHAT WAS CHECKED', `  ${cf.checked.line}`, `  ${cf.checked.legend}`);
+    if (cf.developer && cf.developer.length) {
+        L.push('', 'FOR A DEVELOPER', ...cf.developer.map(l => `  ${l}`));
+        if (cf.excerpt) L.push(`  ${cf.excerpt.title}`, ...cf.excerpt.lines.map(l => `    ${l}`));
+    }
     return L.join('\n');
 }
 
-module.exports = { build, markdown, cli, statusLine, lookedAt, LIKELY, CHECK, CONFIRMED, SIGNS, EMPTY_STATUS, NOT_CONFIRMED_SENTENCE, MODIFIED_NOTE };
+module.exports = { build, markdown, markdownDeveloper, cli, statusLine, lookedAt, confirmedSentence, LIKELY, CHECK, CONFIRMED, SIGNS, EMPTY_STATUS, NOT_CONFIRMED_SENTENCE, NO_CAUSE_NOTE, PHP_NOT_STATED, MODIFIED_NOTE };

@@ -40,11 +40,13 @@ const hasWords = (ctx, re) => re.test([ctx.issue.description, ctx.issue.since, c
 const clueTypes = ctx => new Set((ctx.clues || []).map(c => c.type));
 const hostOf = u => { try { return new URL(u).host.toLowerCase(); } catch { return null; } };
 
-// the oracle a clue suggests for a symptom; null = keep the default for that symptom
+// the oracle a clue suggests for a symptom; null = keep the default for that symptom.
+// A crash (white screen) keeps its default oracle even with a PHP fatal in the log: a "debug-log" oracle looks only at NEW log lines, so a fatal logged earlier gives no answer,
+// and its stored answer cannot be recomputed from the saved page observations (they keep no log text), which made the re-check disagree and kept a real crash from being
+// confirmed (REPORT-SPEC Part 2). The default oracle judges the 5xx page itself and recomputes to the same answer.
 function proposeOracle(symptom, clues) {
     const by = t => (clues || []).find(c => c.type === t);
     if (symptom === 'js-error') { const c = by('js-not-defined') || by('js-error'); return c && c.detail && c.detail.symbol ? { type: 'console-error', value: String(c.detail.symbol).slice(0, 80) } : null; }
-    if (symptom === 'white-screen' && (by('php-fatal') || by('php-redeclare') || by('php-undefined-function'))) return { type: 'debug-log', value: 'Fatal error' };
     return null;
 }
 function suggestedSymptom(clues) {
