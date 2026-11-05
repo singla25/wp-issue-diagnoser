@@ -17,6 +17,7 @@ const postcss = require('postcss');
 const semver = require('semver');
 const ownership = require('../lib/ownership');
 const corehandles = require('./corehandles');
+const graphMod = require('./graph');
 
 const MAX_ASSET_BYTES = 1.5 * 1024 * 1024, MAX_ASSETS = 300;
 const posix = p => p.split(path.sep).join('/');
@@ -236,6 +237,8 @@ function run(root, analysis) {
     }
 
     // ---- the same global defined by two scripts ----
+    // a core plugin and its Pro edition by the same vendor (graph.js vendorPairs) are meant to share such a name: it is not listed as a clash, and is kept in `same_vendor`
+    const vendorSet = new Set(graphMod.vendorPairs(root, analysis.components).map(p => graphMod.pairKey(p.core, p.pro))), sameVendor = [];
     const globals = new Map();
     for (const a of jsParsed) for (const g of a.js.globals) { if (g.kind === 'global-lexical') continue; const k = g.name; if (!globals.has(k)) globals.set(k, []); globals.get(k).push({ ...g, component: a.component, handle: a.handle, location: a.location }); }
     for (const [name, list] of [...globals].sort((x, y) => x[0].localeCompare(y[0]))) {
@@ -243,6 +246,7 @@ function run(root, analysis) {
         const comps = [...new Set(per.map(g => g.component))];
         if (per.length < 2 || comps.length < 2) continue;
         if (/^(jQuery\.|\$\.)?(fn|extend|each|noop)$/.test(name)) continue;
+        if (comps.length === 2 && vendorSet.has(graphMod.pairKey(comps[0], comps[1]))) { sameVendor.push({ kind: 'script-name', name, components: comps.slice().sort() }); continue; }
         push({ type: 'js-global-collision', key: name, global: name, kinds: [...new Set(per.map(g => g.kind))], components: comps, evidence: per.map(g => ({ component: g.component, handle: g.handle, file: g.location, line: g.line })),
             message: `${name} is assigned by ${per.length} scripts from ${comps.join(', ')}: the later one overwrites the earlier` });
     }
@@ -265,7 +269,7 @@ function run(root, analysis) {
         evidence: c.list.map(x => ({ component: x.component, handle: x.handle, file: x.location, line: x.rule.line })), message: `"${c.selector}" is styled by ${c.components.join(' and ')} with different values for ${c.conflicts.map(x => x.property).join(', ')}` });
     steps.push({ id: 'collisions', label: 'Library, JavaScript-global and CSS collisions', status: parsed.length || assets.length ? 'PASSED' : 'SKIPPED', reason: css.length > 40 ? `${css.length - 40} further CSS overlaps were not listed` : null, count: collisions.length, by_type: Object.fromEntries([...new Set(collisions.map(c => c.type))].map(t => [t, collisions.filter(c => c.type === t).length])), effective_jquery: effective });
     collisions.sort((a, b) => a.type.localeCompare(b.type) || a.id.localeCompare(b.id));
-    return { assets: assets.map(({ _a, _rules, ...a }) => a), collisions, steps, effective_jquery: effective };
+    return { assets: assets.map(({ _a, _rules, ...a }) => a), collisions, steps, effective_jquery: effective, ...(sameVendor.length ? { same_vendor: sameVendor } : {}) };
 }
 
 module.exports = { run, analyseJs, analyseCss, libOf, LIBS, JQUERY_API };

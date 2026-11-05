@@ -79,8 +79,8 @@ function run(id, { root, config = null } = {}) {
         facts: Object.fromEntries(Object.entries(analysis.facts).filter(([ref]) => analysis.components.find(c => c.ref === ref).depth === 'syntax-tree')) });
     write(dir, 'work/components.json', { components: index.components });
     write(dir, 'work/feature-index.json', { scoring: index.scoring, query: index.query, text_matches: index.text_matches, providers: index.providers });
-    write(dir, 'work/collisions.json', { assets: collide.assets, collisions: collide.collisions, effective_jquery: collide.effective_jquery, steps: collide.steps });
-    write(dir, 'work/graph.json', { nodes: graph.nodes, edges: graph.edges, edges_total: graph.edges_total, truncated: graph.truncated, problems: graph.problems, relevant_hooks: graph.relevant_hooks, core_options_known: graph.core_options_known });
+    write(dir, 'work/collisions.json', { assets: collide.assets, collisions: collide.collisions, effective_jquery: collide.effective_jquery, steps: collide.steps, ...(collide.same_vendor ? { same_vendor: collide.same_vendor } : {}) });
+    write(dir, 'work/graph.json', { nodes: graph.nodes, edges: graph.edges, edges_total: graph.edges_total, truncated: graph.truncated, problems: graph.problems, relevant_hooks: graph.relevant_hooks, core_options_known: graph.core_options_known, ...(graph.same_vendor ? { same_vendor: graph.same_vendor } : {}) });
     write(dir, 'work/slice.json', slice);
     write(dir, 'work/kb-hits.json', { hits: kbHits, not_applicable: kbHits.not_applicable || [] });
     write(dir, 'work/hypotheses.json', hypotheses);

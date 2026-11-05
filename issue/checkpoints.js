@@ -60,7 +60,10 @@ function makeCtx(inp, S) {
     // what a found sentence is about (for the "tied to the crash" decision): the components and the files of the thing it came from. The sentence itself is unchanged.
     const tg = (x, text) => ({ t: text, c: [...(x.components || []), ...(x.from ? [x.from] : []), ...(x.to ? [x.to] : []), ...(x.component ? [x.component] : []), ...(x.missing ? [x.missing] : [])], f: [...(x.evidence || []).map(e => e && e.file).filter(Boolean), ...(x.file ? [x.file] : [])] });
     const cc = inp.work.customCode || {}, obsAll = (cc.observations || []).slice().sort((a, b) => (a.id < b.id ? -1 : 1));
+    // a core plugin and its Pro edition by the same vendor (graph.json same_vendor, issue/graph.js): what they share on purpose is not a clash
+    const vendor = new Set((((inp.work.graph || {}).same_vendor || {}).pairs || []).map(p => [p.core, p.pro].sort().join('|')));
     const obs = (...types) => obsAll.filter(o => types.includes(o.type));
+    const obsV = (...types) => obs(...types).filter(o => !((o.components || []).length === 2 && vendor.has([...o.components].sort().join('|'))));
     const classicStep = ((cc.steps || []).find(s => s.id === 'classic-checks')) || {};
     // a classic rule "found" it when an observation was kept OR the rule was found and left out (not tied to the report): both mean the check saw something
     const classic = (...rules) => [
@@ -70,7 +73,7 @@ function makeCtx(inp, S) {
     const edges = (...types) => ((inp.work.graph || {}).edges || []).filter(e => types.includes(e.type)).sort((a, b) => (a.id < b.id ? -1 : 1));
     const probe = inp.work.probe || {}, pages = Array.isArray(probe.pages) ? probe.pages : [], loadedPages = pages.filter(p => p.loaded);
     const kb = (...ids) => { const k = inp.work.kbHits; const hits = Array.isArray(k) ? k : (k && k.hits) || []; return hits.filter(h => ids.includes(h.id)); };
-    return { ref, list, pt, tg, obs, classic, edges, pages, loadedPages, kb, names, comps, S };
+    return { ref, list, pt, tg, obs, obsV, classic, edges, pages, loadedPages, kb, names, comps, S };
 }
 
 // a REST route as a reader can read it: the code analysis sometimes records a route whose namespace or tail is a PHP expression ("null/'/' . $this->rest_base"), which is never shown as it is
@@ -86,13 +89,13 @@ const EVALUATORS = {
     'duplicate-declaration': c => ({ need: ['custom'], found: c.obs('duplicate-declaration').map(o => { const m = /^decl:(\w+):(.*)$/.exec(o.dup_key || ''); return `${c.list(o.components)} both declare the same ${m ? `${m[1]} "${m[2]}"` : 'function or class'}`; }) }),
     'duplicate-constant': c => ({ need: ['custom'], found: c.obs('duplicate-constant').map(o => c.tg(o, `${c.list(o.components)} both define the constant ${o.constant}`)) }),
     'duplicate-shortcode': c => ({ need: ['custom'], found: c.obs('duplicate-shortcode').map(o => c.tg(o, `${c.list(o.components)} both register the shortcode [${o.shortcode}]`)) }),
-    'duplicate-rest-route': c => ({ need: ['custom'], found: c.obs('duplicate-rest-route').map(o => c.tg(o, `${c.list(o.components)} both register ${routeText(o.route)}`)) }),
-    'duplicate-ajax-action': c => ({ need: ['custom'], found: c.obs('duplicate-ajax-action').map(o => c.tg(o, `${c.list(o.components)} both answer the AJAX action "${o.action}"`)) }),
+    'duplicate-rest-route': c => ({ need: ['custom'], found: c.obsV('duplicate-rest-route').map(o => c.tg(o, `${c.list(o.components)} both register ${routeText(o.route)}`)) }),
+    'duplicate-ajax-action': c => ({ need: ['custom'], found: c.obsV('duplicate-ajax-action').map(o => c.tg(o, `${c.list(o.components)} both answer the AJAX action "${o.action}"`)) }),
     'duplicate-script-handle': c => ({ need: ['custom'], found: c.obs('duplicate-script-handle').map(o => c.tg(o, `${c.list(o.components)} both register the ${o.handle_type || 'script'} name "${o.handle}" with different files`)) }),
     'duplicate-post-type': c => ({ need: ['graph'], found: c.edges('duplicate-post-type').map(e => c.tg(e, `${c.list([e.from, e.to])} both register the content type "${e.key}"`)) }),
     'shared-option': c => ({ need: ['graph'], found: c.edges('shared-option').map(e => c.tg(e, `${c.list([e.from, e.to])} share the setting "${e.key}"`)) }),
     'hook-same-priority': c => ({ need: ['graph', 'classic'], found: [...c.edges('hook-same-priority').map(e => c.tg(e, `${c.list([e.from, e.to])} both act on "${e.hook}" at the same priority`)), ...c.classic('hook-priority', 'hook-contradiction')] }),
-    'hook-removal': c => ({ need: ['custom', 'classic'], found: [...c.obs('removes-other-component-hook', 'remove-wrong-priority').map(o => c.tg(o, `${c.list(o.components)}: one removes a hook that belongs to the other`)), ...c.classic('hook-removed')] }),
+    'hook-removal': c => ({ need: ['custom', 'classic'], found: [...c.obsV('removes-other-component-hook', 'remove-wrong-priority').map(o => c.tg(o, `${c.list(o.components)}: one removes a hook that belongs to the other`)), ...c.classic('hook-removed')] }),
     'library-clash': c => ({ need: ['collisions'], found: ((c.inp.work.collisions || {}).collisions || []).filter(x => ['library-version-conflict', 'duplicate-library'].includes(x.type)).sort((a, b) => (a.id < b.id ? -1 : 1)).map(x => c.tg(x, `${c.list((x.components || []).filter(k => k !== 'wordpress-core'))} load ${x.library ? `the library ${x.library}` : 'the same library'} more than once`)) }),
     'duplicate-purpose': c => ({ need: ['kb', 'classic'], found: [...c.kb('multiple-full-page-cache-plugins', 'wp-rocket-with-incompatible-plugin').map(h => c.tg(h, c.pt(h.title))), ...c.classic('duplicate-feature')] }),
     'missing-dependency': c => ({ need: ['graph', 'classic'], found: [...(((c.inp.work.graph || {}).problems || []).slice().sort((a, b) => (`${a.type}${a.component}${a.missing}` < `${b.type}${b.component}${b.missing}` ? -1 : 1)).map(p => c.tg(p, c.pt(`${c.ref(p.component)} needs "${p.missing}", which is not installed`)))), ...c.classic('dep-missing', 'dep-inactive', 'dep-implied', 'theme-parent-missing')] }),
@@ -170,6 +173,9 @@ function isTied(x, tie, { fileOnly = false } = {}) {
     return files.some(f => tie.files.has(f) || (componentOfFile(f) && tie.components.has(componentOfFile(f))));
 }
 
+// rows that can repeat another row's finding: the content-hook row repeats "same hook, same priority"; the PHP-version row repeats "removed functions"
+const SAME_AS = { 'content-hooks': 'hook-same-priority', 'php-version-code': 'removed-functions' };
+
 // ---------------------------------------------------------------- the evaluation
 // inp: { work, validation, ran:{probe,sandbox}, hasRoot, issue?, checkpoints? } -> [{ id, title, result, reason }] for EVERY checkpoint, in id order
 function evaluate(inp = {}) {
@@ -178,7 +184,8 @@ function evaluate(inp = {}) {
     const list = (inp.checkpoints || load()).checkpoints.slice().sort((a, b) => (a.id < b.id ? -1 : 1));
     const S = sourcesOf(input), c = attach(makeCtx(input, S), input);
     const missing = keys => { const bad = keys.map(k => S[k]).find(s => s && !s.ok); return bad ? bad.why : null; };
-    return list.map(cp => {
+    const texts = new Map(), evalOf = new Map();
+    const rows = list.map(cp => {
         const base = { id: cp.id, title: cp.title, tied_to_crash: false, breaks_site: cp.breaks_site || 'depends' };
         if (cp.coverage === 'NOT DETECTED') return { ...base, result: 'NOT CHECKED', reason: cp.no_evaluator_reason ? `not checked yet: ${cp.no_evaluator_reason}` : 'not checked yet' };
         if (cp.reached_in === 'Classic') return { ...base, result: 'NOT CHECKED', reason: cp.no_evaluator_reason || 'only the classic scan checks this' };
@@ -189,6 +196,7 @@ function evaluate(inp = {}) {
         // data of a source that did not run (stale files, no folder given) is never read: when none of the sources ran, the row is NOT CHECKED
         if (r.need.every(k => S[k] && !S[k].ok)) return { ...base, result: 'NOT CHECKED', reason: S[r.need[0]].why };
         const found = r.found.filter(Boolean).map(x => (typeof x === 'string' ? { t: x, c: [], f: [] } : x));
+        texts.set(cp.id, found.map(x => x.t)); evalOf.set(cp.id, cp.evaluator);
         if (found.length) {
             // tied to the crash: a symptom row of the probe / log, or an item that names a component or file of the crash evidence. Items that are tied come first in the reason.
             const tied = found.filter(x => !tie || SYMPTOM_ROWS.has(cp.evaluator) || isTied(x, tie, { fileOnly: WEAK_TIE_ROWS.has(cp.id) })), rest = found.filter(x => !tied.includes(x));
@@ -199,6 +207,15 @@ function evaluate(inp = {}) {
         if (gap) return { ...base, result: 'NOT CHECKED', reason: gap };
         return { ...base, result: 'PASS', reason: ['nothing found', cp.coverage === 'PARTIAL' ? PARTIAL_NOTE : '', r.note || ''].filter(Boolean).join('; ') };
     });
+    // a row that only repeats another row's findings is shown as "same finding as <that row>" (its own result and count stay; ids are internal, the reader sees the title)
+    for (const row of rows) {
+        const baseEval = SAME_AS[evalOf.get(row.id)];
+        if (!baseEval || (row.result !== 'FAIL' && row.result !== 'ALSO NOTICED')) continue;
+        const baseRow = rows.find(x => evalOf.get(x.id) === baseEval && (x.result === 'FAIL' || x.result === 'ALSO NOTICED'));
+        const mine = texts.get(row.id) || [], theirs = new Set(texts.get(baseRow && baseRow.id) || []);
+        if (baseRow && mine.length && mine.every(t => theirs.has(t))) { row.same_as = baseRow.id; row.reason = `same finding as "${baseRow.title}"`; }
+    }
+    return rows;
 }
 
 const tally = rows => ({ pass: rows.filter(r => r.result === 'PASS').length, fail: rows.filter(r => r.result === 'FAIL').length, also_noticed: rows.filter(r => r.result === 'ALSO NOTICED').length, not_checked: rows.filter(r => r.result === 'NOT CHECKED').length, total: rows.length });

@@ -11,6 +11,7 @@ const causeDetail = require('./cause-detail');
 
 const LIKELY = 'Likely cause (not confirmed)';
 const CHECK = 'Something else to check (probably not the crash)';
+const CHECK_NO_CRASH = 'Also noticed';   // the report is not about a crash (facts.crash === false): "probably not the crash" would make no sense
 const CONFIRMED = 'Confirmed cause';
 const SIGNS = 'Signs that a copy was modified';
 const COMPROMISE = 'Possible compromise signs (a pattern match, not proof)';
@@ -49,15 +50,24 @@ function statusLine(n) {
     return parts.join(' · ') + (!n.likely && !n.confirmed ? '. This does not mean the site is healthy.' : '');
 }
 
+// "12 PHP files were not read: 9 too large, 3 could not be parsed" (real counts and reasons); a reason that is not known is "for other reasons"; without counts the older short sentence
+function skippedText(d) {
+    if (!d || !(d.total > 0)) return 'some PHP files were not read';
+    const parts = [];
+    if (d.tooLarge) parts.push(`${d.tooLarge} too large`);
+    if (d.unparsed) parts.push(`${d.unparsed} could not be parsed`);
+    if (d.other) parts.push(`${d.other} for other reasons`);
+    return `${d.total} PHP ${d.total === 1 ? 'file was' : 'files were'} not read: ${parts.join(', ')}`;
+}
 // what truly ran / did not run -> "Looked at: ... Not looked at: ..."
 function lookedAt(facts) {
     const yes = [], no = [];
     (facts.hasLog ? yes : no).push('your log');
     (facts.probeRan ? yes : no).push('the live page');
-    if (facts.hasCode) yes.push(facts.phpSkipped ? 'the code (some PHP files were not read)' : 'the code'); else no.push('the code');
+    if (facts.hasCode) yes.push(facts.phpSkipped ? `the code (${skippedText(facts.phpSkippedDetail)})` : 'the code'); else no.push('the code');
     if (facts.sandboxRan) yes.push('a throwaway test copy'); else no.push(facts.sandboxFailed ? 'a throwaway test copy (it could not run)' : 'a throwaway test copy');
     // the PHP version only as the reporter stated it; the host's PHP (or the sandbox image's) is never claimed as the site's
-    if (facts.php) yes.push(`PHP ${facts.php} (you told us)`);
+    if (facts.php) yes.push(`PHP ${facts.php} (${facts.phpSource === 'you confirmed' ? 'you confirmed' : 'you told us'})`);
     return { yes, no, php: facts.php ? null : PHP_NOT_STATED, line: `Looked at: ${yes.length ? yes.join(', ') : 'nothing yet'}. Not looked at: ${no.length ? no.join(', ') : 'nothing'}.` };
 }
 
@@ -81,6 +91,8 @@ function build(f, ctx) {
     const inCase3 = x => modFiles.size > 0 && (/obfuscated-exec/.test(String(x.type || '')) || /runs obfuscated code/.test(String(x.title || ''))) && (x.evidence || []).some(e => e.file) && (x.evidence || []).filter(e => e.file).every(e => modFiles.has(e.file));
     const compromise = (f.findings || []).filter(x => x.label === 'compromise' && !inCase3(x));
     const cases = [];
+    const noCrash = (ctx.facts || {}).crash === false;
+    const checkHeading = noCrash ? CHECK_NO_CRASH : CHECK;
     const sureLive = bc && bc.live ? bc.live : null;
     const facts = ctx.facts || {}, sbx = facts.sandboxReproduced === 'yes' || facts.sandboxReproduced === true ? 'yes' : facts.sandboxReproduced === 'no' || facts.sandboxReproduced === false ? 'no' : null;
     // validated independent checks of a hypothesis: its independent kinds, or the two supports of a fatal re-check rule (validate.js counts those as the two)
@@ -139,10 +151,10 @@ function build(f, ctx) {
             if (comps.length) rows.push(['Components', [comps.join(' and ')]]);
             rows.push(['What', [`${cap(comps[0] || 'The theme')} keeps its own copies of ${th.length} ${plural(th.length, 'template', 'templates')} that ${plural(th.length, 'is', 'are')} older than the ${plural(th.length, 'one', 'ones')} in ${comps[1] || 'the plugin'}.`]]);
             rows.push(['Files', list]);
-            rows.push(['What can break', ['Pages built from these templates (for example cart, checkout or layout) can look or behave wrongly after an update. This is probably not what stops the page from loading.']]);
+            rows.push(['What can break', ['Pages built from these templates (for example cart, checkout or layout) can look or behave wrongly after an update.' + (noCrash ? '' : ' This is probably not what stops the page from loading.')]]);
             rows.push(['How sure', ['Read from the files of the copy. Not confirmed as a cause of the problem.']]);
             rows.push(['What to do', ['Ask the theme author for an update, or compare each copy with the plugin\'s own file on a copy of the site.']]);
-            cases.push({ kind: 'check', heading: CHECK, rows, advisory: true });
+            cases.push({ kind: 'check', heading: checkHeading, rows, advisory: true });
         } else {
             const rows = [];
             const comps = (a.components || []).map(named);
@@ -151,7 +163,7 @@ function build(f, ctx) {
             if (wh.length) rows.push(['Where', wh]);
             rows.push(['What', [sent(a.cause) + (a.merged > 1 ? ` (${a.merged} times)` : '') + '.']]);
             rows.push(['How sure', [a.why_not_shown && a.why_not_shown.primary !== 'not-established' ? `It is ${a.why_not_shown.text}.` : 'Not confirmed.', ...(a.backed_by_log || []).map(b => `A log error names ${b.file}.`)]]);
-            cases.push({ kind: 'check', heading: CHECK, rows, advisory: true });
+            cases.push({ kind: 'check', heading: checkHeading, rows, advisory: true });
         }
     }
     // signs that a copy was modified (issue/modified-signs.js): the file and the sign, the "cannot be verified" sentence, and the advice as a condition
@@ -173,7 +185,8 @@ function build(f, ctx) {
     const cp = f.checkpoints ? f.checkpoints.counts : null;
     // the counts are ONE dot line (the old "We looked at N things" sentence is gone); the full list only with --verbose
     const checked = cp ? { line: `${cp.pass} pass · ${cp.fail} fail · ${cp.not_checked} not checked · ${cp.also_noticed || 0} also noticed`,
-        legend: 'Also noticed, probably not the crash: a check found something, but nothing ties it to this problem.', items: f.checkpoint_text.lines } : null;
+        legend: noCrash ? 'Also noticed: a check found something, but nothing ties it to this problem.' : 'Also noticed, probably not the crash: a check found something, but nothing ties it to this problem.', items: f.checkpoint_text.lines,
+        ...((ctx.vendorLines || []).length ? { notes: ctx.vendorLines.slice() } : {}) } : null;
     // FOR A DEVELOPER: the cause detail (issue/cause-detail.js) instead of the lines Case 1 already shows; the versions line and the large-log note stay
     const dev = [];
     const cd = ctx.causeDetail || null;
@@ -220,7 +233,7 @@ function cli(cf) {
         L.push('', c.n ? `CASE ${c.n}  ${c.heading.toUpperCase()}` : c.heading.toUpperCase());
         for (const [k, v] of c.rows) { if (v.length === 1) L.push(`  ${k}: ${v[0]}`); else { L.push(`  ${k}:`); for (const x of v) L.push(`    - ${x}`); } }
     }
-    if (cf.checked) L.push('', 'WHAT WAS CHECKED', `  ${cf.checked.line}`, `  ${cf.checked.legend}`);
+    if (cf.checked) L.push('', 'WHAT WAS CHECKED', `  ${cf.checked.line}`, `  ${cf.checked.legend}`, ...(cf.checked.notes || []).map(n => `  ${n}`));
     if (cf.developer && cf.developer.length) {
         L.push('', 'FOR A DEVELOPER', ...cf.developer.map(l => `  ${l}`));
         if (cf.excerpt) L.push(`  ${cf.excerpt.title}`, ...cf.excerpt.lines.map(l => `    ${l}`));
@@ -228,4 +241,4 @@ function cli(cf) {
     return L.join('\n');
 }
 
-module.exports = { build, markdown, markdownDeveloper, cli, statusLine, lookedAt, confirmedSentence, LIKELY, CHECK, CONFIRMED, SIGNS, EMPTY_STATUS, NOT_CONFIRMED_SENTENCE, NO_CAUSE_NOTE, NOT_LIVE_SENTENCE, PHP_NOT_STATED, MODIFIED_NOTE, MODIFIED_ADVICE, NO_LOG_HELP };
+module.exports = { build, markdown, markdownDeveloper, cli, statusLine, lookedAt, skippedText, confirmedSentence, LIKELY, CHECK, CHECK_NO_CRASH, CONFIRMED, SIGNS, EMPTY_STATUS, NOT_CONFIRMED_SENTENCE, NO_CAUSE_NOTE, NOT_LIVE_SENTENCE, PHP_NOT_STATED, MODIFIED_NOTE, MODIFIED_ADVICE, NO_LOG_HELP };

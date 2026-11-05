@@ -154,7 +154,7 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
     }
     const cpMod = require('./checkpoints'), cpRows = cpMod.evaluate({ work: cpMod.loadWork(dir), validation, ran, hasRoot: !!issue.root, issue, tie });
     const cpCounts = cpMod.tally(cpRows);
-    f.checkpoints = { counts: cpCounts, items: cpRows.map(r => ({ id: r.id, title: r.title, result: r.result, tied_to_crash: !!r.tied_to_crash, breaks_site: r.breaks_site, reason: r.reason })) };
+    f.checkpoints = { counts: cpCounts, items: cpRows.map(r => ({ id: r.id, title: r.title, result: r.result, tied_to_crash: !!r.tied_to_crash, breaks_site: r.breaks_site, reason: r.reason, ...(r.same_as ? { same_as: r.same_as } : {}) })) };
     const cpText = plainNames.checkpointText(cpRows.map(r => ({ ...r, title: plainNames.plainText(r.title, comps), reason: plainNames.plainText(r.reason, comps) })), cpCounts);
     f.checkpoint_text = { sentence: cpText.sentence, lines: verbose ? cpText.lines : [] };
     // a site log larger than the read cap: only its end was read
@@ -252,12 +252,18 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
         const ikLog = ((ik.steps || []).find(s => s && s.id === 'intake-log')) || null;
         const logHelp = hasLog ? null : ikLog && ikLog.log_state === 'unreadable' ? [ikLog.reason] : caseFileMod.NO_LOG_HELP;
         if (!hasLog) for (const t of f.timeline) if (LOG_STEP(t)) f.not_tested_text[t.id] = `${t.label}: ${ikLog && ikLog.log_state === 'unreadable' && t.id === 'intake-log' ? ikLog.reason : NO_LOG_STEP}`;
+        // PHP files that were not read: left out of the copy (reason not recorded), too large for the code analysis, or the parser could not read them (custom-code.json per-component file counts)
+        const phpSk = { tooLarge: 0, unparsed: 0, other: Number(ik.php_skipped) > 0 ? Number(ik.php_skipped) : 0 };
+        for (const c of cc.components || []) { phpSk.tooLarge += Number((c.files || {}).too_big) || 0; phpSk.unparsed += Number((c.files || {}).failed) || 0; }
+        phpSk.total = phpSk.tooLarge + phpSk.unparsed + phpSk.other;
+        const gj = W('graph.json') || {};
         f.case_file = caseFileMod.build(f, {
+            vendorLines: (gj.same_vendor && gj.same_vendor.lines) || [],
             sandboxNote: ((f.summary.lines || []).find(l => /sandbox test could not run/.test(l)) || '').trim() || null,
             comps, probePages, templates: (cc.observations || []).filter(o => o.type === 'template-override-outdated'), causeDetail: cd, logHelp,
             modified: ms && ms.count ? { lines: ms.lines, count: ms.count, files: ms.files } : null,
-            facts: { hasLog: !!((lg.files || []).length || (lg.entries || []).length), hasCode: !!issue.root, phpSkipped: Number(ik.php_skipped) > 0, probeRan: ran.probe, sandboxRan: ran.sandbox, sandboxFailed: !!(sbx && sbx.could_not_run),
-                sandboxReproduced: sbx ? sbx.reproduced_in_sandbox : null, php: issue.php_version || null, crash }
+            facts: { hasLog: !!((lg.files || []).length || (lg.entries || []).length), hasCode: !!issue.root, phpSkipped: phpSk.total > 0, phpSkippedDetail: phpSk, probeRan: ran.probe, sandboxRan: ran.sandbox, sandboxFailed: !!(sbx && sbx.could_not_run),
+                sandboxReproduced: sbx ? sbx.reproduced_in_sandbox : null, php: issue.php_version || null, phpSource: issue.php_source || null, crash }
         });
         f.summary.text_report = caseFileMod.cli(f.case_file);
         // the developer Verdict sentence agrees with Case 1: what the live site showed is read from the "How sure" lines of a confirmed Case 1
@@ -285,6 +291,7 @@ function gateMarkdown(f) {
     L.push(`# ${esc(cf.title)}`, '', `Issue ${code(f.issue.id)} · symptom ${code(f.issue.symptom)} · environment ${code(f.issue.environment)}`, '');
     L.push(...caseFileMod.markdown(cf, esc));
     L.push('## What was checked', '', esc(cf.checked.line), '', esc(cf.checked.legend), '');
+    for (const n of cf.checked.notes || []) L.push(esc(n), '');
     L.push(...stepLines(f, esc));
     if (!f.gate.verbose) L.push('_Run with --verbose to list every check._', '');
     if (f.gate.verbose) L.push('## All checks', '', ...f.checkpoint_text.lines.map(l => `- ${esc(l)}`), '');
@@ -307,11 +314,14 @@ function gateMarkdown(f) {
 function stepLines(f, esc) {
     const L = [];
     const keep = new Set(f.not_tested || f.timeline.map(s => s.id));
+    const seen = new Set();   // gate mode: two steps that read the same are listed once
     for (const s of f.timeline) {
         if (!(s.status === 'PASSED' || keep.has(s.id))) continue;
         // a log step when no log was read: the same reader sentence as the page (f.not_tested_text)
-        if (LOG_STEP(s) && f.case_file && f.case_file.status.log_help && f.not_tested_text && f.not_tested_text[s.id]) { L.push(`- ${stepWord(s.status)}: ${esc(f.not_tested_text[s.id])}`); continue; }
-        L.push(`- ${stepWord(s.status)}: ${esc(s.label)}${s.reason ? `: ${esc(plainNames.readerFiles(s.reason)).slice(0, 200)}` : ''}`);
+        if (LOG_STEP(s) && f.case_file && f.case_file.status.log_help && f.not_tested_text && f.not_tested_text[s.id]) { const ln = `- ${stepWord(s.status)}: ${esc(f.not_tested_text[s.id])}`; if (f.gate) { if (seen.has(ln)) continue; seen.add(ln); } L.push(ln); continue; }
+        const line = `- ${stepWord(s.status)}: ${esc(s.label)}${s.reason ? `: ${esc(plainNames.readerFiles(s.reason)).slice(0, 200)}` : ''}`;
+        if (f.gate) { if (seen.has(line)) continue; seen.add(line); }
+        L.push(line);
     }
     L.push('');
     return L;

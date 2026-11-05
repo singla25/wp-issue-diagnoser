@@ -70,6 +70,7 @@
     "selftest:gate-output": "node scripts/selftest-gate-output.js",
     "selftest:plugin-guard": "node scripts/selftest-plugin-guard.js",
     "selftest:wizard-plain": "node scripts/selftest-wizard-plain.js",
+    "selftest:folder-browser": "node scripts/selftest-folder-browser.js",
     "selftest:sandbox-failure": "node scripts/selftest-sandbox-failure.js",
     "selftest:sandbox-copy-names": "node scripts/selftest-sandbox-copy-names.js",
     "selftest:fatal-recheck": "node scripts/selftest-fatal-recheck.js",
@@ -87,6 +88,7 @@
     "selftest:names-how": "node scripts/selftest-names-how.js",
     "selftest:fix-plan": "node scripts/selftest-fix-plan.js",
     "selftest:modified-signs": "node scripts/selftest-modified-signs.js",
+    "selftest:7a": "node scripts/selftest-7a.js",
     "checkpoints": "node scripts/gen-checkpoints.js"
   },
   "license": "ISC",
