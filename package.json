@@ -73,6 +73,8 @@
     "selftest:folder-browser": "node scripts/selftest-folder-browser.js",
     "selftest:sandbox-failure": "node scripts/selftest-sandbox-failure.js",
     "selftest:sandbox-copy-names": "node scripts/selftest-sandbox-copy-names.js",
+    "selftest:6a-fake": "node scripts/selftest-6a-fake.js",
+    "selftest:6a-docker": "node scripts/selftest-6a-docker.js",
     "selftest:fatal-recheck": "node scripts/selftest-fatal-recheck.js",
     "selftest:likely-cause": "node scripts/selftest-likely-cause.js",
     "selftest:case-file": "node scripts/selftest-case-file.js",

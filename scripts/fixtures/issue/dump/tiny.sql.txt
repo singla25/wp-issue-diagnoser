@@ -1,0 +1,9 @@
+-- Plugin Guard test fixture: a tiny database export in plain SQL (fake-docker suite; it is never imported into a real database).
+-- Stored as .sql.txt so the repository holds no file that looks like a real dump; the tests copy it to a temporary .sql / .sql.gz.
+-- MariaDB dump 10.19  Distrib 11.8.9-MariaDB, for debian-linux-gnu (x86_64)
+CREATE TABLE `pgf_options` (`option_id` bigint unsigned NOT NULL AUTO_INCREMENT, `option_name` varchar(191) NOT NULL, `option_value` longtext NOT NULL, PRIMARY KEY (`option_id`));
+CREATE TABLE `pgf_users` (`ID` bigint unsigned NOT NULL AUTO_INCREMENT, `user_login` varchar(60) NOT NULL, `user_email` varchar(100) NOT NULL, PRIMARY KEY (`ID`));
+CREATE TABLE `pgf_posts` (`ID` bigint unsigned NOT NULL AUTO_INCREMENT, `post_content` longtext NOT NULL, PRIMARY KEY (`ID`));
+INSERT INTO `pgf_users` VALUES (1,'jane','jane@example.com');
+INSERT INTO `pgf_options` VALUES (1,'siteurl','https://shop.example.com'),(2,'home','https://shop.example.com');
+INSERT INTO `pgf_posts` VALUES (1,'PG-FIXTURE-MARKER tiny');

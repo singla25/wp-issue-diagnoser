@@ -54,7 +54,8 @@ function plan({ olderThanDays = 30, issues = true, sandboxes = true, only = null
             if (only && name !== only) continue;
             let state = null; try { state = JSON.parse(fs.readFileSync(path.join(c.path, 'state.json'), 'utf8')); } catch { /* none */ }
             if (state && alive(state.pid) && state.pid !== process.pid) { liveSandbox.add(name); out.skipped.push({ path: c.path, reason: `its owner process ${state.pid} is still running` }); continue; }
-            out.sandboxes.push({ id: name, path: c.path, project: state && state.project || null, bytes: sizeOf(c.path), reason: state ? 'left behind: its owner process is gone' : 'a sandbox folder without a state file' });
+            let dump = false; try { dump = fs.lstatSync(path.join(c.path, 'db', 'dump.sql')).isFile(); } catch { /* none */ }
+            out.sandboxes.push({ id: name, path: c.path, project: state && state.project || null, bytes: sizeOf(c.path), has_dump: dump, reason: `${state ? 'left behind: its owner process is gone' : 'a sandbox folder without a state file'}${dump ? '; it still holds a temporary database copy (db/dump.sql), removed with it' : ''}` });
         }
     }
     if (issues) {
