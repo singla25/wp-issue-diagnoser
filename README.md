@@ -162,7 +162,7 @@ Statuses: `CONFIRMED`, `REPRODUCIBLE`, `PROBABLE_NEEDS_REVIEW`, `UNVERIFIED`, `B
 
 ### Other commands, exit codes
 
-`doctor [--root .]` prerequisites · `config --root .` validate settings · `show [--run id]` list a run's files and the open command (reports are never opened automatically).
+`doctor [--root .]` prerequisites · `config --root .` validate settings · `show [--run id]` list a run's files and the open command. The classic scan never opens a report; the issue wizard opens its own report only after asking.
 
 Exit codes of `qa-*` and `scan --root`: `0` done, nothing at/above `--fail-on` (default HIGH; counts neither BLOCKED, rejected nor verified-fixed) · `1` findings at/above it · `2` bad usage or configuration · `3` blocked (authorization missing, site protection, nothing could run).
 

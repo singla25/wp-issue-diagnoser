@@ -186,7 +186,7 @@ const op = cli(['issue', 'open', newId]);
 ok(op.status === 0 && /No dashboard yet/.test(op.stdout), 'open before any investigation says so');
 fs.writeFileSync(path.join(store.dirOf(newId), 'result', 'issue.html'), '<html></html>');
 const op2 = cli(['issue', 'open', newId]);
-ok(/issue\.html/.test(op2.stdout) && /this tool never opens it/.test(op2.stdout), 'open prints the path and the command, never opens it');
+ok(/issue\.html/.test(op2.stdout) && /Open it in your browser:\s+\S+ "/.test(op2.stdout), 'open prints the path and the command (the subcommand itself opens nothing)');
 ok(cli(['issue', 'open', '../..']).status === 2, 'open with a bad id: exit 2');
 ok(hashTree(wp) === wpHash, 'the WordPress tree is byte-identical after every CLI run');
 ok(cli(['scan', '--root', path.join(tmp, 'nope')]).status === 2, 'the classic commands still run');
