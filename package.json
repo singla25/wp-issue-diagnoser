@@ -89,6 +89,7 @@
     "selftest:fix-plan": "node scripts/selftest-fix-plan.js",
     "selftest:modified-signs": "node scripts/selftest-modified-signs.js",
     "selftest:7a": "node scripts/selftest-7a.js",
+    "selftest:guard-polarity": "node scripts/selftest-guard-polarity.js",
     "checkpoints": "node scripts/gen-checkpoints.js"
   },
   "license": "ISC",

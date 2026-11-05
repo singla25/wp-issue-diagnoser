@@ -55,7 +55,8 @@ ok(rec('Foo::split($a);').length === 0 && rec('static::each($a);').length === 0,
 ok(rec('Ns\\each($a);').length === 0, 'a namespaced call is not recorded');
 ok(rec('\\each($a);').length === 1, 'a fully-qualified global call (\\each) is');
 ok(rec("// each($a);\n$s = 'each($a)';").length === 0, 'a call inside a comment or a string is not');
-ok(rec("if ( ! function_exists( 'each' ) ) { each($a); }")[0].guarded === true && rec("if ( function_exists( 'each' ) ) { each($a); }")[0].guarded === true, 'a call inside an if that tests function_exists( the same name ) is guarded, either polarity');
+ok(rec("if ( ! function_exists( 'each' ) ) { each($a); }")[0].guarded === false && rec("if ( function_exists( 'each' ) ) { each($a); }")[0].guarded === true, 'a call inside an if that tests function_exists( the same name ) is guarded only by a positive test (a negated test runs its body exactly when the function is missing)');
+ok(rec("if ( ! function_exists( 'each' ) ) { $x = 1; } else { each($a); }")[0].guarded === true, 'the else of if ( ! function_exists( the same name ) ) is guarded');
 ok(rec("if ( ! function_exists( 'other' ) ) { each($a); }")[0].guarded === false, 'a guard on a different name guards nothing');
 ok(rec('strlen($a); each($a);').length === 1, 'only watched names are recorded');
 ok(phpast.analyse('<?php each($a);', 'f.php').calls.length === 0, 'without a watch function nothing is recorded (all other callers are unchanged)');
@@ -78,7 +79,7 @@ ok(calls.length === 3 && calls.every(c => c.file && c.line), 'the calls are kept
 
 group('negative cases');
 const NEG = {
-    'wp-content/plugins/plugin-a/plugin-a.php': head('A') + "class A { function go( $o, $s ) { $o->each( $s ); Foo::split( $s ); return \\Ns\\each( $s ); } }\nif ( ! function_exists( 'each' ) ) { each( $x ); }\nsplit( 'a', 'b' );\nmysql_to_rfc3339( '2026-01-01' );\nstrlen( 'x' );\n",
+    'wp-content/plugins/plugin-a/plugin-a.php': head('A') + "class A { function go( $o, $s ) { $o->each( $s ); Foo::split( $s ); return \\Ns\\each( $s ); } }\nif ( function_exists( 'each' ) ) { each( $x ); }\nsplit( 'a', 'b' );\nmysql_to_rfc3339( '2026-01-01' );\nstrlen( 'x' );\n",
     'wp-content/plugins/plugin-b/plugin-b.php': head('B') + "function ereg( $p, $s ) { return preg_match( '/' . $p . '/', $s ); }\nfunction a_two() { return ereg( 'a', 'b' ); }\n"
 };
 const rn = run(tree(NEG));

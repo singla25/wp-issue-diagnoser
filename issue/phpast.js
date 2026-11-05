@@ -114,13 +114,33 @@ function guardNames(test) { // if ( ! function_exists( 'x' ) ) -> ['x']
     (function w(n) { if (!n || typeof n !== 'object') return; if (Array.isArray(n)) return n.forEach(w); if (n.kind === 'call' && ['function_exists', 'class_exists', 'interface_exists', 'trait_exists', 'defined'].includes(nm(n.what))) { const s = str(n.arguments[0]); if (s && 'value' in s) out.push(s.value.replace(/^\\/, '')); } for (const k of Object.keys(n)) if (k !== 'loc') w(n[k]); })(test);
     return out;
 }
+// Per-name polarity of an if test, for CALLS only (definitions keep guardNames above, any polarity).
+//   t: names whose function_exists / class_exists / interface_exists / trait_exists / defined is certainly TRUE when the test is true (the body)
+//   f: names whose test is certainly TRUE when the test is false (the else)
+// f( x ) -> t {x}; !e swaps t and f; a && b -> t = t(a) + t(b), f = f(a) & f(b); a || b -> t = t(a) & t(b), f = f(a) + f(b); anything else proves nothing.
+// So ! function_exists( 'x' ) && $y in an else proves nothing (the && test is false for any reason), $y || function_exists( 'x' ) in a body proves nothing.
+function guardPolarity(n) {
+    if (!n || typeof n !== 'object') return { t: [], f: [] };
+    if (n.kind === 'call' && ['function_exists', 'class_exists', 'interface_exists', 'trait_exists', 'defined'].includes(nm(n.what))) { const s = str(n.arguments[0]); return { t: s && 'value' in s ? [s.value.replace(/^\\/, '')] : [], f: [] }; }
+    if (n.kind === 'unary' && n.type === '!') { const p = guardPolarity(n.what); return { t: p.f, f: p.t }; }
+    if (n.kind === 'bin' && (n.type === '&&' || n.type === 'and' || n.type === '||' || n.type === 'or')) {
+        const l = guardPolarity(n.left), r = guardPolarity(n.right), lc = a => a.map(x => String(x).toLowerCase());
+        const both = (a, b) => a.filter(x => lc(b).includes(String(x).toLowerCase())), either = (a, b) => [...a, ...b];
+        return n.type === '&&' || n.type === 'and' ? { t: either(l.t, r.t), f: both(l.f, r.f) } : { t: both(l.t, r.t), f: either(l.f, r.f) };
+    }
+    return { t: [], f: [] };
+}
 
 function emptyFacts(file) {
     return { file, parsed: false, errors: [], fallback: null, functions: [], classes: [], constants: [], hooks: [], calls: [], redirects: [], calls: [], shortcodes: [], rest: [], ajax: [], assets: [], localize: [], cpts: [], taxonomies: [], blocks: [], menus: [], options: [], globals: [], db: [], includes: [], registry: [], noAbspathGuard: null };
 }
 
 // opts.watch: (lowercase name) => boolean. Plain function calls whose name it accepts are recorded in `calls` (method calls, static calls and
-// namespaced calls never are), each with `guarded`: the call sits inside an if whose test mentions function_exists( 'same name' ), in either polarity.
+// namespaced calls never are), each with `guarded`: the call sits where the code proves function_exists( 'same name' ) is true, i.e. in the body of
+// a positive test (through && and an even number of !) or in the else of a negated test that is the whole condition or a term of an || chain
+// (guardPolarity). A negated test does NOT guard its body. elseif branches do not inherit the else of the if before them. Early returns
+// ( if ( ! function_exists( 'x' ) ) return; x(); ) and ternaries are not followed: those calls stay unguarded, so they are reported.
+// Definitions (functions, classes, constants) keep the older rule: any guard on the same name, either polarity (a polyfill is not a call).
 function analyse(source, file, opts = {}) {
     const f = emptyFacts(file);
     ENV = null; ARRS = [new Map()]; CLASS = null;
@@ -129,7 +149,8 @@ function analyse(source, file, opts = {}) {
     f.parsed = ast.errors.length === 0;
     f.errors = ast.errors.slice(0, 3).map(e => ({ line: e.line || line(e) || null, message: trim(String(e.message).split('\n')[0], 140) }));
 
-    const guards = []; // names guarded by an enclosing `if`
+    const guards = []; // names tested by an enclosing `if` body, either polarity: for definitions only
+    const callGuards = []; // names an enclosing `if` body or else proves to exist (guardPolarity): for calls only
     const fnStack = []; // the functions, methods and closures around the node being walked: { kind: 'function' | 'method' | 'closure', name, class }
     let ns = '';
     const qual = name => (ns ? `${ns}\\${name}` : name);
@@ -164,7 +185,7 @@ function analyse(source, file, opts = {}) {
                 f.redirects.push({ call: bare, target: target ? trim(target, 120) : null, dynamic: !(t && 'value' in t), status: bare === 'header' ? null : num(arg(c, 1), null), line: ln, in: top ? { kind: top.kind, name: top.name, class: top.class } : null });
             }
         }
-        if (opts.watch && !bare.includes('\\')) { const lower = bare.toLowerCase(); if (opts.watch(lower)) f.calls.push({ name: lower, line: ln, guarded: guards.some(g => String(g).toLowerCase() === lower) }); }
+        if (opts.watch && !bare.includes('\\')) { const lower = bare.toLowerCase(); if (opts.watch(lower)) f.calls.push({ name: lower, line: ln, guarded: callGuards.some(g => String(g).toLowerCase() === lower) }); }
         if (/^(add|remove)_(action|filter)$/.test(bare)) {
             const h = str(arg(c, 0));
             if (!h) return;
@@ -229,9 +250,12 @@ function analyse(source, file, opts = {}) {
             }
             case 'namespace': { const prev = ns; ns = typeof n.name === 'string' ? n.name : nm(n.name) || ''; walk(n.children, parentIf); if (n.children && n.children.length && !n.withBrackets) { /* file-scoped namespace stays */ } else ns = prev; return; }
             case 'if': {
-                const g = guardNames(n.test);
-                guards.push(...g); walk(n.body, n); guards.length -= g.length;
-                walk(n.alternate, parentIf); walk(n.test, parentIf); return;
+                const g = guardNames(n.test), p = guardPolarity(n.test);
+                guards.push(...g); callGuards.push(...p.t); walk(n.body, n); callGuards.length -= p.t.length; guards.length -= g.length;
+                // an elseif / else if (the alternate is itself an if) gets nothing from this test: only its own test counts
+                const e = n.alternate && n.alternate.kind !== 'if' ? p.f : [];
+                callGuards.push(...e); walk(n.alternate, parentIf); callGuards.length -= e.length;
+                walk(n.test, parentIf); return; // calls in the test itself, a ternary, or after an early return are never guarded
             }
             case 'function': { const name = nm(n.name); if (name) f.functions.push({ name: qual(name), line: line(n), guarded: guards.includes(name) || guards.includes(qual(name)) }); ARRS.push(new Map()); fnStack.push({ kind: 'function', name: name ? qual(name) : null, class: null }); const savedEnv = ENV; for (const k of Object.keys(n)) if (k !== 'loc' && k !== 'leadingComments' && k !== 'trailingComments') walk(n[k], parentIf); ENV = savedEnv; fnStack.pop(); ARRS.pop(); return; }
             case 'class': case 'interface': case 'trait': case 'enum': {

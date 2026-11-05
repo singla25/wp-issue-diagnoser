@@ -1,0 +1,3670 @@
+{
+ "ast": {
+  "wp-content/plugins/plugin-a/and-chain.php": {
+   "file": "wp-content/plugins/plugin-a/and-chain.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": null,
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "hooks": [],
+   "calls": [
+    {
+     "name": "mysql_connect",
+     "line": 3,
+     "guarded": true
+    },
+    {
+     "name": "mysql_connect",
+     "line": 6,
+     "guarded": true
+    },
+    {
+     "name": "mysql_connect",
+     "line": 11,
+     "guarded": false
+    },
+    {
+     "name": "mysql_connect",
+     "line": 14,
+     "guarded": true
+    }
+   ],
+   "redirects": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": [],
+   "registry": [],
+   "noAbspathGuard": true
+  },
+  "wp-content/plugins/plugin-a/class-and-defined.php": {
+   "file": "wp-content/plugins/plugin-a/class-and-defined.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": null,
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "hooks": [],
+   "calls": [
+    {
+     "name": "mysql_fetch_array",
+     "line": 3,
+     "guarded": true
+    },
+    {
+     "name": "mysql_fetch_array",
+     "line": 6,
+     "guarded": true
+    },
+    {
+     "name": "mysql_fetch_array",
+     "line": 9,
+     "guarded": true
+    },
+    {
+     "name": "mysql_fetch_array",
+     "line": 12,
+     "guarded": true
+    },
+    {
+     "name": "mysql_fetch_array",
+     "line": 15,
+     "guarded": true
+    }
+   ],
+   "redirects": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": [],
+   "registry": [],
+   "noAbspathGuard": true
+  },
+  "wp-content/plugins/plugin-a/definitions.php": {
+   "file": "wp-content/plugins/plugin-a/definitions.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": null,
+   "functions": [
+    {
+     "name": "pg_dup_fn",
+     "line": 3,
+     "guarded": true
+    },
+    {
+     "name": "pg_pos_fn",
+     "line": 8,
+     "guarded": true
+    },
+    {
+     "name": "pg_else_fn",
+     "line": 15,
+     "guarded": false
+    },
+    {
+     "name": "pg_and_fn",
+     "line": 28,
+     "guarded": true
+    }
+   ],
+   "classes": [
+    {
+     "name": "PG_Dup_Class",
+     "kind": "class",
+     "line": 20,
+     "extends": null,
+     "implements": [],
+     "methods": [
+      "run"
+     ],
+     "guarded": true
+    },
+    {
+     "name": "PG_Pos_Class",
+     "kind": "class",
+     "line": 25,
+     "extends": null,
+     "implements": [],
+     "methods": [],
+     "guarded": true
+    }
+   ],
+   "constants": [
+    {
+     "name": "PG_DUP_CONST",
+     "line": 31,
+     "guarded": true
+    },
+    {
+     "name": "PG_POS_CONST",
+     "line": 34,
+     "guarded": true
+    },
+    {
+     "name": "PG_ELSE_CONST",
+     "line": 39,
+     "guarded": false
+    },
+    {
+     "name": "PG_BARE_CONST",
+     "line": 41,
+     "guarded": false
+    }
+   ],
+   "hooks": [],
+   "calls": [],
+   "redirects": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": [],
+   "registry": [],
+   "noAbspathGuard": true
+  },
+  "wp-content/plugins/plugin-a/double-negation.php": {
+   "file": "wp-content/plugins/plugin-a/double-negation.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": null,
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "hooks": [],
+   "calls": [
+    {
+     "name": "ereg",
+     "line": 3,
+     "guarded": true
+    },
+    {
+     "name": "ereg",
+     "line": 6,
+     "guarded": true
+    },
+    {
+     "name": "ereg",
+     "line": 9,
+     "guarded": true
+    },
+    {
+     "name": "ereg",
+     "line": 14,
+     "guarded": false
+    }
+   ],
+   "redirects": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": [],
+   "registry": [],
+   "noAbspathGuard": true
+  },
+  "wp-content/plugins/plugin-a/early-return.php": {
+   "file": "wp-content/plugins/plugin-a/early-return.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": null,
+   "functions": [
+    {
+     "name": "pga_run",
+     "line": 2,
+     "guarded": false
+    }
+   ],
+   "classes": [],
+   "constants": [],
+   "hooks": [],
+   "calls": [
+    {
+     "name": "ereg_replace",
+     "line": 6,
+     "guarded": false
+    },
+    {
+     "name": "ereg_replace",
+     "line": 9,
+     "guarded": false
+    }
+   ],
+   "redirects": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": [],
+   "registry": [],
+   "noAbspathGuard": true
+  },
+  "wp-content/plugins/plugin-a/else-negated.php": {
+   "file": "wp-content/plugins/plugin-a/else-negated.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": null,
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "hooks": [],
+   "calls": [
+    {
+     "name": "create_function",
+     "line": 5,
+     "guarded": false
+    },
+    {
+     "name": "create_function",
+     "line": 10,
+     "guarded": false
+    }
+   ],
+   "redirects": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": [],
+   "registry": [],
+   "noAbspathGuard": true
+  },
+  "wp-content/plugins/plugin-a/elseif.php": {
+   "file": "wp-content/plugins/plugin-a/elseif.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": null,
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "hooks": [],
+   "calls": [
+    {
+     "name": "eregi",
+     "line": 5,
+     "guarded": false
+    },
+    {
+     "name": "eregi",
+     "line": 10,
+     "guarded": true
+    },
+    {
+     "name": "eregi",
+     "line": 17,
+     "guarded": false
+    },
+    {
+     "name": "eregi",
+     "line": 22,
+     "guarded": false
+    }
+   ],
+   "redirects": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": [],
+   "registry": [],
+   "noAbspathGuard": true
+  },
+  "wp-content/plugins/plugin-a/hooks-redirects.php": {
+   "file": "wp-content/plugins/plugin-a/hooks-redirects.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": null,
+   "functions": [
+    {
+     "name": "pga_go",
+     "line": 10,
+     "guarded": false
+    }
+   ],
+   "classes": [],
+   "constants": [],
+   "hooks": [
+    {
+     "op": "add",
+     "type": "action",
+     "owner_class": null,
+     "filtered": false,
+     "hook": "template_redirect",
+     "dynamic": false,
+     "prefix": null,
+     "callback": {
+      "kind": "function",
+      "name": "pga_go"
+     },
+     "priority": 5,
+     "args": 1,
+     "line": 3
+    },
+    {
+     "op": "add",
+     "type": "filter",
+     "owner_class": null,
+     "filtered": false,
+     "hook": "the_content",
+     "dynamic": false,
+     "prefix": null,
+     "callback": {
+      "kind": "function",
+      "name": "pga_filter"
+     },
+     "priority": 10,
+     "args": 1,
+     "line": 6
+    },
+    {
+     "op": "remove",
+     "type": "action",
+     "owner_class": null,
+     "filtered": false,
+     "hook": "init",
+     "dynamic": false,
+     "prefix": null,
+     "callback": {
+      "kind": "function",
+      "name": "pga_go"
+     },
+     "priority": 10,
+     "args": null,
+     "line": 8
+    }
+   ],
+   "calls": [],
+   "redirects": [
+    {
+     "call": "wp_redirect",
+     "target": "/somewhere",
+     "dynamic": false,
+     "status": 302,
+     "line": 12,
+     "in": {
+      "kind": "function",
+      "name": "pga_go",
+      "class": null
+     }
+    },
+    {
+     "call": "header",
+     "target": "/other",
+     "dynamic": false,
+     "status": null,
+     "line": 15,
+     "in": {
+      "kind": "function",
+      "name": "pga_go",
+      "class": null
+     }
+    }
+   ],
+   "shortcodes": [
+    {
+     "tag": "pga_tag",
+     "filtered": false,
+     "callback": {
+      "kind": "function",
+      "name": "pga_go"
+     },
+     "line": 18
+    }
+   ],
+   "rest": [],
+   "ajax": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": [],
+   "registry": [],
+   "noAbspathGuard": true
+  },
+  "wp-content/plugins/plugin-a/negated.php": {
+   "file": "wp-content/plugins/plugin-a/negated.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": null,
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "hooks": [],
+   "calls": [
+    {
+     "name": "each",
+     "line": 3,
+     "guarded": true
+    }
+   ],
+   "redirects": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": [],
+   "registry": [],
+   "noAbspathGuard": true
+  },
+  "wp-content/plugins/plugin-a/nested.php": {
+   "file": "wp-content/plugins/plugin-a/nested.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": null,
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "hooks": [],
+   "calls": [
+    {
+     "name": "mysql_select_db",
+     "line": 4,
+     "guarded": true
+    },
+    {
+     "name": "mysql_select_db",
+     "line": 6,
+     "guarded": true
+    },
+    {
+     "name": "mysql_select_db",
+     "line": 13,
+     "guarded": false
+    },
+    {
+     "name": "mysql_select_db",
+     "line": 19,
+     "guarded": false
+    }
+   ],
+   "redirects": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": [],
+   "registry": [],
+   "noAbspathGuard": true
+  },
+  "wp-content/plugins/plugin-a/or-chain.php": {
+   "file": "wp-content/plugins/plugin-a/or-chain.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": null,
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "hooks": [],
+   "calls": [
+    {
+     "name": "mysql_query",
+     "line": 5,
+     "guarded": false
+    },
+    {
+     "name": "mysql_query",
+     "line": 10,
+     "guarded": false
+    },
+    {
+     "name": "mysql_query",
+     "line": 13,
+     "guarded": true
+    },
+    {
+     "name": "mysql_query",
+     "line": 16,
+     "guarded": true
+    }
+   ],
+   "redirects": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": [],
+   "registry": [],
+   "noAbspathGuard": true
+  },
+  "wp-content/plugins/plugin-a/other-name.php": {
+   "file": "wp-content/plugins/plugin-a/other-name.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": null,
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "hooks": [],
+   "calls": [
+    {
+     "name": "mysql_close",
+     "line": 3,
+     "guarded": false
+    },
+    {
+     "name": "mysql_close",
+     "line": 8,
+     "guarded": false
+    }
+   ],
+   "redirects": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": [],
+   "registry": [],
+   "noAbspathGuard": true
+  },
+  "wp-content/plugins/plugin-a/plain-dup.php": {
+   "file": "wp-content/plugins/plugin-a/plain-dup.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": null,
+   "functions": [
+    {
+     "name": "pgb_plain_dup",
+     "line": 2,
+     "guarded": false
+    }
+   ],
+   "classes": [
+    {
+     "name": "PGB_Plain_Class",
+     "kind": "class",
+     "line": 5,
+     "extends": null,
+     "implements": [],
+     "methods": [],
+     "guarded": false
+    }
+   ],
+   "constants": [],
+   "hooks": [],
+   "calls": [],
+   "redirects": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": [],
+   "registry": [],
+   "noAbspathGuard": true
+  },
+  "wp-content/plugins/plugin-a/plugin-a.php": {
+   "file": "wp-content/plugins/plugin-a/plugin-a.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": null,
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "hooks": [],
+   "calls": [],
+   "redirects": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": [],
+   "registry": [],
+   "noAbspathGuard": false
+  },
+  "wp-content/plugins/plugin-a/positive.php": {
+   "file": "wp-content/plugins/plugin-a/positive.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": null,
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "hooks": [],
+   "calls": [
+    {
+     "name": "each",
+     "line": 3,
+     "guarded": true
+    },
+    {
+     "name": "each",
+     "line": 6,
+     "guarded": true
+    },
+    {
+     "name": "each",
+     "line": 9,
+     "guarded": false
+    }
+   ],
+   "redirects": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": [],
+   "registry": [],
+   "noAbspathGuard": true
+  },
+  "wp-content/plugins/plugin-a/ternary.php": {
+   "file": "wp-content/plugins/plugin-a/ternary.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": null,
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "hooks": [],
+   "calls": [
+    {
+     "name": "eregi_replace",
+     "line": 2,
+     "guarded": false
+    },
+    {
+     "name": "eregi_replace",
+     "line": 3,
+     "guarded": false
+    },
+    {
+     "name": "eregi_replace",
+     "line": 4,
+     "guarded": false
+    }
+   ],
+   "redirects": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": [],
+   "registry": [],
+   "noAbspathGuard": true
+  },
+  "wp-content/plugins/plugin-b/dup.php": {
+   "file": "wp-content/plugins/plugin-b/dup.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": null,
+   "functions": [
+    {
+     "name": "pg_dup_fn",
+     "line": 2,
+     "guarded": false
+    },
+    {
+     "name": "pg_pos_fn",
+     "line": 5,
+     "guarded": false
+    },
+    {
+     "name": "pg_else_fn",
+     "line": 8,
+     "guarded": false
+    },
+    {
+     "name": "pg_and_fn",
+     "line": 15,
+     "guarded": false
+    },
+    {
+     "name": "pgb_go",
+     "line": 22,
+     "guarded": false
+    }
+   ],
+   "classes": [
+    {
+     "name": "PG_Dup_Class",
+     "kind": "class",
+     "line": 11,
+     "extends": null,
+     "implements": [],
+     "methods": [],
+     "guarded": false
+    },
+    {
+     "name": "PG_Pos_Class",
+     "kind": "class",
+     "line": 13,
+     "extends": null,
+     "implements": [],
+     "methods": [],
+     "guarded": false
+    }
+   ],
+   "constants": [
+    {
+     "name": "PG_DUP_CONST",
+     "line": 17,
+     "guarded": false
+    },
+    {
+     "name": "PG_POS_CONST",
+     "line": 18,
+     "guarded": false
+    },
+    {
+     "name": "PG_ELSE_CONST",
+     "line": 19,
+     "guarded": false
+    },
+    {
+     "name": "PG_BARE_CONST",
+     "line": 20,
+     "guarded": false
+    }
+   ],
+   "hooks": [
+    {
+     "op": "add",
+     "type": "action",
+     "owner_class": null,
+     "filtered": false,
+     "hook": "template_redirect",
+     "dynamic": false,
+     "prefix": null,
+     "callback": {
+      "kind": "function",
+      "name": "pgb_go"
+     },
+     "priority": 10,
+     "args": 1,
+     "line": 21
+    }
+   ],
+   "calls": [],
+   "redirects": [
+    {
+     "call": "wp_safe_redirect",
+     "target": "/b",
+     "dynamic": false,
+     "status": null,
+     "line": 23,
+     "in": {
+      "kind": "function",
+      "name": "pgb_go",
+      "class": null
+     }
+    }
+   ],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": [],
+   "registry": [],
+   "noAbspathGuard": true
+  },
+  "wp-content/plugins/plugin-b/plain-dup.php": {
+   "file": "wp-content/plugins/plugin-b/plain-dup.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": null,
+   "functions": [
+    {
+     "name": "pgb_plain_dup",
+     "line": 2,
+     "guarded": false
+    }
+   ],
+   "classes": [
+    {
+     "name": "PGB_Plain_Class",
+     "kind": "class",
+     "line": 5,
+     "extends": null,
+     "implements": [],
+     "methods": [],
+     "guarded": false
+    }
+   ],
+   "constants": [],
+   "hooks": [],
+   "calls": [],
+   "redirects": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": [],
+   "registry": [],
+   "noAbspathGuard": true
+  },
+  "wp-content/plugins/plugin-b/plugin-b.php": {
+   "file": "wp-content/plugins/plugin-b/plugin-b.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": null,
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "hooks": [],
+   "calls": [],
+   "redirects": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": [],
+   "registry": [],
+   "noAbspathGuard": false
+  },
+  "single/polyfill-each.php": {
+   "file": "single/polyfill-each.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": null,
+   "functions": [
+    {
+     "name": "each",
+     "line": 3,
+     "guarded": true
+    },
+    {
+     "name": "create_function",
+     "line": 8,
+     "guarded": true
+    }
+   ],
+   "classes": [],
+   "constants": [],
+   "hooks": [],
+   "calls": [
+    {
+     "name": "create_function",
+     "line": 12,
+     "guarded": false
+    }
+   ],
+   "redirects": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": [],
+   "registry": [],
+   "noAbspathGuard": true
+  }
+ },
+ "custom": {
+  "components": [
+   {
+    "implied": [],
+    "parent_theme": null,
+    "requires_php": null,
+    "requires_wp": null,
+    "tested_up_to": null,
+    "main_file": "wp-content/plugins/plugin-a/plugin-a.php",
+    "ref": "plugin-a",
+    "kind": "plugin",
+    "slug": "plugin-a",
+    "name": "Polarity A",
+    "version": "1.0.0",
+    "description": null,
+    "requires_plugins": [],
+    "path": "wp-content/plugins/plugin-a",
+    "ownership": "custom",
+    "ownership_reason": "inside allowlisted wp-content/plugins/plugin-a",
+    "depth": "syntax-tree",
+    "inspection_only": false,
+    "files": {
+     "total": 16,
+     "parsed": 16,
+     "failed": 0,
+     "lint_broken": 0,
+     "parser_limitation": 0,
+     "skipped_protected": 0,
+     "too_big": 0,
+     "truncated": false,
+     "bytes": 4527
+    },
+    "counts": {
+     "functions": 7,
+     "classes": 3,
+     "constants": 4,
+     "hooks": 3,
+     "shortcodes": 1,
+     "calls": 38,
+     "redirects": 2
+    }
+   },
+   {
+    "implied": [],
+    "parent_theme": null,
+    "requires_php": null,
+    "requires_wp": null,
+    "tested_up_to": null,
+    "main_file": "wp-content/plugins/plugin-b/plugin-b.php",
+    "ref": "plugin-b",
+    "kind": "plugin",
+    "slug": "plugin-b",
+    "name": "Polarity B",
+    "version": "1.0.0",
+    "description": null,
+    "requires_plugins": [],
+    "path": "wp-content/plugins/plugin-b",
+    "ownership": "custom",
+    "ownership_reason": "inside allowlisted wp-content/plugins/plugin-b",
+    "depth": "syntax-tree",
+    "inspection_only": false,
+    "files": {
+     "total": 3,
+     "parsed": 3,
+     "failed": 0,
+     "lint_broken": 0,
+     "parser_limitation": 0,
+     "skipped_protected": 0,
+     "too_big": 0,
+     "truncated": false,
+     "bytes": 565
+    },
+    "counts": {
+     "functions": 6,
+     "classes": 3,
+     "constants": 4,
+     "hooks": 1,
+     "redirects": 1
+    }
+   }
+  ],
+  "facts": {
+   "plugin-a": {
+    "functions": [
+     {
+      "name": "pg_dup_fn",
+      "line": 3,
+      "guarded": true,
+      "file": "wp-content/plugins/plugin-a/definitions.php"
+     },
+     {
+      "name": "pg_pos_fn",
+      "line": 8,
+      "guarded": true,
+      "file": "wp-content/plugins/plugin-a/definitions.php"
+     },
+     {
+      "name": "pg_else_fn",
+      "line": 15,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-a/definitions.php"
+     },
+     {
+      "name": "pg_and_fn",
+      "line": 28,
+      "guarded": true,
+      "file": "wp-content/plugins/plugin-a/definitions.php"
+     },
+     {
+      "name": "pga_run",
+      "line": 2,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-a/early-return.php"
+     },
+     {
+      "name": "pga_go",
+      "line": 10,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-a/hooks-redirects.php"
+     },
+     {
+      "name": "pgb_plain_dup",
+      "line": 2,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-a/plain-dup.php"
+     }
+    ],
+    "classes": [
+     {
+      "name": "PG_Dup_Class",
+      "kind": "class",
+      "line": 20,
+      "extends": null,
+      "implements": [],
+      "methods": [
+       "run"
+      ],
+      "guarded": true,
+      "file": "wp-content/plugins/plugin-a/definitions.php"
+     },
+     {
+      "name": "PG_Pos_Class",
+      "kind": "class",
+      "line": 25,
+      "extends": null,
+      "implements": [],
+      "methods": [],
+      "guarded": true,
+      "file": "wp-content/plugins/plugin-a/definitions.php"
+     },
+     {
+      "name": "PGB_Plain_Class",
+      "kind": "class",
+      "line": 5,
+      "extends": null,
+      "implements": [],
+      "methods": [],
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-a/plain-dup.php"
+     }
+    ],
+    "constants": [
+     {
+      "name": "PG_DUP_CONST",
+      "line": 31,
+      "guarded": true,
+      "file": "wp-content/plugins/plugin-a/definitions.php"
+     },
+     {
+      "name": "PG_POS_CONST",
+      "line": 34,
+      "guarded": true,
+      "file": "wp-content/plugins/plugin-a/definitions.php"
+     },
+     {
+      "name": "PG_ELSE_CONST",
+      "line": 39,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-a/definitions.php"
+     },
+     {
+      "name": "PG_BARE_CONST",
+      "line": 41,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-a/definitions.php"
+     }
+    ],
+    "hooks": [
+     {
+      "op": "add",
+      "type": "action",
+      "owner_class": null,
+      "filtered": false,
+      "hook": "template_redirect",
+      "dynamic": false,
+      "prefix": null,
+      "callback": {
+       "kind": "function",
+       "name": "pga_go"
+      },
+      "priority": 5,
+      "args": 1,
+      "line": 3,
+      "file": "wp-content/plugins/plugin-a/hooks-redirects.php"
+     },
+     {
+      "op": "add",
+      "type": "filter",
+      "owner_class": null,
+      "filtered": false,
+      "hook": "the_content",
+      "dynamic": false,
+      "prefix": null,
+      "callback": {
+       "kind": "function",
+       "name": "pga_filter"
+      },
+      "priority": 10,
+      "args": 1,
+      "line": 6,
+      "file": "wp-content/plugins/plugin-a/hooks-redirects.php"
+     },
+     {
+      "op": "remove",
+      "type": "action",
+      "owner_class": null,
+      "filtered": false,
+      "hook": "init",
+      "dynamic": false,
+      "prefix": null,
+      "callback": {
+       "kind": "function",
+       "name": "pga_go"
+      },
+      "priority": 10,
+      "args": null,
+      "line": 8,
+      "file": "wp-content/plugins/plugin-a/hooks-redirects.php"
+     }
+    ],
+    "shortcodes": [
+     {
+      "tag": "pga_tag",
+      "filtered": false,
+      "callback": {
+       "kind": "function",
+       "name": "pga_go"
+      },
+      "line": 18,
+      "file": "wp-content/plugins/plugin-a/hooks-redirects.php"
+     }
+    ],
+    "rest": [],
+    "ajax": [],
+    "assets": [],
+    "localize": [],
+    "cpts": [],
+    "taxonomies": [],
+    "blocks": [],
+    "menus": [],
+    "options": [],
+    "globals": [],
+    "db": [],
+    "includes": [],
+    "calls": [
+     {
+      "name": "mysql_connect",
+      "line": 3,
+      "guarded": true,
+      "file": "wp-content/plugins/plugin-a/and-chain.php"
+     },
+     {
+      "name": "mysql_connect",
+      "line": 6,
+      "guarded": true,
+      "file": "wp-content/plugins/plugin-a/and-chain.php"
+     },
+     {
+      "name": "mysql_connect",
+      "line": 11,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-a/and-chain.php"
+     },
+     {
+      "name": "mysql_connect",
+      "line": 14,
+      "guarded": true,
+      "file": "wp-content/plugins/plugin-a/and-chain.php"
+     },
+     {
+      "name": "mysql_fetch_array",
+      "line": 3,
+      "guarded": true,
+      "file": "wp-content/plugins/plugin-a/class-and-defined.php"
+     },
+     {
+      "name": "mysql_fetch_array",
+      "line": 6,
+      "guarded": true,
+      "file": "wp-content/plugins/plugin-a/class-and-defined.php"
+     },
+     {
+      "name": "mysql_fetch_array",
+      "line": 9,
+      "guarded": true,
+      "file": "wp-content/plugins/plugin-a/class-and-defined.php"
+     },
+     {
+      "name": "mysql_fetch_array",
+      "line": 12,
+      "guarded": true,
+      "file": "wp-content/plugins/plugin-a/class-and-defined.php"
+     },
+     {
+      "name": "mysql_fetch_array",
+      "line": 15,
+      "guarded": true,
+      "file": "wp-content/plugins/plugin-a/class-and-defined.php"
+     },
+     {
+      "name": "ereg",
+      "line": 3,
+      "guarded": true,
+      "file": "wp-content/plugins/plugin-a/double-negation.php"
+     },
+     {
+      "name": "ereg",
+      "line": 6,
+      "guarded": true,
+      "file": "wp-content/plugins/plugin-a/double-negation.php"
+     },
+     {
+      "name": "ereg",
+      "line": 9,
+      "guarded": true,
+      "file": "wp-content/plugins/plugin-a/double-negation.php"
+     },
+     {
+      "name": "ereg",
+      "line": 14,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-a/double-negation.php"
+     },
+     {
+      "name": "ereg_replace",
+      "line": 6,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-a/early-return.php"
+     },
+     {
+      "name": "ereg_replace",
+      "line": 9,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-a/early-return.php"
+     },
+     {
+      "name": "create_function",
+      "line": 5,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-a/else-negated.php"
+     },
+     {
+      "name": "create_function",
+      "line": 10,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-a/else-negated.php"
+     },
+     {
+      "name": "eregi",
+      "line": 5,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-a/elseif.php"
+     },
+     {
+      "name": "eregi",
+      "line": 10,
+      "guarded": true,
+      "file": "wp-content/plugins/plugin-a/elseif.php"
+     },
+     {
+      "name": "eregi",
+      "line": 17,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-a/elseif.php"
+     },
+     {
+      "name": "eregi",
+      "line": 22,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-a/elseif.php"
+     },
+     {
+      "name": "each",
+      "line": 3,
+      "guarded": true,
+      "file": "wp-content/plugins/plugin-a/negated.php"
+     },
+     {
+      "name": "mysql_select_db",
+      "line": 4,
+      "guarded": true,
+      "file": "wp-content/plugins/plugin-a/nested.php"
+     },
+     {
+      "name": "mysql_select_db",
+      "line": 6,
+      "guarded": true,
+      "file": "wp-content/plugins/plugin-a/nested.php"
+     },
+     {
+      "name": "mysql_select_db",
+      "line": 13,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-a/nested.php"
+     },
+     {
+      "name": "mysql_select_db",
+      "line": 19,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-a/nested.php"
+     },
+     {
+      "name": "mysql_query",
+      "line": 5,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-a/or-chain.php"
+     },
+     {
+      "name": "mysql_query",
+      "line": 10,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-a/or-chain.php"
+     },
+     {
+      "name": "mysql_query",
+      "line": 13,
+      "guarded": true,
+      "file": "wp-content/plugins/plugin-a/or-chain.php"
+     },
+     {
+      "name": "mysql_query",
+      "line": 16,
+      "guarded": true,
+      "file": "wp-content/plugins/plugin-a/or-chain.php"
+     },
+     {
+      "name": "mysql_close",
+      "line": 3,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-a/other-name.php"
+     },
+     {
+      "name": "mysql_close",
+      "line": 8,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-a/other-name.php"
+     },
+     {
+      "name": "each",
+      "line": 3,
+      "guarded": true,
+      "file": "wp-content/plugins/plugin-a/positive.php"
+     },
+     {
+      "name": "each",
+      "line": 6,
+      "guarded": true,
+      "file": "wp-content/plugins/plugin-a/positive.php"
+     },
+     {
+      "name": "each",
+      "line": 9,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-a/positive.php"
+     },
+     {
+      "name": "eregi_replace",
+      "line": 2,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-a/ternary.php"
+     },
+     {
+      "name": "eregi_replace",
+      "line": 3,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-a/ternary.php"
+     },
+     {
+      "name": "eregi_replace",
+      "line": 4,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-a/ternary.php"
+     }
+    ],
+    "redirects": [
+     {
+      "call": "wp_redirect",
+      "target": "/somewhere",
+      "dynamic": false,
+      "status": 302,
+      "line": 12,
+      "in": {
+       "kind": "function",
+       "name": "pga_go",
+       "class": null
+      },
+      "file": "wp-content/plugins/plugin-a/hooks-redirects.php"
+     },
+     {
+      "call": "header",
+      "target": "/other",
+      "dynamic": false,
+      "status": null,
+      "line": 15,
+      "in": {
+       "kind": "function",
+       "name": "pga_go",
+       "class": null
+      },
+      "file": "wp-content/plugins/plugin-a/hooks-redirects.php"
+     }
+    ]
+   },
+   "plugin-b": {
+    "functions": [
+     {
+      "name": "pg_dup_fn",
+      "line": 2,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-b/dup.php"
+     },
+     {
+      "name": "pg_pos_fn",
+      "line": 5,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-b/dup.php"
+     },
+     {
+      "name": "pg_else_fn",
+      "line": 8,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-b/dup.php"
+     },
+     {
+      "name": "pg_and_fn",
+      "line": 15,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-b/dup.php"
+     },
+     {
+      "name": "pgb_go",
+      "line": 22,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-b/dup.php"
+     },
+     {
+      "name": "pgb_plain_dup",
+      "line": 2,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-b/plain-dup.php"
+     }
+    ],
+    "classes": [
+     {
+      "name": "PG_Dup_Class",
+      "kind": "class",
+      "line": 11,
+      "extends": null,
+      "implements": [],
+      "methods": [],
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-b/dup.php"
+     },
+     {
+      "name": "PG_Pos_Class",
+      "kind": "class",
+      "line": 13,
+      "extends": null,
+      "implements": [],
+      "methods": [],
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-b/dup.php"
+     },
+     {
+      "name": "PGB_Plain_Class",
+      "kind": "class",
+      "line": 5,
+      "extends": null,
+      "implements": [],
+      "methods": [],
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-b/plain-dup.php"
+     }
+    ],
+    "constants": [
+     {
+      "name": "PG_DUP_CONST",
+      "line": 17,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-b/dup.php"
+     },
+     {
+      "name": "PG_POS_CONST",
+      "line": 18,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-b/dup.php"
+     },
+     {
+      "name": "PG_ELSE_CONST",
+      "line": 19,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-b/dup.php"
+     },
+     {
+      "name": "PG_BARE_CONST",
+      "line": 20,
+      "guarded": false,
+      "file": "wp-content/plugins/plugin-b/dup.php"
+     }
+    ],
+    "hooks": [
+     {
+      "op": "add",
+      "type": "action",
+      "owner_class": null,
+      "filtered": false,
+      "hook": "template_redirect",
+      "dynamic": false,
+      "prefix": null,
+      "callback": {
+       "kind": "function",
+       "name": "pgb_go"
+      },
+      "priority": 10,
+      "args": 1,
+      "line": 21,
+      "file": "wp-content/plugins/plugin-b/dup.php"
+     }
+    ],
+    "shortcodes": [],
+    "rest": [],
+    "ajax": [],
+    "assets": [],
+    "localize": [],
+    "cpts": [],
+    "taxonomies": [],
+    "blocks": [],
+    "menus": [],
+    "options": [],
+    "globals": [],
+    "db": [],
+    "includes": [],
+    "calls": [],
+    "redirects": [
+     {
+      "call": "wp_safe_redirect",
+      "target": "/b",
+      "dynamic": false,
+      "status": null,
+      "line": 23,
+      "in": {
+       "kind": "function",
+       "name": "pgb_go",
+       "class": null
+      },
+      "file": "wp-content/plugins/plugin-b/dup.php"
+     }
+    ]
+   }
+  },
+  "observations": [
+   {
+    "id": "obs-5dae788510",
+    "type": "duplicate-constant",
+    "components": [
+     "plugin-a",
+     "plugin-b"
+    ],
+    "custom": true,
+    "trusted": true,
+    "dup_key": "duplicate-constant:pg_else_const",
+    "name": "PG_ELSE_CONST",
+    "constant": "PG_ELSE_CONST",
+    "risk": "warning-only",
+    "evidence": [
+     {
+      "file": "wp-content/plugins/plugin-a/definitions.php",
+      "line": 39,
+      "component": "plugin-a",
+      "ownership": "custom"
+     },
+     {
+      "file": "wp-content/plugins/plugin-b/dup.php",
+      "line": 19,
+      "component": "plugin-b",
+      "ownership": "custom"
+     }
+    ],
+    "message": "constant PG_ELSE_CONST is defined by plugin-a and plugin-b: PHP keeps the first value and only warns, so one of them runs with the other's value"
+   },
+   {
+    "id": "obs-c647ec9023",
+    "type": "duplicate-constant",
+    "components": [
+     "plugin-a",
+     "plugin-b"
+    ],
+    "custom": true,
+    "trusted": true,
+    "dup_key": "duplicate-constant:pg_bare_const",
+    "name": "PG_BARE_CONST",
+    "constant": "PG_BARE_CONST",
+    "risk": "warning-only",
+    "evidence": [
+     {
+      "file": "wp-content/plugins/plugin-a/definitions.php",
+      "line": 41,
+      "component": "plugin-a",
+      "ownership": "custom"
+     },
+     {
+      "file": "wp-content/plugins/plugin-b/dup.php",
+      "line": 20,
+      "component": "plugin-b",
+      "ownership": "custom"
+     }
+    ],
+    "message": "constant PG_BARE_CONST is defined by plugin-a and plugin-b: PHP keeps the first value and only warns, so one of them runs with the other's value"
+   },
+   {
+    "id": "obs-4767c420e5",
+    "type": "duplicate-declaration",
+    "dup_key": "decl:function:pg_pos_fn",
+    "components": [
+     "plugin-a",
+     "plugin-b"
+    ],
+    "custom": true,
+    "declaration": {
+     "kind": "function",
+     "name": "pg_pos_fn"
+    },
+    "risk": "conditional (one declaration is guarded by function_exists / class_exists)",
+    "evidence": [
+     {
+      "file": "wp-content/plugins/plugin-a/definitions.php",
+      "line": 8,
+      "component": "plugin-a",
+      "guarded": true,
+      "bundled": false,
+      "ownership": "custom"
+     },
+     {
+      "file": "wp-content/plugins/plugin-b/dup.php",
+      "line": 5,
+      "component": "plugin-b",
+      "guarded": false,
+      "bundled": false,
+      "ownership": "custom"
+     }
+    ],
+    "message": "function pg_pos_fn() is declared in 2 places"
+   },
+   {
+    "id": "obs-544bdfd7ff",
+    "type": "duplicate-declaration",
+    "dup_key": "decl:class:pgb_plain_class",
+    "components": [
+     "plugin-a",
+     "plugin-b"
+    ],
+    "custom": true,
+    "declaration": {
+     "kind": "class",
+     "name": "pgb_plain_class"
+    },
+    "risk": "fatal-if-both-load",
+    "evidence": [
+     {
+      "file": "wp-content/plugins/plugin-a/plain-dup.php",
+      "line": 5,
+      "component": "plugin-a",
+      "guarded": false,
+      "bundled": false,
+      "ownership": "custom"
+     },
+     {
+      "file": "wp-content/plugins/plugin-b/plain-dup.php",
+      "line": 5,
+      "component": "plugin-b",
+      "guarded": false,
+      "bundled": false,
+      "ownership": "custom"
+     }
+    ],
+    "message": "class pgb_plain_class() is declared in 2 places"
+   },
+   {
+    "id": "obs-9400fc2645",
+    "type": "duplicate-declaration",
+    "dup_key": "decl:function:pg_dup_fn",
+    "components": [
+     "plugin-a",
+     "plugin-b"
+    ],
+    "custom": true,
+    "declaration": {
+     "kind": "function",
+     "name": "pg_dup_fn"
+    },
+    "risk": "conditional (one declaration is guarded by function_exists / class_exists)",
+    "evidence": [
+     {
+      "file": "wp-content/plugins/plugin-a/definitions.php",
+      "line": 3,
+      "component": "plugin-a",
+      "guarded": true,
+      "bundled": false,
+      "ownership": "custom"
+     },
+     {
+      "file": "wp-content/plugins/plugin-b/dup.php",
+      "line": 2,
+      "component": "plugin-b",
+      "guarded": false,
+      "bundled": false,
+      "ownership": "custom"
+     }
+    ],
+    "message": "function pg_dup_fn() is declared in 2 places"
+   },
+   {
+    "id": "obs-a790efee3a",
+    "type": "duplicate-declaration",
+    "dup_key": "decl:class:pg_pos_class",
+    "components": [
+     "plugin-a",
+     "plugin-b"
+    ],
+    "custom": true,
+    "declaration": {
+     "kind": "class",
+     "name": "pg_pos_class"
+    },
+    "risk": "conditional (one declaration is guarded by function_exists / class_exists)",
+    "evidence": [
+     {
+      "file": "wp-content/plugins/plugin-a/definitions.php",
+      "line": 25,
+      "component": "plugin-a",
+      "guarded": true,
+      "bundled": false,
+      "ownership": "custom"
+     },
+     {
+      "file": "wp-content/plugins/plugin-b/dup.php",
+      "line": 13,
+      "component": "plugin-b",
+      "guarded": false,
+      "bundled": false,
+      "ownership": "custom"
+     }
+    ],
+    "message": "class pg_pos_class() is declared in 2 places"
+   },
+   {
+    "id": "obs-d50a57ecf1",
+    "type": "duplicate-declaration",
+    "dup_key": "decl:class:pg_dup_class",
+    "components": [
+     "plugin-a",
+     "plugin-b"
+    ],
+    "custom": true,
+    "declaration": {
+     "kind": "class",
+     "name": "pg_dup_class"
+    },
+    "risk": "conditional (one declaration is guarded by function_exists / class_exists)",
+    "evidence": [
+     {
+      "file": "wp-content/plugins/plugin-a/definitions.php",
+      "line": 20,
+      "component": "plugin-a",
+      "guarded": true,
+      "bundled": false,
+      "ownership": "custom"
+     },
+     {
+      "file": "wp-content/plugins/plugin-b/dup.php",
+      "line": 11,
+      "component": "plugin-b",
+      "guarded": false,
+      "bundled": false,
+      "ownership": "custom"
+     }
+    ],
+    "message": "class pg_dup_class() is declared in 2 places"
+   },
+   {
+    "id": "obs-e4839599e2",
+    "type": "duplicate-declaration",
+    "dup_key": "decl:function:pg_and_fn",
+    "components": [
+     "plugin-a",
+     "plugin-b"
+    ],
+    "custom": true,
+    "declaration": {
+     "kind": "function",
+     "name": "pg_and_fn"
+    },
+    "risk": "conditional (one declaration is guarded by function_exists / class_exists)",
+    "evidence": [
+     {
+      "file": "wp-content/plugins/plugin-a/definitions.php",
+      "line": 28,
+      "component": "plugin-a",
+      "guarded": true,
+      "bundled": false,
+      "ownership": "custom"
+     },
+     {
+      "file": "wp-content/plugins/plugin-b/dup.php",
+      "line": 15,
+      "component": "plugin-b",
+      "guarded": false,
+      "bundled": false,
+      "ownership": "custom"
+     }
+    ],
+    "message": "function pg_and_fn() is declared in 2 places"
+   },
+   {
+    "id": "obs-ebe297b9bc",
+    "type": "duplicate-declaration",
+    "dup_key": "decl:function:pgb_plain_dup",
+    "components": [
+     "plugin-a",
+     "plugin-b"
+    ],
+    "custom": true,
+    "declaration": {
+     "kind": "function",
+     "name": "pgb_plain_dup"
+    },
+    "risk": "fatal-if-both-load",
+    "evidence": [
+     {
+      "file": "wp-content/plugins/plugin-a/plain-dup.php",
+      "line": 2,
+      "component": "plugin-a",
+      "guarded": false,
+      "bundled": false,
+      "ownership": "custom"
+     },
+     {
+      "file": "wp-content/plugins/plugin-b/plain-dup.php",
+      "line": 2,
+      "component": "plugin-b",
+      "guarded": false,
+      "bundled": false,
+      "ownership": "custom"
+     }
+    ],
+    "message": "function pgb_plain_dup() is declared in 2 places"
+   },
+   {
+    "id": "obs-f08b350d2c",
+    "type": "duplicate-declaration",
+    "dup_key": "decl:function:pg_else_fn",
+    "components": [
+     "plugin-a",
+     "plugin-b"
+    ],
+    "custom": true,
+    "declaration": {
+     "kind": "function",
+     "name": "pg_else_fn"
+    },
+    "risk": "fatal-if-both-load",
+    "evidence": [
+     {
+      "file": "wp-content/plugins/plugin-a/definitions.php",
+      "line": 15,
+      "component": "plugin-a",
+      "guarded": false,
+      "bundled": false,
+      "ownership": "custom"
+     },
+     {
+      "file": "wp-content/plugins/plugin-b/dup.php",
+      "line": 8,
+      "component": "plugin-b",
+      "guarded": false,
+      "bundled": false,
+      "ownership": "custom"
+     }
+    ],
+    "message": "function pg_else_fn() is declared in 2 places"
+   }
+  ],
+  "steps": [
+   {
+    "id": "custom-first",
+    "label": "Custom code first",
+    "status": "PASSED",
+    "reason": null,
+    "custom_components": [
+     "plugin-a",
+     "plugin-b"
+    ],
+    "syntax_tree_components": [
+     "plugin-a",
+     "plugin-b"
+    ]
+   },
+   {
+    "id": "core-handles",
+    "label": "WordPress core script/style handles",
+    "status": "PASSED",
+    "reason": "read from this site's own script-loader.php (WordPress 6.8.1): 1 scripts, 0 styles"
+   },
+   {
+    "id": "template-overrides",
+    "label": "Theme template overrides (WooCommerce)",
+    "status": "SKIPPED",
+    "reason": "WooCommerce is not installed here, so no override can be outdated",
+    "overrides": 0
+   },
+   {
+    "id": "observations",
+    "label": "Code observations",
+    "status": "PASSED",
+    "reason": "0 routine handle removal(s) in inspection-only code were not reported; duplicate declarations from regex-only code are reported only for names the evidence mentions",
+    "count": 10,
+    "by_type": {
+     "duplicate-constant": 2,
+     "duplicate-declaration": 8
+    }
+   }
+  ]
+ },
+ "compat": {
+  "observations": [
+   {
+    "advisory": true,
+    "family": "compat",
+    "type": "removed-function-call",
+    "components": [
+     "plugin-a"
+    ],
+    "custom": true,
+    "function": "ereg_replace",
+    "removed_in": "7.0",
+    "function_kind": "php",
+    "entry": "php-ereg",
+    "source_url": "https://www.php.net/manual/en/migration70.incompatible.php",
+    "claim": "All ereg functions were removed",
+    "php_version": "8.3",
+    "php_source": "the PHP of the sandbox image (php8.3); the live site may run another version",
+    "php_stated": false,
+    "dup_key": "removed:ereg_replace",
+    "evidence": [
+     {
+      "file": "wp-content/plugins/plugin-a/early-return.php",
+      "line": 6,
+      "component": "plugin-a"
+     },
+     {
+      "file": "wp-content/plugins/plugin-a/early-return.php",
+      "line": 9,
+      "component": "plugin-a"
+     }
+    ],
+    "php_label": "on PHP 8.3 (sandbox); the site's own PHP version is unknown",
+    "message": "plugin-a calls ereg_replace(), which no longer exists from PHP 7.0; on PHP 8.3 (sandbox); the site's own PHP version is unknown",
+    "id": "obs-07d48881fc"
+   },
+   {
+    "advisory": true,
+    "family": "compat",
+    "type": "removed-function-call",
+    "components": [
+     "plugin-a"
+    ],
+    "custom": true,
+    "function": "create_function",
+    "removed_in": "8.0",
+    "function_kind": "php",
+    "entry": "php-create-function",
+    "source_url": "https://www.php.net/manual/en/function.create-function.php",
+    "claim": "REMOVED as of PHP 8.0.0",
+    "php_version": "8.3",
+    "php_source": "the PHP of the sandbox image (php8.3); the live site may run another version",
+    "php_stated": false,
+    "dup_key": "removed:create_function",
+    "evidence": [
+     {
+      "file": "wp-content/plugins/plugin-a/else-negated.php",
+      "line": 5,
+      "component": "plugin-a"
+     },
+     {
+      "file": "wp-content/plugins/plugin-a/else-negated.php",
+      "line": 10,
+      "component": "plugin-a"
+     }
+    ],
+    "php_label": "on PHP 8.3 (sandbox); the site's own PHP version is unknown",
+    "message": "plugin-a calls create_function(), which no longer exists from PHP 8.0; on PHP 8.3 (sandbox); the site's own PHP version is unknown",
+    "id": "obs-591513f001"
+   },
+   {
+    "advisory": true,
+    "family": "compat",
+    "type": "removed-function-call",
+    "components": [
+     "plugin-a"
+    ],
+    "custom": true,
+    "function": "mysql_select_db",
+    "removed_in": "7.0",
+    "function_kind": "php",
+    "entry": "php-mysql",
+    "source_url": "https://www.php.net/manual/en/book.mysql.php",
+    "claim": "has been removed as of PHP 7.0.0",
+    "php_version": "8.3",
+    "php_source": "the PHP of the sandbox image (php8.3); the live site may run another version",
+    "php_stated": false,
+    "dup_key": "removed:mysql_select_db",
+    "evidence": [
+     {
+      "file": "wp-content/plugins/plugin-a/nested.php",
+      "line": 13,
+      "component": "plugin-a"
+     },
+     {
+      "file": "wp-content/plugins/plugin-a/nested.php",
+      "line": 19,
+      "component": "plugin-a"
+     }
+    ],
+    "php_label": "on PHP 8.3 (sandbox); the site's own PHP version is unknown",
+    "message": "plugin-a calls mysql_select_db(), which no longer exists from PHP 7.0; on PHP 8.3 (sandbox); the site's own PHP version is unknown",
+    "id": "obs-746da36812"
+   },
+   {
+    "advisory": true,
+    "family": "compat",
+    "type": "removed-function-call",
+    "components": [
+     "plugin-a"
+    ],
+    "custom": true,
+    "function": "ereg",
+    "removed_in": "7.0",
+    "function_kind": "php",
+    "entry": "php-ereg",
+    "source_url": "https://www.php.net/manual/en/migration70.incompatible.php",
+    "claim": "All ereg functions were removed",
+    "php_version": "8.3",
+    "php_source": "the PHP of the sandbox image (php8.3); the live site may run another version",
+    "php_stated": false,
+    "dup_key": "removed:ereg",
+    "evidence": [
+     {
+      "file": "wp-content/plugins/plugin-a/double-negation.php",
+      "line": 14,
+      "component": "plugin-a"
+     }
+    ],
+    "php_label": "on PHP 8.3 (sandbox); the site's own PHP version is unknown",
+    "message": "plugin-a calls ereg(), which no longer exists from PHP 7.0; on PHP 8.3 (sandbox); the site's own PHP version is unknown",
+    "id": "obs-76f92f1ffb"
+   },
+   {
+    "advisory": true,
+    "family": "compat",
+    "type": "removed-function-call",
+    "components": [
+     "plugin-a"
+    ],
+    "custom": true,
+    "function": "eregi",
+    "removed_in": "7.0",
+    "function_kind": "php",
+    "entry": "php-ereg",
+    "source_url": "https://www.php.net/manual/en/migration70.incompatible.php",
+    "claim": "All ereg functions were removed",
+    "php_version": "8.3",
+    "php_source": "the PHP of the sandbox image (php8.3); the live site may run another version",
+    "php_stated": false,
+    "dup_key": "removed:eregi",
+    "evidence": [
+     {
+      "file": "wp-content/plugins/plugin-a/elseif.php",
+      "line": 5,
+      "component": "plugin-a"
+     },
+     {
+      "file": "wp-content/plugins/plugin-a/elseif.php",
+      "line": 17,
+      "component": "plugin-a"
+     },
+     {
+      "file": "wp-content/plugins/plugin-a/elseif.php",
+      "line": 22,
+      "component": "plugin-a"
+     }
+    ],
+    "php_label": "on PHP 8.3 (sandbox); the site's own PHP version is unknown",
+    "message": "plugin-a calls eregi(), which no longer exists from PHP 7.0; on PHP 8.3 (sandbox); the site's own PHP version is unknown",
+    "id": "obs-772824bf55"
+   },
+   {
+    "advisory": true,
+    "family": "compat",
+    "type": "removed-function-call",
+    "components": [
+     "plugin-a"
+    ],
+    "custom": true,
+    "function": "mysql_close",
+    "removed_in": "7.0",
+    "function_kind": "php",
+    "entry": "php-mysql",
+    "source_url": "https://www.php.net/manual/en/book.mysql.php",
+    "claim": "has been removed as of PHP 7.0.0",
+    "php_version": "8.3",
+    "php_source": "the PHP of the sandbox image (php8.3); the live site may run another version",
+    "php_stated": false,
+    "dup_key": "removed:mysql_close",
+    "evidence": [
+     {
+      "file": "wp-content/plugins/plugin-a/other-name.php",
+      "line": 3,
+      "component": "plugin-a"
+     },
+     {
+      "file": "wp-content/plugins/plugin-a/other-name.php",
+      "line": 8,
+      "component": "plugin-a"
+     }
+    ],
+    "php_label": "on PHP 8.3 (sandbox); the site's own PHP version is unknown",
+    "message": "plugin-a calls mysql_close(), which no longer exists from PHP 7.0; on PHP 8.3 (sandbox); the site's own PHP version is unknown",
+    "id": "obs-bd986f79b5"
+   },
+   {
+    "advisory": true,
+    "family": "compat",
+    "type": "removed-function-call",
+    "components": [
+     "plugin-a"
+    ],
+    "custom": true,
+    "function": "mysql_connect",
+    "removed_in": "7.0",
+    "function_kind": "php",
+    "entry": "php-mysql",
+    "source_url": "https://www.php.net/manual/en/book.mysql.php",
+    "claim": "has been removed as of PHP 7.0.0",
+    "php_version": "8.3",
+    "php_source": "the PHP of the sandbox image (php8.3); the live site may run another version",
+    "php_stated": false,
+    "dup_key": "removed:mysql_connect",
+    "evidence": [
+     {
+      "file": "wp-content/plugins/plugin-a/and-chain.php",
+      "line": 11,
+      "component": "plugin-a"
+     }
+    ],
+    "php_label": "on PHP 8.3 (sandbox); the site's own PHP version is unknown",
+    "message": "plugin-a calls mysql_connect(), which no longer exists from PHP 7.0; on PHP 8.3 (sandbox); the site's own PHP version is unknown",
+    "id": "obs-d94d0d2067"
+   },
+   {
+    "advisory": true,
+    "family": "compat",
+    "type": "removed-function-call",
+    "components": [
+     "plugin-a"
+    ],
+    "custom": true,
+    "function": "each",
+    "removed_in": "8.0",
+    "function_kind": "php",
+    "entry": "php-each",
+    "source_url": "https://www.php.net/manual/en/function.each.php",
+    "claim": "REMOVED as of PHP 8.0.0",
+    "php_version": "8.3",
+    "php_source": "the PHP of the sandbox image (php8.3); the live site may run another version",
+    "php_stated": false,
+    "dup_key": "removed:each",
+    "evidence": [
+     {
+      "file": "wp-content/plugins/plugin-a/positive.php",
+      "line": 9,
+      "component": "plugin-a"
+     }
+    ],
+    "php_label": "on PHP 8.3 (sandbox); the site's own PHP version is unknown",
+    "message": "plugin-a calls each(), which no longer exists from PHP 8.0; on PHP 8.3 (sandbox); the site's own PHP version is unknown",
+    "id": "obs-e36714f032"
+   },
+   {
+    "advisory": true,
+    "family": "compat",
+    "type": "removed-function-call",
+    "components": [
+     "plugin-a"
+    ],
+    "custom": true,
+    "function": "mysql_query",
+    "removed_in": "7.0",
+    "function_kind": "php",
+    "entry": "php-mysql",
+    "source_url": "https://www.php.net/manual/en/book.mysql.php",
+    "claim": "has been removed as of PHP 7.0.0",
+    "php_version": "8.3",
+    "php_source": "the PHP of the sandbox image (php8.3); the live site may run another version",
+    "php_stated": false,
+    "dup_key": "removed:mysql_query",
+    "evidence": [
+     {
+      "file": "wp-content/plugins/plugin-a/or-chain.php",
+      "line": 5,
+      "component": "plugin-a"
+     },
+     {
+      "file": "wp-content/plugins/plugin-a/or-chain.php",
+      "line": 10,
+      "component": "plugin-a"
+     }
+    ],
+    "php_label": "on PHP 8.3 (sandbox); the site's own PHP version is unknown",
+    "message": "plugin-a calls mysql_query(), which no longer exists from PHP 7.0; on PHP 8.3 (sandbox); the site's own PHP version is unknown",
+    "id": "obs-f7a8a28be9"
+   },
+   {
+    "advisory": true,
+    "family": "compat",
+    "type": "removed-function-call",
+    "components": [
+     "plugin-a"
+    ],
+    "custom": true,
+    "function": "eregi_replace",
+    "removed_in": "7.0",
+    "function_kind": "php",
+    "entry": "php-ereg",
+    "source_url": "https://www.php.net/manual/en/migration70.incompatible.php",
+    "claim": "All ereg functions were removed",
+    "php_version": "8.3",
+    "php_source": "the PHP of the sandbox image (php8.3); the live site may run another version",
+    "php_stated": false,
+    "dup_key": "removed:eregi_replace",
+    "evidence": [
+     {
+      "file": "wp-content/plugins/plugin-a/ternary.php",
+      "line": 2,
+      "component": "plugin-a"
+     },
+     {
+      "file": "wp-content/plugins/plugin-a/ternary.php",
+      "line": 3,
+      "component": "plugin-a"
+     },
+     {
+      "file": "wp-content/plugins/plugin-a/ternary.php",
+      "line": 4,
+      "component": "plugin-a"
+     }
+    ],
+    "php_label": "on PHP 8.3 (sandbox); the site's own PHP version is unknown",
+    "message": "plugin-a calls eregi_replace(), which no longer exists from PHP 7.0; on PHP 8.3 (sandbox); the site's own PHP version is unknown",
+    "id": "obs-f8f0b2ad9d"
+   }
+  ],
+  "step": {
+   "id": "compat",
+   "label": "Static compatibility (PHP / WordPress versions, removed functions)",
+   "status": "PASSED",
+   "reason": "on PHP 8.3 (sandbox); the site's own PHP version is unknown; WordPress 6.8.1; 38 watched call(s) read in syntax-tree components only (custom code, themes, components the evidence names); 10 advisory observation(s); 1 data entry is not verified and never matched",
+   "advisories": 10,
+   "php": {
+    "version": "8.3",
+    "source": "the PHP of the sandbox image (php8.3); the live site may run another version",
+    "stated": false,
+    "label": "on PHP 8.3 (sandbox); the site's own PHP version is unknown"
+   },
+   "wordpress": "6.8.1"
+  }
+ },
+ "redirect_map": [
+  {
+   "component": "plugin-a",
+   "file": "wp-content/plugins/plugin-a/hooks-redirects.php",
+   "line": 12,
+   "call": "wp_redirect",
+   "target": "/somewhere",
+   "dynamic_target": false,
+   "status": 302,
+   "enclosing": "pga_go()",
+   "enclosing_kind": "function",
+   "hooks": [
+    {
+     "hook": "template_redirect",
+     "priority": 5,
+     "file": "wp-content/plugins/plugin-a/hooks-redirects.php",
+     "line": 3
+    }
+   ],
+   "context": "hook",
+   "common": true,
+   "unknown_reason": null
+  },
+  {
+   "component": "plugin-a",
+   "file": "wp-content/plugins/plugin-a/hooks-redirects.php",
+   "line": 15,
+   "call": "header",
+   "target": "/other",
+   "dynamic_target": false,
+   "status": null,
+   "enclosing": "pga_go()",
+   "enclosing_kind": "function",
+   "hooks": [
+    {
+     "hook": "template_redirect",
+     "priority": 5,
+     "file": "wp-content/plugins/plugin-a/hooks-redirects.php",
+     "line": 3
+    }
+   ],
+   "context": "hook",
+   "common": true,
+   "unknown_reason": null
+  },
+  {
+   "component": "plugin-b",
+   "file": "wp-content/plugins/plugin-b/dup.php",
+   "line": 23,
+   "call": "wp_safe_redirect",
+   "target": "/b",
+   "dynamic_target": false,
+   "status": null,
+   "enclosing": "pgb_go()",
+   "enclosing_kind": "function",
+   "hooks": [
+    {
+     "hook": "template_redirect",
+     "priority": 10,
+     "file": "wp-content/plugins/plugin-b/dup.php",
+     "line": 21
+    }
+   ],
+   "context": "hook",
+   "common": true,
+   "unknown_reason": null
+  }
+ ],
+ "patches": [
+  {
+   "kind": "function",
+   "name": "pg_dup_fn",
+   "file": "wp-content/plugins/plugin-b/dup.php",
+   "line": 2,
+   "out": {
+    "generator": "function-guard",
+    "file": "wp-content/plugins/plugin-b/dup.php",
+    "rel": "wp-content/plugins/plugin-b/dup.php",
+    "diff": "--- a/wp-content/plugins/plugin-b/dup.php\n+++ b/wp-content/plugins/plugin-b/dup.php\n@@ -1,6 +1,8 @@\n <?php\n-function pg_dup_fn() {\n-\treturn 'b';\n+if ( ! function_exists( 'pg_dup_fn' ) ) {\n+\tfunction pg_dup_fn() {\n+\t\treturn 'b';\n+\t}\n }\n function pg_pos_fn() {\n \treturn 'b';\n",
+    "summary": "Wrap function pg_dup_fn() in a function_exists() guard",
+    "why": "pg_dup_fn is declared here and also elsewhere; if both files load, PHP stops with \"Cannot redeclare\". The guard makes the first one that loads win. It does NOT decide which copy should win: that is a decision for the owner (see the other resolution options). Note that a guarded function is defined when the line runs, not at compile time.",
+    "validation": [
+     {
+      "id": "diff-applies",
+      "status": "PASSED",
+      "reason": "the diff applies cleanly to the original text and gives exactly the new text"
+     },
+     {
+      "id": "php-l",
+      "status": "NOT_RUN",
+      "reason": "php is not installed"
+     },
+     {
+      "id": "scanner-rerun",
+      "status": "PASSED",
+      "reason": "the PHP scanner no longer reports the problem in the patched text"
+     }
+    ],
+    "ok": true
+   }
+  },
+  {
+   "kind": "function",
+   "name": "pg_pos_fn",
+   "file": "wp-content/plugins/plugin-b/dup.php",
+   "line": 5,
+   "out": {
+    "generator": "function-guard",
+    "file": "wp-content/plugins/plugin-b/dup.php",
+    "rel": "wp-content/plugins/plugin-b/dup.php",
+    "diff": "--- a/wp-content/plugins/plugin-b/dup.php\n+++ b/wp-content/plugins/plugin-b/dup.php\n@@ -2,8 +2,10 @@\n function pg_dup_fn() {\n \treturn 'b';\n }\n-function pg_pos_fn() {\n-\treturn 'b';\n+if ( ! function_exists( 'pg_pos_fn' ) ) {\n+\tfunction pg_pos_fn() {\n+\t\treturn 'b';\n+\t}\n }\n function pg_else_fn() {\n \treturn 'b';\n",
+    "summary": "Wrap function pg_pos_fn() in a function_exists() guard",
+    "why": "pg_pos_fn is declared here and also elsewhere; if both files load, PHP stops with \"Cannot redeclare\". The guard makes the first one that loads win. It does NOT decide which copy should win: that is a decision for the owner (see the other resolution options). Note that a guarded function is defined when the line runs, not at compile time.",
+    "validation": [
+     {
+      "id": "diff-applies",
+      "status": "PASSED",
+      "reason": "the diff applies cleanly to the original text and gives exactly the new text"
+     },
+     {
+      "id": "php-l",
+      "status": "NOT_RUN",
+      "reason": "php is not installed"
+     },
+     {
+      "id": "scanner-rerun",
+      "status": "PASSED",
+      "reason": "the PHP scanner no longer reports the problem in the patched text"
+     }
+    ],
+    "ok": true
+   }
+  },
+  {
+   "kind": "class",
+   "name": "PG_Dup_Class",
+   "file": "wp-content/plugins/plugin-b/dup.php",
+   "line": 11,
+   "out": {
+    "generator": "function-guard",
+    "file": "wp-content/plugins/plugin-b/dup.php",
+    "rel": "wp-content/plugins/plugin-b/dup.php",
+    "diff": "--- a/wp-content/plugins/plugin-b/dup.php\n+++ b/wp-content/plugins/plugin-b/dup.php\n@@ -8,7 +8,9 @@\n function pg_else_fn() {\n \treturn 'b';\n }\n-class PG_Dup_Class {\n+if ( ! class_exists( 'PG_Dup_Class' ) ) {\n+\tclass PG_Dup_Class {\n+\t}\n }\n class PG_Pos_Class {\n }\n",
+    "summary": "Wrap class PG_Dup_Class() in a class_exists() guard",
+    "why": "PG_Dup_Class is declared here and also elsewhere; if both files load, PHP stops with \"Cannot redeclare\". The guard makes the first one that loads win. It does NOT decide which copy should win: that is a decision for the owner (see the other resolution options). Note that a guarded function is defined when the line runs, not at compile time.",
+    "validation": [
+     {
+      "id": "diff-applies",
+      "status": "PASSED",
+      "reason": "the diff applies cleanly to the original text and gives exactly the new text"
+     },
+     {
+      "id": "php-l",
+      "status": "NOT_RUN",
+      "reason": "php is not installed"
+     },
+     {
+      "id": "scanner-rerun",
+      "status": "PASSED",
+      "reason": "the PHP scanner no longer reports the problem in the patched text"
+     }
+    ],
+    "ok": true
+   }
+  },
+  {
+   "kind": "class",
+   "name": "PG_Pos_Class",
+   "file": "wp-content/plugins/plugin-b/dup.php",
+   "line": 13,
+   "out": {
+    "generator": "function-guard",
+    "file": "wp-content/plugins/plugin-b/dup.php",
+    "rel": "wp-content/plugins/plugin-b/dup.php",
+    "diff": "--- a/wp-content/plugins/plugin-b/dup.php\n+++ b/wp-content/plugins/plugin-b/dup.php\n@@ -10,7 +10,9 @@\n }\n class PG_Dup_Class {\n }\n-class PG_Pos_Class {\n+if ( ! class_exists( 'PG_Pos_Class' ) ) {\n+\tclass PG_Pos_Class {\n+\t}\n }\n function pg_and_fn() {\n }\n",
+    "summary": "Wrap class PG_Pos_Class() in a class_exists() guard",
+    "why": "PG_Pos_Class is declared here and also elsewhere; if both files load, PHP stops with \"Cannot redeclare\". The guard makes the first one that loads win. It does NOT decide which copy should win: that is a decision for the owner (see the other resolution options). Note that a guarded function is defined when the line runs, not at compile time.",
+    "validation": [
+     {
+      "id": "diff-applies",
+      "status": "PASSED",
+      "reason": "the diff applies cleanly to the original text and gives exactly the new text"
+     },
+     {
+      "id": "php-l",
+      "status": "NOT_RUN",
+      "reason": "php is not installed"
+     },
+     {
+      "id": "scanner-rerun",
+      "status": "PASSED",
+      "reason": "the PHP scanner no longer reports the problem in the patched text"
+     }
+    ],
+    "ok": true
+   }
+  },
+  {
+   "kind": "function",
+   "name": "pgb_plain_dup",
+   "file": "wp-content/plugins/plugin-b/plain-dup.php",
+   "line": 2,
+   "out": {
+    "generator": "function-guard",
+    "file": "wp-content/plugins/plugin-b/plain-dup.php",
+    "rel": "wp-content/plugins/plugin-b/plain-dup.php",
+    "diff": "--- a/wp-content/plugins/plugin-b/plain-dup.php\n+++ b/wp-content/plugins/plugin-b/plain-dup.php\n@@ -1,6 +1,8 @@\n <?php\n-function pgb_plain_dup() {\n-\treturn 1;\n+if ( ! function_exists( 'pgb_plain_dup' ) ) {\n+\tfunction pgb_plain_dup() {\n+\t\treturn 1;\n+\t}\n }\n class PGB_Plain_Class {\n }\n",
+    "summary": "Wrap function pgb_plain_dup() in a function_exists() guard",
+    "why": "pgb_plain_dup is declared here and also elsewhere; if both files load, PHP stops with \"Cannot redeclare\". The guard makes the first one that loads win. It does NOT decide which copy should win: that is a decision for the owner (see the other resolution options). Note that a guarded function is defined when the line runs, not at compile time.",
+    "validation": [
+     {
+      "id": "diff-applies",
+      "status": "PASSED",
+      "reason": "the diff applies cleanly to the original text and gives exactly the new text"
+     },
+     {
+      "id": "php-l",
+      "status": "NOT_RUN",
+      "reason": "php is not installed"
+     },
+     {
+      "id": "scanner-rerun",
+      "status": "PASSED",
+      "reason": "the PHP scanner no longer reports the problem in the patched text"
+     }
+    ],
+    "ok": true
+   }
+  }
+ ],
+ "regex": {
+  "wp-content/plugins/plugin-a/and-chain.php": {
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "hooks": [],
+   "removals": []
+  },
+  "wp-content/plugins/plugin-a/class-and-defined.php": {
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "hooks": [],
+   "removals": []
+  },
+  "wp-content/plugins/plugin-a/definitions.php": {
+   "functions": [
+    {
+     "name": "pg_dup_fn",
+     "guarded": true,
+     "line": 3
+    },
+    {
+     "name": "pg_pos_fn",
+     "guarded": true,
+     "line": 8
+    },
+    {
+     "name": "pg_else_fn",
+     "guarded": true,
+     "line": 15
+    },
+    {
+     "name": "pg_and_fn",
+     "guarded": true,
+     "line": 28
+    }
+   ],
+   "classes": [
+    {
+     "name": "PG_Dup_Class",
+     "guarded": true,
+     "line": 20
+    },
+    {
+     "name": "PG_Pos_Class",
+     "guarded": true,
+     "line": 25
+    }
+   ],
+   "constants": [
+    {
+     "name": "PG_DUP_CONST",
+     "guarded": true
+    },
+    {
+     "name": "PG_POS_CONST",
+     "guarded": true
+    },
+    {
+     "name": "PG_ELSE_CONST",
+     "guarded": true
+    },
+    {
+     "name": "PG_BARE_CONST",
+     "guarded": false
+    }
+   ],
+   "hooks": [],
+   "removals": []
+  },
+  "wp-content/plugins/plugin-a/double-negation.php": {
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "hooks": [],
+   "removals": []
+  },
+  "wp-content/plugins/plugin-a/early-return.php": {
+   "functions": [
+    {
+     "name": "pga_run",
+     "guarded": false,
+     "line": 2
+    }
+   ],
+   "classes": [],
+   "constants": [],
+   "hooks": [],
+   "removals": []
+  },
+  "wp-content/plugins/plugin-a/else-negated.php": {
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "hooks": [],
+   "removals": []
+  },
+  "wp-content/plugins/plugin-a/elseif.php": {
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "hooks": [],
+   "removals": []
+  },
+  "wp-content/plugins/plugin-a/hooks-redirects.php": {
+   "functions": [
+    {
+     "name": "pga_go",
+     "guarded": false,
+     "line": 10
+    }
+   ],
+   "classes": [],
+   "constants": [],
+   "hooks": [
+    {
+     "hook": "template_redirect",
+     "callback": "pga_go",
+     "callbackRaw": "'pga_go'",
+     "identity": {
+      "kind": "function",
+      "name": "pga_go"
+     },
+     "priority": 5,
+     "line": 3
+    },
+    {
+     "hook": "the_content",
+     "callback": "pga_filter",
+     "callbackRaw": "'pga_filter'",
+     "identity": {
+      "kind": "function",
+      "name": "pga_filter"
+     },
+     "priority": 10,
+     "line": 6
+    }
+   ],
+   "removals": [
+    {
+     "hook": "init",
+     "callback": "pga_go",
+     "callbackRaw": "'pga_go'",
+     "identity": {
+      "kind": "function",
+      "name": "pga_go"
+     },
+     "priority": 10,
+     "line": 8
+    }
+   ]
+  },
+  "wp-content/plugins/plugin-a/negated.php": {
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "hooks": [],
+   "removals": []
+  },
+  "wp-content/plugins/plugin-a/nested.php": {
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "hooks": [],
+   "removals": []
+  },
+  "wp-content/plugins/plugin-a/or-chain.php": {
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "hooks": [],
+   "removals": []
+  },
+  "wp-content/plugins/plugin-a/other-name.php": {
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "hooks": [],
+   "removals": []
+  },
+  "wp-content/plugins/plugin-a/plain-dup.php": {
+   "functions": [
+    {
+     "name": "pgb_plain_dup",
+     "guarded": false,
+     "line": 2
+    }
+   ],
+   "classes": [
+    {
+     "name": "PGB_Plain_Class",
+     "guarded": false,
+     "line": 5
+    }
+   ],
+   "constants": [],
+   "hooks": [],
+   "removals": []
+  },
+  "wp-content/plugins/plugin-a/plugin-a.php": {
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "hooks": [],
+   "removals": []
+  },
+  "wp-content/plugins/plugin-a/positive.php": {
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "hooks": [],
+   "removals": []
+  },
+  "wp-content/plugins/plugin-a/ternary.php": {
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "hooks": [],
+   "removals": []
+  },
+  "wp-content/plugins/plugin-b/dup.php": {
+   "functions": [
+    {
+     "name": "pg_dup_fn",
+     "guarded": false,
+     "line": 2
+    },
+    {
+     "name": "pg_pos_fn",
+     "guarded": false,
+     "line": 5
+    },
+    {
+     "name": "pg_else_fn",
+     "guarded": false,
+     "line": 8
+    },
+    {
+     "name": "pg_and_fn",
+     "guarded": false,
+     "line": 15
+    },
+    {
+     "name": "pgb_go",
+     "guarded": false,
+     "line": 22
+    }
+   ],
+   "classes": [
+    {
+     "name": "PG_Dup_Class",
+     "guarded": false,
+     "line": 11
+    },
+    {
+     "name": "PG_Pos_Class",
+     "guarded": false,
+     "line": 13
+    }
+   ],
+   "constants": [
+    {
+     "name": "PG_DUP_CONST",
+     "guarded": false
+    },
+    {
+     "name": "PG_POS_CONST",
+     "guarded": false
+    },
+    {
+     "name": "PG_ELSE_CONST",
+     "guarded": false
+    },
+    {
+     "name": "PG_BARE_CONST",
+     "guarded": false
+    }
+   ],
+   "hooks": [
+    {
+     "hook": "template_redirect",
+     "callback": "pgb_go",
+     "callbackRaw": "'pgb_go'",
+     "identity": {
+      "kind": "function",
+      "name": "pgb_go"
+     },
+     "priority": 10,
+     "line": 21
+    }
+   ],
+   "removals": []
+  },
+  "wp-content/plugins/plugin-b/plain-dup.php": {
+   "functions": [
+    {
+     "name": "pgb_plain_dup",
+     "guarded": false,
+     "line": 2
+    }
+   ],
+   "classes": [
+    {
+     "name": "PGB_Plain_Class",
+     "guarded": false,
+     "line": 5
+    }
+   ],
+   "constants": [],
+   "hooks": [],
+   "removals": []
+  },
+  "wp-content/plugins/plugin-b/plugin-b.php": {
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "hooks": [],
+   "removals": []
+  },
+  "single/polyfill-each.php": {
+   "functions": [
+    {
+     "name": "each",
+     "guarded": true,
+     "line": 3
+    },
+    {
+     "name": "create_function",
+     "guarded": true,
+     "line": 8
+    }
+   ],
+   "classes": [],
+   "constants": [],
+   "hooks": [],
+   "removals": []
+  }
+ },
+ "surface": {
+  "wp-content/plugins/plugin-a/and-chain.php": {
+   "file": "wp-content/plugins/plugin-a/and-chain.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": "regex",
+   "bundled": false,
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "hooks": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": []
+  },
+  "wp-content/plugins/plugin-a/class-and-defined.php": {
+   "file": "wp-content/plugins/plugin-a/class-and-defined.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": "regex",
+   "bundled": false,
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "hooks": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": []
+  },
+  "wp-content/plugins/plugin-a/definitions.php": {
+   "file": "wp-content/plugins/plugin-a/definitions.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": "regex",
+   "bundled": false,
+   "functions": [
+    {
+     "name": "pg_dup_fn",
+     "line": 3,
+     "guarded": true
+    },
+    {
+     "name": "pg_pos_fn",
+     "line": 8,
+     "guarded": true
+    },
+    {
+     "name": "pg_else_fn",
+     "line": 15,
+     "guarded": true
+    },
+    {
+     "name": "pg_and_fn",
+     "line": 28,
+     "guarded": true
+    }
+   ],
+   "classes": [
+    {
+     "name": "PG_Dup_Class",
+     "line": 20,
+     "kind": "class",
+     "guarded": true
+    },
+    {
+     "name": "PG_Pos_Class",
+     "line": 25,
+     "kind": "class",
+     "guarded": true
+    }
+   ],
+   "constants": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "hooks": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": []
+  },
+  "wp-content/plugins/plugin-a/double-negation.php": {
+   "file": "wp-content/plugins/plugin-a/double-negation.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": "regex",
+   "bundled": false,
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "hooks": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": []
+  },
+  "wp-content/plugins/plugin-a/early-return.php": {
+   "file": "wp-content/plugins/plugin-a/early-return.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": "regex",
+   "bundled": false,
+   "functions": [
+    {
+     "name": "pga_run",
+     "line": 2,
+     "guarded": false
+    }
+   ],
+   "classes": [],
+   "constants": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "hooks": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": []
+  },
+  "wp-content/plugins/plugin-a/else-negated.php": {
+   "file": "wp-content/plugins/plugin-a/else-negated.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": "regex",
+   "bundled": false,
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "hooks": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": []
+  },
+  "wp-content/plugins/plugin-a/elseif.php": {
+   "file": "wp-content/plugins/plugin-a/elseif.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": "regex",
+   "bundled": false,
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "hooks": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": []
+  },
+  "wp-content/plugins/plugin-a/hooks-redirects.php": {
+   "file": "wp-content/plugins/plugin-a/hooks-redirects.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": "regex",
+   "bundled": false,
+   "functions": [
+    {
+     "name": "pga_go",
+     "line": 10,
+     "guarded": false
+    }
+   ],
+   "classes": [],
+   "constants": [],
+   "shortcodes": [
+    {
+     "tag": "pga_tag",
+     "line": 18
+    }
+   ],
+   "rest": [],
+   "ajax": [],
+   "hooks": [
+    {
+     "op": "add",
+     "hook": "template_redirect",
+     "callback": {
+      "kind": "function",
+      "name": "pga_go",
+      "raw": "'pga_go'"
+     },
+     "priority": 5,
+     "line": 3
+    },
+    {
+     "op": "add",
+     "hook": "the_content",
+     "callback": {
+      "kind": "function",
+      "name": "pga_filter",
+      "raw": "'pga_filter'"
+     },
+     "priority": 10,
+     "line": 6
+    },
+    {
+     "op": "remove",
+     "hook": "init",
+     "callback": {
+      "kind": "function",
+      "name": "pga_go",
+      "raw": "'pga_go'"
+     },
+     "priority": 10,
+     "line": 8
+    }
+   ],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": []
+  },
+  "wp-content/plugins/plugin-a/negated.php": {
+   "file": "wp-content/plugins/plugin-a/negated.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": "regex",
+   "bundled": false,
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "hooks": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": []
+  },
+  "wp-content/plugins/plugin-a/nested.php": {
+   "file": "wp-content/plugins/plugin-a/nested.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": "regex",
+   "bundled": false,
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "hooks": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": []
+  },
+  "wp-content/plugins/plugin-a/or-chain.php": {
+   "file": "wp-content/plugins/plugin-a/or-chain.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": "regex",
+   "bundled": false,
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "hooks": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": []
+  },
+  "wp-content/plugins/plugin-a/other-name.php": {
+   "file": "wp-content/plugins/plugin-a/other-name.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": "regex",
+   "bundled": false,
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "hooks": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": []
+  },
+  "wp-content/plugins/plugin-a/plain-dup.php": {
+   "file": "wp-content/plugins/plugin-a/plain-dup.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": "regex",
+   "bundled": false,
+   "functions": [
+    {
+     "name": "pgb_plain_dup",
+     "line": 2,
+     "guarded": false
+    }
+   ],
+   "classes": [
+    {
+     "name": "PGB_Plain_Class",
+     "line": 5,
+     "kind": "class",
+     "guarded": false
+    }
+   ],
+   "constants": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "hooks": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": []
+  },
+  "wp-content/plugins/plugin-a/plugin-a.php": {
+   "file": "wp-content/plugins/plugin-a/plugin-a.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": "regex",
+   "bundled": false,
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "hooks": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": []
+  },
+  "wp-content/plugins/plugin-a/positive.php": {
+   "file": "wp-content/plugins/plugin-a/positive.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": "regex",
+   "bundled": false,
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "hooks": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": []
+  },
+  "wp-content/plugins/plugin-a/ternary.php": {
+   "file": "wp-content/plugins/plugin-a/ternary.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": "regex",
+   "bundled": false,
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "hooks": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": []
+  },
+  "wp-content/plugins/plugin-b/dup.php": {
+   "file": "wp-content/plugins/plugin-b/dup.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": "regex",
+   "bundled": false,
+   "functions": [
+    {
+     "name": "pg_dup_fn",
+     "line": 2,
+     "guarded": false
+    },
+    {
+     "name": "pg_pos_fn",
+     "line": 5,
+     "guarded": false
+    },
+    {
+     "name": "pg_else_fn",
+     "line": 8,
+     "guarded": false
+    },
+    {
+     "name": "pg_and_fn",
+     "line": 15,
+     "guarded": false
+    },
+    {
+     "name": "pgb_go",
+     "line": 22,
+     "guarded": false
+    }
+   ],
+   "classes": [
+    {
+     "name": "PG_Dup_Class",
+     "line": 11,
+     "kind": "class",
+     "guarded": false
+    },
+    {
+     "name": "PG_Pos_Class",
+     "line": 13,
+     "kind": "class",
+     "guarded": false
+    }
+   ],
+   "constants": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "hooks": [
+    {
+     "op": "add",
+     "hook": "template_redirect",
+     "callback": {
+      "kind": "function",
+      "name": "pgb_go",
+      "raw": "'pgb_go'"
+     },
+     "priority": 10,
+     "line": 21
+    }
+   ],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": []
+  },
+  "wp-content/plugins/plugin-b/plain-dup.php": {
+   "file": "wp-content/plugins/plugin-b/plain-dup.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": "regex",
+   "bundled": false,
+   "functions": [
+    {
+     "name": "pgb_plain_dup",
+     "line": 2,
+     "guarded": false
+    }
+   ],
+   "classes": [
+    {
+     "name": "PGB_Plain_Class",
+     "line": 5,
+     "kind": "class",
+     "guarded": false
+    }
+   ],
+   "constants": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "hooks": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": []
+  },
+  "wp-content/plugins/plugin-b/plugin-b.php": {
+   "file": "wp-content/plugins/plugin-b/plugin-b.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": "regex",
+   "bundled": false,
+   "functions": [],
+   "classes": [],
+   "constants": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "hooks": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": []
+  },
+  "single/polyfill-each.php": {
+   "file": "single/polyfill-each.php",
+   "parsed": true,
+   "errors": [],
+   "fallback": "regex",
+   "bundled": false,
+   "functions": [
+    {
+     "name": "each",
+     "line": 3,
+     "guarded": true
+    },
+    {
+     "name": "create_function",
+     "line": 8,
+     "guarded": true
+    }
+   ],
+   "classes": [],
+   "constants": [],
+   "shortcodes": [],
+   "rest": [],
+   "ajax": [],
+   "hooks": [],
+   "assets": [],
+   "localize": [],
+   "cpts": [],
+   "taxonomies": [],
+   "blocks": [],
+   "menus": [],
+   "options": [],
+   "globals": [],
+   "db": [],
+   "includes": []
+  }
+ }
+}
