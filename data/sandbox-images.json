@@ -1,14 +1,14 @@
 {
   "_about": "Official Docker Hub images used by the issue-mode sandbox, pinned by content digest. Written by `npm run guard:setup-sandbox -- --repin` (registry lookup, no Docker daemon needed). A digest names exactly one image; tags can move. Update by running --repin and re-running the tests.",
   "schema": 1,
-  "resolved_at": "2026-10-28",
+  "resolved_at": "2026-11-05",
   "registry": "registry-1.docker.io",
   "images": {
     "wordpress": {
       "repo": "wordpress",
       "tag": "7.1.3-php8.3-apache",
-      "digest": "sha256:e5a724ec7ad9055f48b2941ac1b674b08e77ed60edb8937a6254fb89ec45ddf7",
-      "ref": "wordpress@sha256:e5a724ec7ad9055f48b2941ac1b674b08e77ed60edb8937a6254fb89ec45ddf7",
+      "digest": "sha256:8901759bfbb7ebc567dbc44a244c0d96d720d0a67c17bc4f42ec355ddba2e863",
+      "ref": "wordpress@sha256:8901759bfbb7ebc567dbc44a244c0d96d720d0a67c17bc4f42ec355ddba2e863",
       "wp_version": "7.1.3",
       "php": "8.3",
       "media_type": "application/vnd.oci.image.index.v1+json"
@@ -16,8 +16,8 @@
     "cli": {
       "repo": "wordpress",
       "tag": "cli-2.12.0-php8.3",
-      "digest": "sha256:661db880e953da051abcac6c0a769767b995a82cd52101c003ca7438dd427d7d",
-      "ref": "wordpress@sha256:661db880e953da051abcac6c0a769767b995a82cd52101c003ca7438dd427d7d",
+      "digest": "sha256:6bcc7bb91f5157c4b915e74ee131873e99c1c1ff48f602e4a6f6cd17827305cb",
+      "ref": "wordpress@sha256:6bcc7bb91f5157c4b915e74ee131873e99c1c1ff48f602e4a6f6cd17827305cb",
       "php": "8.3",
       "media_type": "application/vnd.oci.image.index.v1+json"
     },
@@ -27,6 +27,180 @@
       "digest": "sha256:c4124d1afa875e47f2892edf26b482fa54f796e2f342d3717a04ca091a22a9bd",
       "ref": "mariadb@sha256:c4124d1afa875e47f2892edf26b482fa54f796e2f342d3717a04ca091a22a9bd",
       "media_type": "application/vnd.oci.image.index.v1+json"
+    }
+  },
+  "matrix": {
+    "_about": "Images per PHP minor version and per database family (TEST-COPY-SPEC Part 6b). An entry is used only when it is pinned by digest (status \"pinned\") AND present locally; \"unpinned\" entries (no digest yet, tag not yet confirmed on Docker Hub: tag_verified false) are never started. The owner runs  npm run guard:setup-sandbox -- --repin  (registry lookup) and then pulls what is needed, e.g.  npm run guard:setup-sandbox -- --php 8.2 --db mysql . The \"images\" block above stays the default set (PHP 8.3, MariaDB).",
+    "default_php": "8.3",
+    "default_db": "mariadb",
+    "php": {
+      "7.4": {
+        "wordpress": {
+          "repo": "wordpress",
+          "tag": null,
+          "digest": null,
+          "ref": null,
+          "media_type": null,
+          "wp_version": null,
+          "php": "7.4",
+          "status": "unpinned",
+          "tag_verified": false,
+          "note": "no tag chosen: name a tag that exists on Docker Hub in scripts/setup-sandbox.js, then run --repin"
+        },
+        "cli": {
+          "repo": "wordpress",
+          "tag": null,
+          "digest": null,
+          "ref": null,
+          "media_type": null,
+          "php": "7.4",
+          "status": "unpinned",
+          "tag_verified": false,
+          "note": "no tag chosen: name a tag that exists on Docker Hub in scripts/setup-sandbox.js, then run --repin"
+        }
+      },
+      "8.0": {
+        "wordpress": {
+          "repo": "wordpress",
+          "tag": null,
+          "digest": null,
+          "ref": null,
+          "media_type": null,
+          "wp_version": null,
+          "php": "8.0",
+          "status": "unpinned",
+          "tag_verified": false,
+          "note": "no tag chosen: name a tag that exists on Docker Hub in scripts/setup-sandbox.js, then run --repin"
+        },
+        "cli": {
+          "repo": "wordpress",
+          "tag": null,
+          "digest": null,
+          "ref": null,
+          "media_type": null,
+          "php": "8.0",
+          "status": "unpinned",
+          "tag_verified": false,
+          "note": "no tag chosen: name a tag that exists on Docker Hub in scripts/setup-sandbox.js, then run --repin"
+        }
+      },
+      "8.1": {
+        "wordpress": {
+          "repo": "wordpress",
+          "tag": "7.1.3-php8.1-apache",
+          "digest": null,
+          "ref": null,
+          "media_type": null,
+          "wp_version": "7.1.3",
+          "php": "8.1",
+          "status": "unpinned",
+          "tag_verified": false,
+          "note": "the registry does not know this tag"
+        },
+        "cli": {
+          "repo": "wordpress",
+          "tag": "cli-2.12.0-php8.1",
+          "digest": "sha256:ab5fb76caa861f32c21e1d95a057f52007f4af7130fb16a0f68874dabe0549a4",
+          "ref": "wordpress@sha256:ab5fb76caa861f32c21e1d95a057f52007f4af7130fb16a0f68874dabe0549a4",
+          "media_type": "application/vnd.oci.image.index.v1+json",
+          "php": "8.1",
+          "status": "pinned",
+          "tag_verified": true
+        }
+      },
+      "8.2": {
+        "wordpress": {
+          "repo": "wordpress",
+          "tag": "7.1.3-php8.2-apache",
+          "digest": "sha256:2afc151e1a9bdd07eced825e44b5a7e5fc5b8fb0d1ad299d5a5bcd6c294efeb7",
+          "ref": "wordpress@sha256:2afc151e1a9bdd07eced825e44b5a7e5fc5b8fb0d1ad299d5a5bcd6c294efeb7",
+          "media_type": "application/vnd.oci.image.index.v1+json",
+          "wp_version": "7.1.3",
+          "php": "8.2",
+          "status": "pinned",
+          "tag_verified": true
+        },
+        "cli": {
+          "repo": "wordpress",
+          "tag": "cli-2.12.0-php8.2",
+          "digest": "sha256:a8eb972af44dd9600db6e6511b66a0c8d5300eb42bf8d3a2f7d2bbb0a95133fb",
+          "ref": "wordpress@sha256:a8eb972af44dd9600db6e6511b66a0c8d5300eb42bf8d3a2f7d2bbb0a95133fb",
+          "media_type": "application/vnd.oci.image.index.v1+json",
+          "php": "8.2",
+          "status": "pinned",
+          "tag_verified": true
+        }
+      },
+      "8.3": {
+        "wordpress": {
+          "repo": "wordpress",
+          "tag": "7.1.3-php8.3-apache",
+          "digest": "sha256:8901759bfbb7ebc567dbc44a244c0d96d720d0a67c17bc4f42ec355ddba2e863",
+          "ref": "wordpress@sha256:8901759bfbb7ebc567dbc44a244c0d96d720d0a67c17bc4f42ec355ddba2e863",
+          "media_type": "application/vnd.oci.image.index.v1+json",
+          "wp_version": "7.1.3",
+          "php": "8.3",
+          "status": "pinned",
+          "tag_verified": true
+        },
+        "cli": {
+          "repo": "wordpress",
+          "tag": "cli-2.12.0-php8.3",
+          "digest": "sha256:6bcc7bb91f5157c4b915e74ee131873e99c1c1ff48f602e4a6f6cd17827305cb",
+          "ref": "wordpress@sha256:6bcc7bb91f5157c4b915e74ee131873e99c1c1ff48f602e4a6f6cd17827305cb",
+          "media_type": "application/vnd.oci.image.index.v1+json",
+          "php": "8.3",
+          "status": "pinned",
+          "tag_verified": true
+        }
+      },
+      "8.4": {
+        "wordpress": {
+          "repo": "wordpress",
+          "tag": "7.1.3-php8.4-apache",
+          "digest": "sha256:15140904b9d401b9de03d46792d2707ccbaa6408ddde538d7f6c09308030985f",
+          "ref": "wordpress@sha256:15140904b9d401b9de03d46792d2707ccbaa6408ddde538d7f6c09308030985f",
+          "media_type": "application/vnd.oci.image.index.v1+json",
+          "wp_version": "7.1.3",
+          "php": "8.4",
+          "status": "pinned",
+          "tag_verified": true
+        },
+        "cli": {
+          "repo": "wordpress",
+          "tag": "cli-2.12.0-php8.4",
+          "digest": "sha256:807d746b7122d004c3d3768d77f221acedbd17b98ffe9646a9388627a36cdbc7",
+          "ref": "wordpress@sha256:807d746b7122d004c3d3768d77f221acedbd17b98ffe9646a9388627a36cdbc7",
+          "media_type": "application/vnd.oci.image.index.v1+json",
+          "php": "8.4",
+          "status": "pinned",
+          "tag_verified": true
+        }
+      }
+    },
+    "db": {
+      "mariadb": {
+        "repo": "mariadb",
+        "tag": "11.8.9",
+        "digest": "sha256:c4124d1afa875e47f2892edf26b482fa54f796e2f342d3717a04ca091a22a9bd",
+        "ref": "mariadb@sha256:c4124d1afa875e47f2892edf26b482fa54f796e2f342d3717a04ca091a22a9bd",
+        "media_type": "application/vnd.oci.image.index.v1+json",
+        "family": "MariaDB",
+        "version": "11.8.9",
+        "status": "pinned",
+        "tag_verified": true
+      },
+      "mysql": {
+        "repo": "mysql",
+        "tag": "8.0.46",
+        "digest": "sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b",
+        "ref": "mysql@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b",
+        "media_type": "application/vnd.oci.image.index.v1+json",
+        "family": "MySQL",
+        "version": "8.0.46",
+        "status": "pinned",
+        "tag_verified": true
+      }
     }
   }
 }

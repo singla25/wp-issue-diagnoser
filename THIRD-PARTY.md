@@ -55,9 +55,15 @@ Official Docker Hub images, started only by `issue ... --sandbox`, referenced by
 
 | Role | Image | Digest | Licence of the software |
 |---|---|---|---|
-| WordPress + Apache + PHP 8.3 | `wordpress:7.1.3-php8.3-apache` | `sha256:e5a724ec7ad9055f48b2941ac1b674b08e77ed60edb8937a6254fb89ec45ddf7` | WordPress GPL-2.0-or-later; PHP licence; Apache HTTP Server Apache-2.0 |
-| WP-CLI | `wordpress:cli-2.12.0-php8.3` | `sha256:661db880e953da051abcac6c0a769767b995a82cd52101c003ca7438dd427d7d` | WP-CLI MIT; PHP licence |
-| Database | `mariadb:11.8.9` | `sha256:c4124d1afa875e47f2892edf26b482fa54f796e2f342d3717a04ca091a22a9bd` | MariaDB Server GPL-2.0 |
+| WP-CLI (PHP 8.1) | `wordpress:cli-2.12.0-php8.1` | `sha256:ab5fb76caa861f32c21e1d95a057f52007f4af7130fb16a0f68874dabe0549a4` | WP-CLI MIT; PHP licence |
+| WordPress + Apache + PHP 8.2 | `wordpress:7.1.3-php8.2-apache` | `sha256:2afc151e1a9bdd07eced825e44b5a7e5fc5b8fb0d1ad299d5a5bcd6c294efeb7` | WordPress GPL-2.0-or-later; PHP licence; Apache HTTP Server Apache-2.0 |
+| WP-CLI (PHP 8.2) | `wordpress:cli-2.12.0-php8.2` | `sha256:a8eb972af44dd9600db6e6511b66a0c8d5300eb42bf8d3a2f7d2bbb0a95133fb` | WP-CLI MIT; PHP licence |
+| WordPress + Apache + PHP 8.3 | `wordpress:7.1.3-php8.3-apache` | `sha256:8901759bfbb7ebc567dbc44a244c0d96d720d0a67c17bc4f42ec355ddba2e863` | WordPress GPL-2.0-or-later; PHP licence; Apache HTTP Server Apache-2.0 |
+| WP-CLI (PHP 8.3) | `wordpress:cli-2.12.0-php8.3` | `sha256:6bcc7bb91f5157c4b915e74ee131873e99c1c1ff48f602e4a6f6cd17827305cb` | WP-CLI MIT; PHP licence |
+| WordPress + Apache + PHP 8.4 | `wordpress:7.1.3-php8.4-apache` | `sha256:15140904b9d401b9de03d46792d2707ccbaa6408ddde538d7f6c09308030985f` | WordPress GPL-2.0-or-later; PHP licence; Apache HTTP Server Apache-2.0 |
+| WP-CLI (PHP 8.4) | `wordpress:cli-2.12.0-php8.4` | `sha256:807d746b7122d004c3d3768d77f221acedbd17b98ffe9646a9388627a36cdbc7` | WP-CLI MIT; PHP licence |
+| Database (mariadb) | `mariadb:11.8.9` | `sha256:c4124d1afa875e47f2892edf26b482fa54f796e2f342d3717a04ca091a22a9bd` | MariaDB Server GPL-2.0 |
+| Database (mysql) | `mysql:8.0.46` | `sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b` | MySQL Community Server GPL-2.0 |
 
 The digests are in `data/sandbox-images.json` (written by `guard:setup-sandbox -- --repin`). The tags and licences above are as listed on Docker Hub when they were resolved; the images contain further components with their own licences, which Docker Hub lists per image.
 

@@ -1,0 +1,19 @@
+### wp-core ###
+
+version: 6.8.3
+
+### wp-active-plugins (2) ###
+
+Akismet Anti-spam: Spam Protection: version: 5.3.5, author: Automattic - Anti-spam Team, Auto-updates disabled
+Contact Form 7: version: 6.0.1, author: Takayuki Miyoshi, Auto-updates disabled
+
+### wp-server ###
+
+php_version: 7.4.33 64bit
+
+### wp-database ###
+
+extension: mysqli
+database_type: MariaDB
+database_version: 10.11.6
+server_version: 10.11.6-MariaDB-0+deb12u1

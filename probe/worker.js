@@ -26,7 +26,7 @@ const cut = (s, n = 300) => String(s ?? '').replace(/[\u0000-\u0008\u000b\u000c\
 (async () => {
     const probeCfg = require('./config'), { Safety } = require('./safety'), rec_ = require('./recorder'), wpLib = require('./wp'), layoutLib = require('./layout');
     const sandboxActions = require('./sandbox-actions');
-const { NetworkRecorder, installReadOnlyGuard, installSandboxGuard, applyDenyList } = rec_;
+const { NetworkRecorder, installReadOnlyGuard, installSandboxGuard, applyDenyList, pickHeaders } = rec_;
     const { INIT_SCRIPT, pageContext, assetSource } = wpLib;
     const collide = require('../issue/collide');
     const imgdiff = require('../issue/imgdiff');
@@ -79,6 +79,8 @@ const { NetworkRecorder, installReadOnlyGuard, installSandboxGuard, applyDenyLis
                 const chain = []; for (let r = nav.response && nav.response.request().redirectedFrom(); r; r = r.redirectedFrom()) chain.unshift(r.url());
                 rec.redirects = [...chain, page.url()].length > 1 ? [...chain, page.url()] : [];
                 if (nav.status === 0) { rec.error = cut(nav.error, 200); continue; }
+                // Part 6b: only the allow-listed headers (server, x-powered-by) of the response already received; recorder.js pickHeaders
+                if (nav.response) rec.response_headers = pickHeaders(nav.response.headers());
                 if (nav.status >= 500) answered5xx.set(url, { status: nav.status, vp: vp.name });
 
                 rec.console_errors = recorder.meaningfulConsoleErrors().slice(0, 20).map(e => ({ text: cut(e.text), url: e.url || '', source: e.url ? sourceOf(e.url) : null }));

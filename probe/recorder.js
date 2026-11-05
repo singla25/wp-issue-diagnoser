@@ -70,4 +70,19 @@ async function applyDenyList(page, safety) {
     } catch { /* not Chromium */ }
     return urls.length;
 }
-module.exports = { NetworkRecorder, installReadOnlyGuard, installSandboxGuard, applyDenyList, BENIGN_FAILURE };
+// TEST-COPY-SPEC Part 6b: the ONLY response headers the probe keeps, from the main document of a page load it already made (no new request).
+// x-powered-by can name the PHP version ("PHP/8.2.30"); server names the web server. Nothing else is ever stored: no set-cookie, no cookie, no
+// authorization, no custom header. Names lowercase, the value cut to 200 characters with control characters removed; a value is data, never executed.
+const RESPONSE_HEADER_ALLOW = Object.freeze(['server', 'x-powered-by']);
+const HEADER_VALUE_MAX = 200;
+function pickHeaders(headers) {
+    const out = {};
+    if (!headers || typeof headers !== 'object') return out;
+    for (const [k, v] of Object.entries(headers)) {
+        const name = String(k).toLowerCase();
+        if (!RESPONSE_HEADER_ALLOW.includes(name) || out[name] !== undefined) continue;
+        out[name] = String(Array.isArray(v) ? v[0] : v ?? '').replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, '').slice(0, HEADER_VALUE_MAX);
+    }
+    return out;
+}
+module.exports = { NetworkRecorder, installReadOnlyGuard, installSandboxGuard, applyDenyList, BENIGN_FAILURE, RESPONSE_HEADER_ALLOW, HEADER_VALUE_MAX, pickHeaders };

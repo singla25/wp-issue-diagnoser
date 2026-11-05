@@ -1,0 +1,19 @@
+/*M!999999\- enable the sandbox mode */ 
+-- MariaDB dump 10.20-11.8.9-MariaDB, for debian-linux-gnu (x86_64)
+--
+-- Host: localhost    Database: t
+-- ------------------------------------------------------
+-- Server version	11.8.9-MariaDB-ubu2404
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET NAMES utf8mb4 */;
+/*M!100616 SET @OLD_NOTE_VERBOSITY=@@NOTE_VERBOSITY, NOTE_VERBOSITY=0 */;
+
+--
+-- Table structure for table `b`
+--
+
+DROP TABLE IF EXISTS `b`;
+CREATE TABLE `b` (
+  `x` varchar(10) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

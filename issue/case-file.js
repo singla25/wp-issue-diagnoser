@@ -193,12 +193,27 @@ function build(f, ctx) {
     if (box && cd) dev.push(...cd.lines, ...box.lines.filter(l => /^Versions: /.test(l)));
     else if (box) dev.push(...box.lines);
     if (f.log_note) dev.push(f.log_note);
+    // Part 6b: the 'Versions' block (issue/version-match.js), only when a test copy was built: each version with its source and how close the copy is
+    const vers = versionLines(ctx.versions);
+    if (vers.length) dev.push(...vers);
     return {
         title: f.issue_title_short || f.issue.title,
         status: { ...n, line: statusLine(n), looked: looked.line, php: looked.php, note: f.log_note || null, sandbox_note: ctx.sandboxNote || null, ...(ctx.logHelp && ctx.logHelp.length ? { log_help: ctx.logHelp.slice() } : {}), empty: !n.likely && !n.confirmed && !n.check && !n.signs },
         see, no_cause_note: noCause ? NO_CAUSE_NOTE : null, cases, checked, developer: dev,
         excerpt: box && cd && cd.excerpt && cd.excerpt.available ? { title: `${cd.excerpt.file}, lines ${cd.excerpt.from} to ${cd.excerpt.to} (line ${cd.excerpt.cited} is marked with >)`, lines: causeDetail.excerptLines(cd.excerpt) } : null
     };
+}
+
+// versions.json -> the lines of the 'Versions' block. The texts are rebuilt from the checked fields only (status from the closed list, versions by pattern).
+const V_STATUS = ['matched', 'nearest', 'assumed', 'not matched', 'unknown'];
+function versionLines(v) {
+    if (!v || v.schema !== 1 || !v.php || !v.db || !v.wordpress) return [];
+    const ok = x => x && V_STATUS.includes(x.status) && typeof x.text === 'string';
+    if (![v.php, v.db, v.wordpress].every(ok)) return [];
+    const L = [`Versions of the test copy: ${v.php.text.slice(0, 300)}`, `Versions of the test copy: ${v.db.text.slice(0, 300)}`, `Versions of the test copy: ${v.wordpress.text.slice(0, 300)}`];
+    for (const t of Array.isArray(v.todos) ? v.todos.slice(0, 4) : []) if (typeof t === 'string' && /^(PHP \d{1,2}\.\d{1,2}|MySQL|MariaDB): (no image tag is chosen yet|there is no image for it)/.test(t)) L.push(`Versions of the test copy: ${t.slice(0, 300)}`);
+    if (Array.isArray(v.commands) && v.commands.length) L.push(`Versions of the test copy: to test with the same versions, the images can be fetched once: ${v.commands.filter(c => /^npm run guard:setup-sandbox -- [a-z0-9 .&:-]+$/i.test(c)).join('  ;  ')}`);
+    return L;
 }
 
 // ---- renderers. esc: the caller's text escaper (Markdown). ----
@@ -241,4 +256,4 @@ function cli(cf) {
     return L.join('\n');
 }
 
-module.exports = { build, markdown, markdownDeveloper, cli, statusLine, lookedAt, skippedText, confirmedSentence, LIKELY, CHECK, CHECK_NO_CRASH, CONFIRMED, SIGNS, EMPTY_STATUS, NOT_CONFIRMED_SENTENCE, NO_CAUSE_NOTE, NOT_LIVE_SENTENCE, PHP_NOT_STATED, MODIFIED_NOTE, MODIFIED_ADVICE, NO_LOG_HELP };
+module.exports = { versionLines, build, markdown, markdownDeveloper, cli, statusLine, lookedAt, skippedText, confirmedSentence, LIKELY, CHECK, CHECK_NO_CRASH, CONFIRMED, SIGNS, EMPTY_STATUS, NOT_CONFIRMED_SENTENCE, NO_CAUSE_NOTE, NOT_LIVE_SENTENCE, PHP_NOT_STATED, MODIFIED_NOTE, MODIFIED_ADVICE, NO_LOG_HELP };

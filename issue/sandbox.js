@@ -22,6 +22,8 @@ const copy = require('./sandbox-copy');
 const cfg = require('./sandbox-config');
 const { SandboxWpCli, SandboxRefusal, cleanEnv, checkLocalSocket } = require('./sandbox-wpcli');
 const intake = require('../lib/dump-intake');
+const vd = require('../lib/version-detect');
+const vm = require('./version-match');
 
 class SandboxUnavailable extends Error { constructor(msg) { super(msg); this.name = 'SandboxUnavailable'; this.exitCode = 3; } }
 const sandboxesRoot = () => process.env.PLUGIN_GUARD_SANDBOXES || path.join(__dirname, '..', 'sandboxes');
@@ -42,7 +44,8 @@ function docker(ctx, args, o = {}) {
 // ---------------------------------------------------------------- preflight
 function preflight(o = {}) {
     const ctx = context(o);
-    let pins; try { pins = policy.images(); } catch (e) { return { ok: false, reason: e.message }; }
+    // o.pinFile: test-only (a fixture pin file with the version matrix); no command sets it. The file is validated like the real one.
+    let pins; try { pins = policy.images(o.pinFile || undefined); } catch (e) { return { ok: false, reason: e.message }; }
     try { cleanEnv(ctx.env); } catch (e) { return { ok: false, reason: e.message }; }
     // the daemon the CLI would talk to when DOCKER_HOST is not set comes from the active Docker context: it must also be a local socket
     if (!ctx.env.DOCKER_HOST) {
@@ -87,9 +90,30 @@ function releaseOwnership(ctx, project, composeFile) {
     return docker(ctx, ['compose', '-p', project, '-f', composeFile, 'exec', '-T', '-u', '0', 'wordpress', 'chown', '-R', owner, '/var/www/html/wp-content', '/var/log/pg'], { timeoutMs: 120000 }).ok;
 }
 const PROJECT_OK = /^pgsb[0-9a-f]{8}$/;
+// MySQL (Part 6b): ask the server to shut itself down before the containers are removed. On a host that has MySQL installed, the host's AppArmor
+// profile for /usr/sbin/mysqld attaches by path to the container's mysqld too (rootless containers run unconfined, so path attachment applies),
+// and that profile refuses signals from the container runtime: `docker stop`, `kill` and even SIGKILL then fail with "permission denied" and the
+// container would be left behind. `mysqladmin shutdown` needs no signal and no capability; the root password is read from the container's OWN
+// environment inside the container, so it never appears on this computer's command line. A MariaDB container (MARIADB_* variables) is untouched.
+const MYSQL_SHUTDOWN = 'if [ -n "$MYSQL_ROOT_PASSWORD" ] && command -v mysqladmin >/dev/null 2>&1; then MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysqladmin -uroot -h127.0.0.1 --silent shutdown; else exit 3; fi';
+function isMysqlSpec(composeFile) {
+    try { const sp = JSON.parse(fs.readFileSync(composeFile, 'utf8')); return !!(sp.services && sp.services.db && sp.services.db.environment && 'MYSQL_ROOT_PASSWORD' in sp.services.db.environment); } catch { return false; }
+}
+function shutdownMysql(ctx, project, composeFile) {
+    if (!PROJECT_OK.test(project)) return false;
+    let done = false;
+    if (composeFile && fs.existsSync(composeFile) && isMysqlSpec(composeFile)) done = docker(ctx, ['compose', '-p', project, '-f', composeFile, 'exec', '-T', 'db', 'sh', '-c', MYSQL_SHUTDOWN], { timeoutMs: 60000 }).ok;
+    else if (!composeFile || !fs.existsSync(composeFile)) {   // no compose file (a leftover): only this project's labelled database container, found by its labels
+        const r = docker(ctx, ['ps', '-q', '--filter', `label=pg.project=${project}`, '--filter', 'label=pg.owner=plugin-guard', '--filter', 'label=pg.role=db', '--filter', 'status=running']);
+        for (const id of (r.ok ? r.stdout.split('\n').map(x => x.trim()).filter(x => /^[0-9a-f]{6,64}$/.test(x)) : [])) done = docker(ctx, ['exec', id, 'sh', '-c', MYSQL_SHUTDOWN], { timeoutMs: 60000 }).ok || done;
+    }
+    if (done) for (let i = 0; i < 30; i++) { const r = docker(ctx, ['ps', '-q', '--filter', `label=pg.project=${project}`, '--filter', 'label=pg.role=db', '--filter', 'status=running']); if (!r.ok || !r.stdout.trim()) break; sleep(1000); }
+    return done;
+}
 function removeProject(ctx, project, composeFile) {
     const report = { project, compose_down: null, containers: 0, volumes: 0, networks: 0, leftovers: [] };
     report.ownership_released = releaseOwnership(ctx, project, composeFile);
+    report.mysql_shutdown = shutdownMysql(ctx, project, composeFile);
     if (composeFile && fs.existsSync(composeFile)) report.compose_down = docker(ctx, ['compose', '-p', project, '-f', composeFile, 'down', '-v', '--remove-orphans', '--timeout', '5'], { timeoutMs: 180000 }).ok;
     // belt and braces: whatever still carries this project's label (only ours: both labels must match)
     const left = labelled(ctx, project);
@@ -202,6 +226,24 @@ function httpStatus(url, timeoutMs = 20000) {
     const status = Number((r.stdout || '').trim());
     return r.status === 0 && status > 0 ? { status } : { error: (r.stderr || '').trim() || (r.error && r.error.message) || 'no response' };
 }
+// Part 6b: is a pinned image present locally with its digest? (one `docker image inspect`, cached per call of create; nothing is pulled)
+function imagePresent(ctx, entry, cache = new Map()) {
+    if (!policy.usable(entry)) return false;
+    if (cache.has(entry.ref)) return cache.get(entry.ref);
+    const r = docker(ctx, ['image', 'inspect', '--format', '{{json .RepoDigests}}', entry.ref]);
+    let present = false; try { present = r.ok && JSON.parse(r.stdout).some(d => d.endsWith(`@${entry.digest}`)); } catch { /* not JSON */ }
+    cache.set(entry.ref, present);
+    return present;
+}
+// Part 6b: what is known about the site's versions (issue file, Site Health, probe header, .htaccess and version.php of the root, the dump copy's
+// head), and the pinned images that match best (issue/version-match.js). The issue folder is optional: an auto-run sandbox has none.
+function chooseVersions(ctx, { issueId, root, dumpFile, pins }) {
+    let issue = null, issueDir = null;
+    try { const store = require('../lib/issue-store'); issue = store.load(issueId); issueDir = store.dirOf(issueId); } catch { issue = null; issueDir = null; }
+    const det = vd.detect(vm.gather({ issue, issueDir, root, dumpFile }));
+    const cache = new Map();
+    return { res: vm.select(det, pins, { present: e => imagePresent(ctx, e, cache) }), issueDir };
+}
 // the temporary dump copy, removed on its own (lstat: only a plain file is unlinked; a symlink there is unlinked, never followed)
 function removeDumpCopy(dir) {
     const f = path.join(dir, 'db', 'dump.sql');
@@ -263,11 +305,19 @@ function create(issueId, o = {}) {
             try { intake.checkFile(dumpFile, { maxMb: o.maxDumpMb || intake.DEFAULT_CAP_MB }); } catch (e) { if (e.name === 'DumpRefused') throw new SandboxUnavailable(e.message); throw e; }
             const p = detectPrefix(dumpFile); if (p) prefix = p; else warnings.push('the table prefix could not be read from the export; "wp_" was assumed');
         }
+        // ---- versions (Part 6b): the images that match the site best; the result goes into versions.json and the build steps ----
+        const cv = chooseVersions(ctx, { issueId, root, dumpFile, pins: pf.pins });
+        const versions = cv.res;
+        const versionsText = JSON.stringify(versions, null, 2) + '\n';
+        fs.writeFileSync(path.join(dir, 'versions.json'), versionsText, { mode: 0o600 });
+        if (cv.issueDir) { try { const w = path.join(cv.issueDir, 'work'); if (fs.lstatSync(w).isDirectory()) fs.writeFileSync(path.join(w, 'versions.json'), versionsText, { mode: 0o600 }); } catch { /* no work folder: the sandbox's own copy is enough */ } }
+        step('versions', 'PASSED', `${vm.lines(versions).join('; ')}. Images: ${versions.images.wordpress}, ${versions.images.cli}, ${versions.images.db} (all pinned by digest)`);
+        writeState({ versions: { php: versions.php.status, db: versions.db.status, wordpress: versions.wordpress.status, images: versions.images } });
         const creds = { root: policy.rand(), user: 'wp', pass: policy.rand(), name: 'wordpress' };
         fs.writeFileSync(path.join(dir, 'site', 'wp-config.php'), cfg.wpConfig({ creds, prefix }), { mode: 0o644 });
         fs.writeFileSync(path.join(dir, 'site', 'wp-content', 'mu-plugins', 'pg-sandbox-guard.php'), cfg.MU_PLUGIN, { mode: 0o644 });
         const themes = fs.existsSync(path.join(dir, 'site', 'wp-content', 'themes')) ? readdir(path.join(dir, 'site', 'wp-content', 'themes'), { withFileTypes: true }).filter(e => e.isDirectory() && /^[A-Za-z0-9._-]+$/.test(e.name)).map(e => e.name).sort() : [];
-        const spec = policy.buildSpec({ project, issueId, siteDir: path.join(dir, 'site'), logDir: path.join(dir, 'logs'), themes, hasLanguages: fs.existsSync(path.join(dir, 'site', 'wp-content', 'languages')), creds });
+        const spec = policy.buildSpec({ project, issueId, siteDir: path.join(dir, 'site'), logDir: path.join(dir, 'logs'), themes, hasLanguages: fs.existsSync(path.join(dir, 'site', 'wp-content', 'languages')), creds, images: vm.pinsFor(versions, pf.pins) });
         const violations = policy.validateSpec(spec, { sandboxDir: dir });
         if (violations.length) throw new SandboxRefusal(`the container specification breaks a safeguard, nothing was started:\n  - ${violations.join('\n  - ')}`);
         const composeFile = path.join(dir, 'compose.json');
@@ -381,7 +431,7 @@ function create(issueId, o = {}) {
         writeState({ status: 'ready', url, port });
         const handle = {
             id: issueId, project, dir, url, port, prefix, wp, steps, warnings, composeFile, real_data: realData && !personal,
-            anonymised: realData && personal, limits: policy.LIMITS, copy: rep, tables_unscrubbed: an.unscrubbed,
+            anonymised: realData && personal, limits: policy.LIMITS, copy: rep, tables_unscrubbed: an.unscrubbed, versions,
             destroy: () => destroy(issueId, o)
         };
         return handle;
@@ -398,4 +448,4 @@ function list(o = {}) {
     return dirs.map(n => ({ issue: n, ...(readState(path.join(ctx.sandboxesRoot, n)) || {}), alive: pidAlive((readState(path.join(ctx.sandboxesRoot, n)) || {}).pid) }));
 }
 
-module.exports = { create, destroy, sweep, preflight, list, detectPrefix, labelled, removeProject, sandboxesRoot, SandboxUnavailable, SandboxRefusal, active, docker, context, readPort, webRunning, httpStatus };
+module.exports = { MYSQL_SHUTDOWN, shutdownMysql, create, destroy, sweep, preflight, chooseVersions, imagePresent, list, detectPrefix, labelled, removeProject, sandboxesRoot, SandboxUnavailable, SandboxRefusal, active, docker, context, readPort, webRunning, httpStatus };

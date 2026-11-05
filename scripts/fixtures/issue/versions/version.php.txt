@@ -1,0 +1,9 @@
+<?php
+/**
+ * WordPress Version
+ */
+$wp_version = '7.1.4';
+$wp_db_version = 60421;
+$tinymce_version = '49110-20250317';
+$required_php_version = '7.2.24';
+$required_mysql_version = '5.5.5';

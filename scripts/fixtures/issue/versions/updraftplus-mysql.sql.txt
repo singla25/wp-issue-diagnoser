@@ -1,0 +1,19 @@
+# WordPress MySQL database backup
+# Created by UpdraftPlus version 1.24.11 (https://updraftplus.com)
+# WordPress Version: 6.4.3, running on PHP 8.2.30 (Apache), MySQL 8.0.36
+# MySQL Version: 8.0.36
+# Backup of: https://shop.example.com
+# Home URL: https://shop.example.com
+# Content URL: https://shop.example.com/wp-content
+# Table prefix: wp_
+# Site info: multisite=0
+# Site info: end
+
+/*!40101 SET NAMES utf8mb4 */;
+
+# Table: `wp_options`
+DROP TABLE IF EXISTS `wp_options`;
+CREATE TABLE `wp_options` (
+  `option_id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  PRIMARY KEY (`option_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

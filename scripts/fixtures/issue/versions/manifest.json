@@ -1,0 +1,31 @@
+{
+  "_about": "Fixtures of TEST-COPY-SPEC Part 6b (scripts/selftest-6b.js). verified: true = produced by the real tool on this machine; false = written from the documented format and TO VERIFY once the image is present.",
+  "mariadb-dump-11.8.9.head.sql.txt": {
+    "verified": true,
+    "how": "mariadb-dump inside the pinned mariadb 11.8.9 container (network none); a table created with COLLATE utf8mb4_0900_ai_ci is dumped with that collation"
+  },
+  "mysqldump-8.0.46.head.sql.txt": {
+    "verified": false,
+    "how": "TO VERIFY: documented mysqldump 8.0 header; no mysql image on this machine yet"
+  },
+  "mysql-no-header.sql.txt": {
+    "verified": false,
+    "how": "TO VERIFY: mysqldump --skip-comments output shape; no mysql image yet"
+  },
+  "phpmyadmin-mariadb.head.sql.txt": {
+    "verified": false,
+    "how": "phpMyAdmin export header layout"
+  },
+  "mariadb-dump-10.11.head.sql.txt": {
+    "verified": false,
+    "how": "mariadb-dump 10.11 header with the 5.5.5- compatibility prefix"
+  },
+  "mariadb-client-mysql-server.head.sql.txt": {
+    "verified": false,
+    "how": "a MariaDB client exporting a MySQL server (wp db export on a host with mariadb-client)"
+  },
+  "updraftplus-mysql.sql.txt": {
+    "verified": false,
+    "how": "an UpdraftPlus-style '#' header (MySQL Version line); the format is NOT confirmed from the plugin's own source, so by the owner rule it is deliberately NOT parsed: only the collation hint applies"
+  }
+}

@@ -1,0 +1,40 @@
+`
+### wp-core ###
+
+version: 7.1.4
+site_language: en_GB
+user_language: en_GB
+timezone: Europe/London
+permalink: /%postname%/
+https_status: true
+multisite: false
+user_registration: 0
+blog_public: 1
+default_comment_status: open
+environment_type: production
+user_count: 3
+dotorg_communication: true
+
+### wp-active-plugins (3) ###
+
+Elementor: version: 3.18.3, author: Elementor.com, Auto-updates disabled
+Ivory Search: version: 5.5.4, author: Ivory Search, Auto-updates disabled
+WooCommerce: version: 9.4.1, author: Automattic, Auto-updates enabled
+
+### wp-server ###
+
+server_architecture: Linux 5.15.0 x86_64
+httpd_software: Apache
+php_version: 8.2.30 64bit
+php_sapi: fpm-fcgi
+max_input_variables: 1000
+memory_limit: 256M
+
+### wp-database ###
+
+extension: mysqli
+server_version: 8.0.46
+client_version: mysqlnd 8.2.30
+max_allowed_packet: 67108864
+max_connections: 151
+`

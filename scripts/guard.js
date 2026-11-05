@@ -45,7 +45,8 @@ const FLAGS = {
     root: 'v', config: 'v', env: 'v', mode: 'v', run: 'v', 'timeout-min': 'v', authorized: 'b', 'allow-stale': 'b', 'run-project-tests': 'b',
     title: 'v', description: 'v', pages: 'v', symptom: 'v', oracle: 'v', images: 'v', since: 'v', php: 'v', 'changed-before': 'v', login: 'b', 'no-prompt': 'b', investigate: 'b', 'no-probe': 'b', 'no-layout': 'b', 'probe-pages': 'v', viewports: 'v',
     sandbox: 'b', 'db-dump': 'v', 'export-db': 'b', 'keep-real-data': 'b', 'neutralise-payments': 'b', 'with-uploads': 'b', 'max-size-mb': 'v', 'keep-sandbox': 'b', 'max-loads': 'v', 'max-minutes': 'v', 'no-bisect': 'b', hypothesis: 'v', 'no-sandbox': 'b', 'max-issues': 'v', 'sandbox-max-issues': 'v', 'older-than-days': 'v', yes: 'b', log: 'v', out: 'v', help: 'b', 'no-questions': 'b', gate: 'b', verbose: 'b', 'no-issues': 'b', 'no-sandboxes': 'b',
-    force: 'b', 'no-pdf': 'b', 'allow-wordpress-org': 'b', 'allow-vuln-db': 'b', 'deny-wordpress-org': 'b', 'deny-vuln-db': 'b', 'php-version': 'v', 'db-exported': 'v'
+    force: 'b', 'no-pdf': 'b', 'allow-wordpress-org': 'b', 'allow-vuln-db': 'b', 'deny-wordpress-org': 'b', 'deny-vuln-db': 'b', 'php-version': 'v', 'db-exported': 'v',
+    'site-health': 'v'
 };
 
 function parse(argv) {

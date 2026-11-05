@@ -1,0 +1,5 @@
+-- MariaDB dump 10.19  Distrib 10.11.6-MariaDB, for debian-linux-gnu (x86_64)
+--
+-- Host: db.example.invalid    Database: wp
+-- ------------------------------------------------------
+-- Server version	8.0.46

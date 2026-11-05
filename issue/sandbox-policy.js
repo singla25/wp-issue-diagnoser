@@ -38,13 +38,68 @@ function images(file = PIN_FILE) {
     for (const k of ['wordpress', 'cli', 'db']) if (!p.images[k] || !DIGEST_REF.test(p.images[k].ref)) throw Object.assign(new Error(`data/sandbox-images.json: image "${k}" is missing or not pinned by digest. Run: npm run guard:setup-sandbox -- --repin`), { exitCode: 2 });
     return p;
 }
+// An entry of the version matrix (data/sandbox-images.json "matrix") may be USED only when it is pinned: status "pinned", a sha256 digest, and a
+// ref repo@<that digest>. Unpinned entries (no digest yet, tag not confirmed) are listed by guard:setup-sandbox but never started.
+function usable(entry) {
+    // tag_verified must be exactly true: --repin sets it when the registry resolved the tag; a missing field counts as NOT verified
+    return !!(entry && entry.status === 'pinned' && entry.tag_verified === true && /^sha256:[0-9a-f]{64}$/.test(String(entry.digest || '')) && DIGEST_REF.test(String(entry.ref || '')) && entry.ref.endsWith(`@${entry.digest}`));
+}
+// the PHP minor an image entry itself records (its "php" field, else the php<x.y> in its tag); never taken from matrix.default_php
+function phpOf(entry) {
+    const v = entry && (entry.php || (/php(\d{1,2}\.\d{1,2})/.exec(String(entry.tag || '')) || [])[1]);
+    return /^\d{1,2}\.\d{1,2}$/.test(String(v || '')) ? String(v) : null;
+}
+// -> { default_php, default_entry, default_db, php: { '8.2': { wordpress, cli } }, db: { mariadb, mysql } }. A pin file without a matrix (schema of
+// before 6b) gives the three default images as the only entries, so every earlier flow keeps working unchanged. The default entry is always the
+// "images" block (validated by images()); default_php is what that image records, so an edited or missing matrix.default_php changes nothing.
+function matrix(pins = images()) {
+    const m = pins.matrix || {};
+    const defEntry = { wordpress: { ...pins.images.wordpress, status: 'pinned', tag_verified: true }, cli: { ...pins.images.cli, status: 'pinned', tag_verified: true } };
+    const defPhp = phpOf(pins.images.wordpress);
+    const php = {}, db = {};
+    for (const [k, v] of Object.entries(m.php || {})) if (/^\d{1,2}\.\d{1,2}$/.test(k) && v && typeof v === 'object') php[k] = { wordpress: v.wordpress || null, cli: v.cli || null };
+    if (defPhp && !php[defPhp]) php[defPhp] = defEntry;
+    for (const [k, v] of Object.entries(m.db || {})) if (DB_FAMILIES[k] && v && typeof v === 'object') db[k] = { ...v, family: DB_FAMILIES[k] };
+    const defDb = { ...pins.images.db, family: 'MariaDB', status: 'pinned', tag_verified: true, version: pins.images.db.version || (/^\d+\.\d+(?:\.\d+)?$/.test(String(pins.images.db.tag)) ? pins.images.db.tag : null) };
+    if (!db.mariadb || !usable(db.mariadb)) db.mariadb = defDb;
+    return { default_php: defPhp, default_entry: defEntry, default_db: 'mariadb', php, db };
+}
+const DB_FAMILIES = { mariadb: 'MariaDB', mysql: 'MySQL' };
 
 const rand = (n = 24) => crypto.randomBytes(n).toString('base64url').replace(/[^A-Za-z0-9]/g, '').slice(0, n);
 const newProject = () => `pgsb${crypto.randomBytes(4).toString('hex')}`;
 
 // siteDir: the sandbox's own copy (…/sandboxes/<id>/site). Everything bind-mounted comes from inside it.
+// The database service, per family. MariaDB is the default and is exactly what it was before Part 6b. MySQL (the official mysql image, 8.0):
+//   - the same hardening and the SAME capability allow-list (ALLOWED_CAPS): its entrypoint, like MariaDB's, starts as root, fixes the owner of the
+//     data folder (CHOWN, DAC_OVERRIDE, FOWNER) and drops to the mysql user with gosu (SETUID, SETGID). Nothing is added for MySQL;
+//   - --default-authentication-plugin=mysql_native_password: MySQL 8.0 creates users with caching_sha2_password by default, and the MariaDB client in
+//     the WP-CLI image (used by `wp db import` / `wp db query`) has no caching_sha2_password plugin (its plugin folder is empty), so it could not log
+//     in. This server flag changes only how the throwaway users of THIS container store their password; no capability, no mount, no client change.
+//     (Valid for 8.0; MySQL 8.4 removed it, and no 8.4 image is in the matrix.)
+//   - healthcheck: `mysqladmin ping` over TCP to 127.0.0.1 (the image has no healthcheck.sh). It exits 0 once the server answers, even with
+//     "access denied", so no password is needed in the check; TCP is refused during the entrypoint's first, socket-only start, so "healthy" means
+//     the final server is up.
+function dbService(family, ref, creds) {
+    if (family === 'MySQL') return {
+        environment: { MYSQL_ROOT_PASSWORD: creds.root, MYSQL_DATABASE: creds.name, MYSQL_USER: creds.user, MYSQL_PASSWORD: creds.pass },
+        // --default-authentication-plugin was REMOVED in MySQL 8.4: the server would refuse to start. Only 8.0 is pinned (WANT_DB in
+        // scripts/setup-sandbox.js); re-pinning to 8.4 or later needs a different fix (e.g. --mysql-native-password=ON plus
+        // --authentication-policy=mysql_native_password). selftest-6b.js fails if the mysql pin is 8.4+ while this flag is still used.
+        command: ['--skip-name-resolve', '--max-connections=50', '--default-authentication-plugin=mysql_native_password'],
+        healthcheck: { test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1', '--silent'], interval: '3s', timeout: '3s', retries: 60, start_period: '10s' }
+    };
+    if (family !== undefined && family !== null && family !== 'MariaDB') throw new Error(`database family "${family}" is not supported (MariaDB or MySQL)`);
+    return {
+        environment: { MARIADB_ROOT_PASSWORD: creds.root, MARIADB_DATABASE: creds.name, MARIADB_USER: creds.user, MARIADB_PASSWORD: creds.pass },
+        command: ['--skip-name-resolve', '--max-connections=50'],
+        healthcheck: { test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized'], interval: '3s', timeout: '3s', retries: 40, start_period: '5s' }
+    };
+}
+
 function buildSpec({ project, issueId, siteDir, logDir, themes = [], images: pins = images(), hasLanguages = false, creds = { root: rand(), user: 'wp', pass: rand(), name: 'wordpress' } }) {
     if (!PROJECT_RE.test(project)) throw new Error(`project name "${project}" must be pgsb + 8 hex digits`);
+    const dbv = dbService(pins.images.db.family, pins.images.db.ref, creds);
     const label = extra => ({ 'pg.sandbox': '1', 'pg.owner': 'plugin-guard', 'pg.project': project, 'pg.issue': String(issueId), ...extra });
     const hardened = { cap_drop: ['ALL'], security_opt: ['no-new-privileges:true'], restart: 'no', stop_grace_period: '5s' };
     const wpBinds = [
@@ -62,9 +117,9 @@ function buildSpec({ project, issueId, siteDir, logDir, themes = [], images: pin
         services: {
             db: {
                 image: pins.images.db.ref, ...hardened, cap_add: [...ALLOWED_CAPS],
-                environment: { MARIADB_ROOT_PASSWORD: creds.root, MARIADB_DATABASE: creds.name, MARIADB_USER: creds.user, MARIADB_PASSWORD: creds.pass },
-                command: ['--skip-name-resolve', '--max-connections=50'],
-                healthcheck: { test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized'], interval: '3s', timeout: '3s', retries: 40, start_period: '5s' },
+                environment: dbv.environment,
+                command: dbv.command,
+                healthcheck: dbv.healthcheck,
                 volumes: ['dbdata:/var/lib/mysql'], networks: ['back'],
                 mem_limit: '512m', cpus: 1, pids_limit: 256, labels: label({ 'pg.role': 'db' })
             },
@@ -139,4 +194,4 @@ function validateSpec(spec, { sandboxDir } = {}) {
     return v;
 }
 
-module.exports = { NOTICE, RECOMMENDATION, buildSpec, validateSpec, images, newProject, rand, ALLOWED_CAPS, MAX, LIMITS, PROJECT_RE, DIGEST_REF, WP_UID, PIN_FILE };
+module.exports = { NOTICE, RECOMMENDATION, buildSpec, validateSpec, images, usable, phpOf, matrix, dbService, DB_FAMILIES, newProject, rand, ALLOWED_CAPS, MAX, LIMITS, PROJECT_RE, DIGEST_REF, WP_UID, PIN_FILE };

@@ -262,6 +262,8 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
             sandboxNote: ((f.summary.lines || []).find(l => /sandbox test could not run/.test(l)) || '').trim() || null,
             comps, probePages, templates: (cc.observations || []).filter(o => o.type === 'template-override-outdated'), causeDetail: cd, logHelp,
             modified: ms && ms.count ? { lines: ms.lines, count: ms.count, files: ms.files } : null,
+            // Part 6b: the versions of the test copy, only when a test copy was actually built this time (sandbox.json names it) and versions.json exists
+            versions: sbx && sbx.sandbox ? W('versions.json') : null,
             facts: { hasLog: !!((lg.files || []).length || (lg.entries || []).length), hasCode: !!issue.root, phpSkipped: phpSk.total > 0, phpSkippedDetail: phpSk, probeRan: ran.probe, sandboxRan: ran.sandbox, sandboxFailed: !!(sbx && sbx.could_not_run),
                 sandboxReproduced: sbx ? sbx.reproduced_in_sandbox : null, php: issue.php_version || null, phpSource: issue.php_source || null, crash }
         });
