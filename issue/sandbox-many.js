@@ -42,9 +42,12 @@ async function runMany(ids, { root, options = {}, env = process.env, sandboxOpti
 
         // ---- plugins, in a fixed order ----
         const slugs = new Set([...components.filter(c => c.kind === 'plugin').map(c => c.slug), ...pluginFolders(path.join(handle.dir, 'site', 'wp-content', 'plugins'))]);
-        const fresh = handle.steps.find(s => s.id === 'database' && /fresh WordPress install/.test(s.reason || ''));
+        // TEST-COPY-SPEC 6d-1: a build from a database file never switches plugins on to start with (sandbox-phase.js isDbBuild / baselineSet)
+        const fresh = !phase.isDbBuild(handle) && handle.steps.find(s => s.id === 'database' && /fresh WordPress install/.test(s.reason || ''));
         if (fresh) { const all = [...slugs].sort(); if (all.length) { const r = handle.wp.run(['plugin', 'activate', ...all]); if (!r.ok) { const why = r.stderr.trim().split('\n')[0]; out.could_not_run = `the plugins of your site could not be switched on in it: ${why.slice(0, 160)}`; out.steps.push(step('sandbox-activate', 'Sandbox: activate the plugins of the copy', 'FAILED', why)); } } }
-        const active = names(handle.wp.run(['plugin', 'list', '--status=active', '--field=name'])).sort();
+        const active = phase.baselineSet(handle, names(handle.wp.run(['plugin', 'list', '--status=active', '--field=name'])).sort());
+        // the active plugins of the real site vs the copy (read by sandbox.js from the imported database): into every issue's own work folder
+        for (const id of ids) { const d = store.dirOf(id); if (handle.active_plugins) sandbox.writeActivePlugins(d, handle.active_plugins); else sandbox.removeActivePlugins(d); }
         const requires = {};
         for (const p of active) { const c = components.find(x => x.kind === 'plugin' && x.slug === p); if (!c) continue; requires[p] = [...new Set([...(c.requires_plugins || []), ...(c.implied || []).filter(i => !i.soft).map(i => i.slug)])].filter(d => active.includes(d) && d !== p).sort(); }
         const themes = names(handle.wp.run(['theme', 'list', '--field=name'])).sort();

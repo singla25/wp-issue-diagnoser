@@ -198,6 +198,8 @@ function build(f, ctx) {
     if (vers.length) dev.push(...vers);
     // 6c-2: the user data of the test copy (dummy users, counts per table, tables that could not be checked), only when one was built from a database file
     dev.push(...userDataLines(ctx.userData));
+    // 6d-1: active plugins of the real site whose files are not in the copy (the list itself is in findings.json sandbox.summary.active_plugins)
+    dev.push(...activePluginLines(ctx.activePlugins));
     return {
         title: f.issue_title_short || f.issue.title,
         status: { ...n, line: statusLine(n), looked: looked.line, php: looked.php, note: f.log_note || null, sandbox_note: ctx.sandboxNote || null, ...(ctx.logHelp && ctx.logHelp.length ? { log_help: ctx.logHelp.slice() } : {}), empty: !n.likely && !n.confirmed && !n.check && !n.signs },
@@ -217,6 +219,18 @@ function userDataLines(u) {
         `${u.unchecked_tables} tables could not be checked and are copied as they are.`,
         OTHER_TABLES_NOTE
     ];
+}
+
+// the cleaned active-plugins object (issue/result.js cleanActivePlugins) -> the one fixed sentence, only when an active plugin has no file in the copy
+// After the sentence, the missing plugins by FOLDER name (plugin file names are not personal data): at most MISSING_SHOWN, then "and N more".
+// Database source: the folder of "slug/file.php" (or the single file name); Site Health source: the plugin name as Site Health shows it.
+const MISSING_SHOWN = 20;
+function activePluginLines(a) {
+    if (!a || !Array.isArray(a.missing_files) || !a.missing_files.length) return [];
+    const vm = require('./version-match');
+    const names = [...new Set(a.missing_files.filter(s => typeof s === 'string' && s).map(s => (a.source === 'from the database' ? (s.includes('/') ? s.split('/')[0] : s) : s)))];
+    const more = names.length - MISSING_SHOWN;
+    return [vm.MISSING_FILES_NOTE, `Active plugins with no files in the copy: ${names.slice(0, MISSING_SHOWN).join(', ')}${more > 0 ? ` and ${more} more` : ''}.`];
 }
 
 // versions.json -> the lines of the 'Versions' block. The texts are rebuilt from the checked fields only (status from the closed list, versions by pattern).
@@ -271,4 +285,4 @@ function cli(cf) {
     return L.join('\n');
 }
 
-module.exports = { userDataLines, versionLines, build, markdown, markdownDeveloper, cli, statusLine, lookedAt, skippedText, confirmedSentence, LIKELY, CHECK, CHECK_NO_CRASH, CONFIRMED, SIGNS, EMPTY_STATUS, NOT_CONFIRMED_SENTENCE, NO_CAUSE_NOTE, NOT_LIVE_SENTENCE, PHP_NOT_STATED, MODIFIED_NOTE, MODIFIED_ADVICE, NO_LOG_HELP };
+module.exports = { MISSING_SHOWN, userDataLines, activePluginLines, versionLines, build, markdown, markdownDeveloper, cli, statusLine, lookedAt, skippedText, confirmedSentence, LIKELY, CHECK, CHECK_NO_CRASH, CONFIRMED, SIGNS, EMPTY_STATUS, NOT_CONFIRMED_SENTENCE, NO_CAUSE_NOTE, NOT_LIVE_SENTENCE, PHP_NOT_STATED, MODIFIED_NOTE, MODIFIED_ADVICE, NO_LOG_HELP };

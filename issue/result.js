@@ -40,6 +40,25 @@ function cleanUserData(ud) {
     for (const [k, v] of Object.entries(ud.removal_counts || {})) if (TABLE_NAME.test(k) && (v === null || (Number.isInteger(v) && v >= 0))) counts[k] = v;
     return { users: 'dummy', dummy_admin: ud.dummy_admin === true, removal_counts: counts, unchecked_tables: ud.unchecked_tables };
 }
+// TEST-COPY-SPEC 6d-1: work/active-plugins.json (issue/version-match.js activePlugins, written for a build from a database file): the source from the
+// closed list, plugin paths (database) or plugin names (Site Health) only, numbers. Anything else is dropped.
+const AP_SOURCES = ['from the database', 'from Site Health', 'unknown'];
+function cleanActivePlugins(ap) {
+    if (!ap || ap.schema !== 1 || !AP_SOURCES.includes(ap.source) || !Array.isArray(ap.active) || !Array.isArray(ap.missing_files)) return null;
+    const vd = require('../lib/version-detect');
+    const okName = ap.source === 'from the database' ? vd.isPluginPath : s => typeof s === 'string' && s.length > 0 && s === vd.clean(s, vd.CAPS.pluginName);
+    const nat = v => (Number.isInteger(v) && v >= 0 ? v : null);
+    const active = ap.active.filter(okName).slice(0, vd.ACTIVE_CAP);
+    return { source: ap.source, active, active_count: ap.source === 'unknown' ? null : active.length, missing_files: ap.missing_files.filter(okName).filter(p => active.includes(p)), not_active_present: nat(ap.not_active_present) };
+}
+// 6d-1: work/copy-log.json (issue/sandbox-phase.js readCopyLog): fatal lines of the copy's own log, UNVERIFIED data that decides nothing
+function cleanCopyLog(cl) {
+    if (!cl || cl.schema !== 1 || cl.label !== 'unverified' || typeof cl.available !== 'boolean' || !Array.isArray(cl.last_fatals)) return null;
+    return { label: 'unverified', available: cl.available, fatal_count: Number.isInteger(cl.fatal_count) && cl.fatal_count >= 0 ? cl.fatal_count : 0,
+        last_fatals: cl.last_fatals.slice(0, 10).filter(x => x && typeof x.message === 'string').map(x => ({ message: x.message.slice(0, 300), file: typeof x.file === 'string' && !x.file.startsWith('/') && !x.file.split('/').includes('..') ? x.file.slice(0, 300) : null, line: Number.isInteger(x.line) ? x.line : null })) };
+}
+const activePluginsSummary = W => { const ap = cleanActivePlugins(W('active-plugins.json')); return ap ? { active_plugins: ap } : {}; };
+const copyLogPart = (sbx, W) => { const cl = sbx && sbx.sandbox ? cleanCopyLog(W('copy-log.json')) : null; return cl ? { copy_log: cl } : {}; };
 function userDataSummary(ud, sb) {
     const c = cleanUserData(ud);
     if (c) return c;
@@ -82,7 +101,7 @@ function build(id, { validation, plans, dir, gate = false, verbose = false, poli
         resolution: hyps.map(h => ({ hypothesis: h.id, options: ((planOf.get(h.id) || {}).options || []).map(o => ({ ...o })) })),
         validation: { checks: validation.checks, oracle: validation.oracle },
         timeline: steps,
-        sandbox: sbx ? { reproduced_in_sandbox: sbx.reproduced_in_sandbox, summary: sbx.sandbox ? { notice: sbx.sandbox.notice, recommendation: sbx.sandbox.recommendation, limits: sbx.sandbox.limits, anonymised: sbx.sandbox.anonymised, unscrubbed_tables: sbx.sandbox.unscrubbed_tables, ...userDataSummary(W('user-data.json'), sbx.sandbox) } : null } : null,
+        sandbox: sbx ? { reproduced_in_sandbox: sbx.reproduced_in_sandbox, summary: sbx.sandbox ? { notice: sbx.sandbox.notice, recommendation: sbx.sandbox.recommendation, limits: sbx.sandbox.limits, anonymised: sbx.sandbox.anonymised, unscrubbed_tables: sbx.sandbox.unscrubbed_tables, ...userDataSummary(W('user-data.json'), sbx.sandbox), ...activePluginsSummary(W) } : null, ...copyLogPart(sbx, W) } : null,
         bisect: bis ? { status: bis.status, causes: bis.causes, necessary: bis.necessary, theme: bis.theme, loads: bis.loads, cache_hits: bis.cache_hits, capped: bis.capped, executed: bis.executed, tests: bis.tests || [], symptom_without_plugins: !!bis.symptom_without_plugins } : null,
         probe: probe ? { planned: probe.planned, oracle: probe.oracle ? { result: probe.oracle.result, reason: probe.oracle.reason, matches: probe.oracle.matches } : null } : null,
         notices: ((ev && ev.notices) || []).map(n => ({ severity: 'INFO', kind: n.kind, source: n.source ? `${n.source.kind}:${n.source.ref}` : null, note: 'This text looked like markup, a command, a path trick or an instruction. It was kept as plain text, escaped in every report, and not acted on.' })),
@@ -281,6 +300,8 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
             versions: sbx && sbx.sandbox ? W('versions.json') : null,
             // 6c-2: the user data of the test copy, only when a test copy was built this time from a database file
             userData: sbx && sbx.sandbox ? cleanUserData(W('user-data.json')) : null,
+            // 6d-1: the active plugins of the real site compared with the copy, only when a test copy was built this time from a database file
+            activePlugins: sbx && sbx.sandbox ? cleanActivePlugins(W('active-plugins.json')) : null,
             facts: { hasLog: !!((lg.files || []).length || (lg.entries || []).length), hasCode: !!issue.root, phpSkipped: phpSk.total > 0, phpSkippedDetail: phpSk, probeRan: ran.probe, sandboxRan: ran.sandbox, sandboxFailed: !!(sbx && sbx.could_not_run),
                 sandboxReproduced: sbx ? sbx.reproduced_in_sandbox : null, php: issue.php_version || null, phpSource: issue.php_source || null, crash }
         });
@@ -437,4 +458,4 @@ function write(id, { validation, plans, dir, root, policy, gate = false, verbose
     return { findings: f, tasks: t.count, dir: R() };
 }
 
-module.exports = { cleanUserData, write, build, markdown, gateMarkdown, tasks, verdict, LIMITS, NOT_PLUGIN };
+module.exports = { cleanUserData, cleanActivePlugins, cleanCopyLog, write, build, markdown, gateMarkdown, tasks, verdict, LIMITS, NOT_PLUGIN };

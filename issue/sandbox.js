@@ -5,7 +5,7 @@
 // DB credentials) and must-use guard plugin -> compose.json, checked by validateSpec() and by `docker compose config` -> up (database still
 // empty) -> the port must be on 127.0.0.1 -> core present. Without a dump: fresh install -> payment gateways -> (nothing to anonymise).
 // With a dump (checked and unpacked by lib/dump-intake.js): STOP the web container -> import (streamed over stdin, never mounted; the temporary
-// copy is deleted right after) -> payment gateways -> anonymise -> START the web container -> read its new port (127.0.0.1 only) -> rewrite
+// copy is deleted right after) -> read the active_plugins option (6d-1: read and compared, never activated) -> payment gateways -> anonymise -> START the web container -> read its new port (127.0.0.1 only) -> rewrite
 // siteurl and home -> front-page check. No web container runs while real rows are in the database; if the import or anonymisation fails,
 // the web container is never started again and everything is destroyed.
 // Users (TEST-COPY-SPEC 5, 6c-2): dummy users only. Every account is rewritten in place (IDs kept, so post authors need no remapping) and the
@@ -278,6 +278,27 @@ function writeUserData(issueDir, data) {
     try { if (!fs.lstatSync(path.join(issueDir, 'work')).isDirectory()) return; } catch { return; }
     fs.writeFileSync(userDataFile(issueDir), JSON.stringify(data, null, 2) + '\n', { mode: 0o600 });
 }
+// work/active-plugins.json (TEST-COPY-SPEC 6d-1): which plugins the real site has switched on (read from the imported database, else the Site
+// Health list) compared with the plugins in the copy. Plugin names only. Written only for a build from a database file.
+function activePluginsFile(issueDir) { return path.join(issueDir, 'work', 'active-plugins.json'); }
+function removeActivePlugins(issueDir) { try { if (fs.lstatSync(activePluginsFile(issueDir)).isFile()) fs.rmSync(activePluginsFile(issueDir)); } catch { /* none */ } }
+function writeActivePlugins(issueDir, data) {
+    try { if (!fs.lstatSync(path.join(issueDir, 'work')).isDirectory()) return; } catch { return; }
+    fs.writeFileSync(activePluginsFile(issueDir), JSON.stringify(data, null, 2) + '\n', { mode: 0o600 });
+}
+// the active_plugins option, read with ONE SELECT (no WordPress and no plugin code is loaded) right after the import, while the web container is
+// stopped. HEX() keeps the bytes exact (no client escaping); LEFT() bounds the answer.
+// Single-site option only: on a multisite network the network-activated plugins (active_sitewide_plugins in the sitemeta table) are NOT read. -> { db: parse result | null, why: reason | null }
+const ACTIVE_SQL = prefix => `SELECT HEX(LEFT(option_value, ${vd.ACTIVE_MAX_BYTES + 1})) AS pg_active FROM \`${prefix}options\` WHERE option_name = 'active_plugins' LIMIT 1`;
+function readActivePluginsOption(wp, prefix) {
+    const r = wp.sql(ACTIVE_SQL(prefix));
+    if (!r.ok) return { db: null, why: 'the active_plugins value in the database could not be read' };
+    const lines = r.stdout.split('\n');
+    if (lines.length < 2 || !/^pg_active\s*$/.test(lines[0]) || !lines[1].trim()) return { db: null, why: 'the database has no active_plugins value' };
+    const hex = lines[1].trim();
+    if (!/^(?:[0-9A-Fa-f]{2})+$/.test(hex)) return { db: null, why: 'the active_plugins value in the database could not be read' };
+    return { db: vd.parseActivePluginsOption(Buffer.from(hex, 'hex')), why: null };
+}
 
 function create(issueId, o = {}) {
     const ctx = context(o), steps = [], warnings = [];
@@ -336,7 +357,7 @@ function create(issueId, o = {}) {
         }
         // ---- versions (Part 6b): the images that match the site best; the result goes into versions.json and the build steps ----
         const cv = chooseVersions(ctx, { issueId, root, dumpFile, pins: pf.pins });
-        if (cv.issueDir) removeUserData(cv.issueDir);   // a user-data.json of an earlier build never describes this one
+        if (cv.issueDir) { removeUserData(cv.issueDir); removeActivePlugins(cv.issueDir); }   // files of an earlier build never describe this one
         const versions = cv.res;
         const versionsText = JSON.stringify(versions, null, 2) + '\n';
         fs.writeFileSync(path.join(dir, 'versions.json'), versionsText, { mode: 0o600 });
@@ -413,6 +434,15 @@ function create(issueId, o = {}) {
             if (!tablesOut.ok) throw new SandboxUnavailable(`the tables of the imported database could not be listed (${tablesOut.stderr.trim().split('\n')[0] || 'no answer'}), so personal data could not be removed. ${NOT_STARTED}`);
             if (!tables.length) throw new SandboxUnavailable(`the imported database has no table with the prefix "${prefix}", so personal data could not be removed (is this the export of this site?). ${NOT_STARTED}`);
             if (!tables.includes('users')) throw new SandboxUnavailable(`the users table "${prefix}users" was not found in the imported database (the table prefix may be wrong), so user accounts could not be removed. ${NOT_STARTED}`);
+        }
+        // ---- TEST-COPY-SPEC 6d-1: the plugins the real site has switched on, READ from the imported database (never switched on by us) ----
+        // Read before anything is blanked and before the web container starts; compared with the plugins in the copy. Never fails the build.
+        let activePlugins = null;
+        if (realData) {
+            const got = readActivePluginsOption(wp, prefix);
+            activePlugins = vm.activePlugins({ db: got.db, dbWhy: got.why, siteHealth: versions.active_plugins, pluginsDir: path.join(dir, 'site', 'wp-content', 'plugins') });
+            // a write error is a warning, never a failed build (the list is report data only)
+            if (cv.issueDir) { try { writeActivePlugins(cv.issueDir, activePlugins); } catch (e) { warnings.push(`work/active-plugins.json could not be written (${String(e.code || e.message).slice(0, 80)}); the active plugin list is missing from the report`); } }
         }
 
         // ---- payment gateways: BEFORE anything is blanked, so a live gateway cannot hide ----
@@ -511,7 +541,7 @@ function create(issueId, o = {}) {
         const handle = {
             id: issueId, project, dir, url, port, prefix, wp, steps, warnings, composeFile,
             anonymised: realData, limits: proxied ? policy.LIMITS_PROXIED : policy.LIMITS, topology: proxied ? 'proxied' : 'direct', copy: rep, tables_unscrubbed: an.unscrubbed, versions,
-            users: realData ? 'dummy' : null, removal_counts: realData ? removal : null, unchecked_tables: realData ? an.unscrubbed.length : null, dummy_admin: !!testLogin,
+            users: realData ? 'dummy' : null, removal_counts: realData ? removal : null, unchecked_tables: realData ? an.unscrubbed.length : null, dummy_admin: !!testLogin, active_plugins: activePlugins,
             destroy: () => destroy(issueId, o)
         };
         // the test password: in memory only, not enumerable (so no JSON.stringify of the handle can carry it), and handed once to the caller
@@ -531,4 +561,4 @@ function list(o = {}) {
     return dirs.map(n => ({ issue: n, ...(readState(path.join(ctx.sandboxesRoot, n)) || {}), alive: pidAlive((readState(path.join(ctx.sandboxesRoot, n)) || {}).pid) }));
 }
 
-module.exports = { MYSQL_SHUTDOWN, shutdownMysql, create, destroy, sweep, preflight, chooseVersions, imagePresent, list, detectPrefix, labelled, removeProject, sandboxesRoot, SandboxUnavailable, SandboxRefusal, active, docker, context, readPort, webRunning, waitForProxy, PROXY_READY_PHP, httpStatus };
+module.exports = { ACTIVE_SQL, readActivePluginsOption, writeActivePlugins, removeActivePlugins, MYSQL_SHUTDOWN, shutdownMysql, create, destroy, sweep, preflight, chooseVersions, imagePresent, list, detectPrefix, labelled, removeProject, sandboxesRoot, SandboxUnavailable, SandboxRefusal, active, docker, context, readPort, webRunning, waitForProxy, PROXY_READY_PHP, httpStatus };

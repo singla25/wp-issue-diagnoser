@@ -82,6 +82,18 @@ const all = () => true;
     ok(vd.parseDumpHeader(far) === null, 'a version line after the first 8 KB is not read');
     ok(vd.parseDumpHeader('-- Server version\t8.0.46<script>\n') === null && vd.parseDumpHeader('-- Server version\t99.0.1\n') === null, 'a hostile or impossible server version is refused, never shown');
     ok(vd.parseDumpHeader('') === null && vd.parseDumpHeader(null) === null, 'no header -> nothing');
+    // owner request (6d-1 brief): the phpMyAdmin colon form with distro suffixes, the tab form, hostile text, a header beyond 8 KB (synthetic headers only)
+    const PMA = (v, nl = '\n') => `-- phpMyAdmin SQL Dump${nl}-- version 5.2.1${nl}-- https://www.phpmyadmin.net/${nl}--${nl}-- Host: localhost${nl}-- Generation Time: Jan 01, 2026 at 10:00 AM${nl}-- Server version: ${v}${nl}-- PHP Version: 8.2.30${nl}`;
+    const hv = t => { const r = vd.parseDumpHeader(t); return r ? `${r.family} ${r.value} (${r.source})` : 'null'; };
+    ok(hv(PMA('8.0.46-0ubuntu0.22.04.1')) === 'MySQL 8.0.46 (from the database file header)', `phpMyAdmin "-- Server version: 8.0.46-0ubuntu0.22.04.1" -> MySQL 8.0.46, the distro suffix is not part of the version (${hv(PMA('8.0.46-0ubuntu0.22.04.1'))})`);
+    ok(hv(PMA('8.0.46-0ubuntu0.22.04.1', '\r\n')) === 'MySQL 8.0.46 (from the database file header)', 'the same with CRLF line ends');
+    ok(hv(PMA('8.0.46-log')) === 'MySQL 8.0.46 (from the database file header)' && hv(PMA('8.0.46')) === 'MySQL 8.0.46 (from the database file header)', 'phpMyAdmin "8.0.46-log" and plain "8.0.46" (no MariaDB marker) -> MySQL 8.0.46');
+    ok(hv(PMA('10.11.6-MariaDB-1:10.11.6+maria~ubu2204')) === 'MariaDB 10.11.6 (from the database file header)', `phpMyAdmin "10.11.6-MariaDB-1:10.11.6+maria~ubu2204" -> MariaDB 10.11.6 (${hv(PMA('10.11.6-MariaDB-1:10.11.6+maria~ubu2204'))})`);
+    ok(hv(PMA('10.11.6-MariaDB')) === 'MariaDB 10.11.6 (from the database file header)' && hv(PMA('10.11.6-MariaDB-log')) === 'MariaDB 10.11.6 (from the database file header)', 'phpMyAdmin "10.11.6-MariaDB" and "10.11.6-MariaDB-log" -> MariaDB 10.11.6');
+    ok(hv('-- MySQL dump 10.13  Distrib 8.0.46, for Linux (x86_64)\n--\n-- Host: localhost    Database: wp\n-- ------------------------------------------------------\n-- Server version\t8.0.46\n') === 'MySQL 8.0.46 (from the database file header)', 'the mysqldump tab form "-- Server version<TAB>8.0.46" -> MySQL 8.0.46');
+    for (const bad of ['8.0.46<script>', 'abc8.0', '99.0.1', '8..46', '-8.0.46', '8.0.46"; DROP TABLE x; --', '‮8.0.46', 'MariaDB', ''])
+        ok(vd.parseDumpHeader(`-- Server version: ${bad}\n`) === null, `hostile or garbled phpMyAdmin version text gives no version: ${JSON.stringify(bad)}`);
+    ok(vd.parseDumpHeader('-- phpMyAdmin SQL Dump\n' + '-- padding line\n'.repeat(700) + '-- Server version: 8.0.46-0ubuntu0.22.04.1\n') === null, 'a phpMyAdmin "Server version:" line beyond the first 8 KB is not read');
 
     group('the collation hint, verified against the pinned MariaDB');
     const hint = vd.collationHint(fx('mysql-no-header.sql.txt'));

@@ -188,4 +188,50 @@ function pinsFor(res, pins) {
     return { ...pins, images: { wordpress: res.refs.wordpress, cli: res.refs.cli, db: { ...res.refs.db, family: res.images.db_family } } };
 }
 
-module.exports = { srcLabel, saneSiteHealth, STATUSES, SETUP, readCapped, readSiteHealthFile, saveSiteHealth, SiteHealthRefused, poweredByFrom, gather, select, lines, pinsFor, nearestMinor };
+// ---------------------------------------------------------------- TEST-COPY-SPEC 6d-1: the active plugins of the real site vs the plugins in the copy
+// Nothing here switches a plugin on: the list is only READ (the database's active_plugins option, else the Site Health list) and COMPARED with the
+// files in the copy. The result is data for the report: names of plugins only, never a value from the database other than that list.
+// Not read: multisite network-activated plugins (active_sitewide_plugins); only the site's own active_plugins option.
+const ACTIVE_SOURCES = Object.freeze({ DATABASE: 'from the database', SITE_HEALTH: 'from Site Health', UNKNOWN: 'unknown' });
+const MISSING_FILES_NOTE = 'WordPress may drop plugins whose files are missing from the active list; the copy runs without them.';
+const COPY_CAPS = Object.freeze({ folders: 2000, filesPerFolder: 50, header: 8192 });
+const NAME_OK = /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/;
+// the plugins of the copy: wp-content/plugins/<folder>/<file>.php and wp-content/plugins/<file>.php with a "Plugin Name:" header (no symbolic
+// link is followed, a fixed order). -> [{ path: 'folder/file.php' | 'file.php', name }]
+function copyPlugins(pluginsDir) {
+    const readdir = require('../lib/sorted-dir');
+    const header = f => { const t = readCapped(f, COPY_CAPS.header); const m = t && /Plugin Name:[ \t]*([^\r\n*]{1,200})/i.exec(t); return m ? vd.clean(m[1], vd.CAPS.pluginName).trim() : null; };
+    const plain = (f, dir) => { try { const st = fs.lstatSync(f); return dir ? st.isDirectory() && !st.isSymbolicLink() : st.isFile() && !st.isSymbolicLink(); } catch { return false; } };
+    let names = []; try { names = readdir(pluginsDir).filter(n => NAME_OK.test(n)).slice(0, COPY_CAPS.folders); } catch { return []; }
+    const out = [];
+    for (const n of names) {
+        const abs = path.join(pluginsDir, n);
+        if (/\.php$/.test(n) && plain(abs, false)) { const h = header(abs); if (h) out.push({ path: n, name: h }); continue; }
+        if (!plain(abs, true)) continue;
+        let files = []; try { files = readdir(abs).filter(f => /\.php$/.test(f) && NAME_OK.test(f)).slice(0, COPY_CAPS.filesPerFolder); } catch { continue; }
+        for (const f of files) { if (!plain(path.join(abs, f), false)) continue; const h = header(path.join(abs, f)); if (h) out.push({ path: `${n}/${f}`, name: h }); }
+    }
+    return out;
+}
+// db: the result of vd.parseActivePluginsOption, or null when the option was absent or could not be read (dbWhy says which)
+// siteHealth: the parsed Site Health list [{ name, version }] or null. pluginsDir: wp-content/plugins of the COPY.
+// -> { schema, source, active, active_count, missing_files, not_active_present, invalid_entries, unknown_reason }
+function activePlugins({ db = null, dbWhy = null, siteHealth = null, pluginsDir }) {
+    const copy = copyPlugins(pluginsDir);
+    const exists = rel => { if (!vd.isPluginPath(rel)) return false; try { const st = fs.lstatSync(path.join(pluginsDir, rel)); return st.isFile() && !st.isSymbolicLink(); } catch { return false; } };
+    if (db && db.ok) {
+        const active = db.plugins.slice(0, vd.ACTIVE_CAP), set = new Set(active);
+        return { schema: 1, source: ACTIVE_SOURCES.DATABASE, active, active_count: active.length, missing_files: active.filter(p => !exists(p)), not_active_present: copy.filter(p => !set.has(p.path)).length, invalid_entries: db.invalid || 0, unknown_reason: null };
+    }
+    const why = db && !db.ok ? `the active_plugins value in the database could not be read (${db.reason})` : dbWhy || 'the database has no active_plugins value';
+    const sh = Array.isArray(siteHealth) ? siteHealth.filter(p => p && typeof p.name === 'string' && p.name.trim()).map(p => vd.clean(p.name, vd.CAPS.pluginName).trim()) : [];
+    if (sh.length) {
+        const active = [...new Set(sh)].sort().slice(0, vd.ACTIVE_CAP), low = new Set(active.map(s => s.toLowerCase())), have = new Set(copy.map(p => p.name.toLowerCase()));
+        return { schema: 1, source: ACTIVE_SOURCES.SITE_HEALTH, active, active_count: active.length, missing_files: active.filter(a => !have.has(a.toLowerCase())), not_active_present: copy.filter(p => !low.has(p.name.toLowerCase())).length, invalid_entries: 0, unknown_reason: why };
+    }
+    return { schema: 1, source: ACTIVE_SOURCES.UNKNOWN, active: [], active_count: null, missing_files: [], not_active_present: null, invalid_entries: 0, unknown_reason: `${why}, and no Site Health list of active plugins was given` };
+}
+// the WP-CLI plugin name ("akismet" for akismet/akismet.php, "hello" for hello.php)
+const slugOf = p => (p.includes('/') ? p.split('/')[0] : p.replace(/\.php$/, ''));
+
+module.exports = { srcLabel, saneSiteHealth, STATUSES, SETUP, readCapped, readSiteHealthFile, saveSiteHealth, SiteHealthRefused, poweredByFrom, gather, select, lines, pinsFor, nearestMinor, ACTIVE_SOURCES, MISSING_FILES_NOTE, copyPlugins, activePlugins, slugOf };

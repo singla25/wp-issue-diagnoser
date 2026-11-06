@@ -94,8 +94,41 @@ function missingFromCopy(stderr, originalRoot, copyRoot) {
     return null;
 }
 
+// ---- TEST-COPY-SPEC 6d-1 ----
+// a build from a database file (a dump given, or exported): its plugins are the ones the imported database has switched on, never activated by us
+const isDbBuild = handle => !!handle && (handle.anonymised === true || handle.topology === 'proxied');
+// The starting plugin set of a database build: what WordPress lists as active (it reads the database's active_plugins), kept only where the
+// database's own list (sandbox.js, read right after the import) names it. Nothing is added, so the first apply() never switches a plugin on.
+// Without a database, or when the list is not from the database, the listed set is used as before.
+function baselineSet(handle, listed) {
+    const ap = handle && handle.active_plugins;
+    if (!isDbBuild(handle) || !ap || ap.source !== require('./version-match').ACTIVE_SOURCES.DATABASE) return listed;
+    const missing = new Set(ap.missing_files || []);
+    const fromDb = new Set(ap.active.filter(p => !missing.has(p)).map(p => require('./version-match').slugOf(p)));
+    return listed.filter(p => fromDb.has(p));
+}
+// The copy's own debug log (/var/log/pg/debug.log in the containers, <sandbox>/logs/debug.log here) as DATA: the last 2 MB, redacted line by line
+// (issue/logs.js parseLog uses lib/redact.js), fatal lines only, paths relative to wp-content. Labelled 'unverified': it decides nothing.
+const COPY_LOG_MAX = 10;
+function readCopyLog(file, { maxBytes = 2 * 1024 * 1024, secrets = [] } = {}) {
+    const logs = require('./logs');
+    const none = { schema: 1, label: 'unverified', available: false, fatal_count: 0, last_fatals: [] };
+    let t; try { const st = fs.lstatSync(file); if (!st.isFile() || st.isSymbolicLink()) return none; t = logs.readTail(file, maxBytes); } catch { return none; }
+    if (!t) return none;
+    let text = t.text; for (const s of secrets) if (typeof s === 'string' && s.length >= 8) text = text.split(s).join('[REDACTED]');
+    const rel = s => String(s || '').split('/var/www/html/wp-content/').join('').split('/var/www/html/').join('');
+    const fatals = logs.parseLog(text, 'copy:debug.log').filter(e => e.level === 'fatal error' || e.level === 'parse error' || /Uncaught\s+\w*(?:Error|Exception)/.test(e.message));
+    const last = new Map();   // the same message at the same place once, at its last position
+    for (const e of fatals) { const v = { message: rel(e.message).slice(0, 300), file: e.file && e.file.startsWith('wp-content/') ? e.file.slice('wp-content/'.length) : null, line: Number.isInteger(e.line) ? e.line : null }; const k = `${v.message}|${v.file}|${v.line}`; last.delete(k); last.set(k, v); }
+    return { schema: 1, label: 'unverified', available: true, fatal_count: fatals.length, last_fatals: [...last.values()].slice(-COPY_LOG_MAX) };
+}
+const copyLogFile = dir => path.join(dir, 'work', 'copy-log.json');
+function writeCopyLog(dir, data) { try { if (!fs.lstatSync(path.join(dir, 'work')).isDirectory()) return; fs.writeFileSync(copyLogFile(dir), JSON.stringify(data, null, 2) + '\n', { mode: 0o600 }); } catch { /* no work folder */ } }
+function removeCopyLog(dir) { try { if (fs.lstatSync(copyLogFile(dir)).isFile()) fs.rmSync(copyLogFile(dir)); } catch { /* none */ } }
+
 async function run(id, o) {
     const issue = store.load(id), dir = store.dirOf(id), opt = o.options || {}, steps = [];
+    if (!o.noWrite) removeCopyLog(dir);   // a copy log of an earlier build never describes this one
     const out = { steps, bisect: null, sandbox: null, reproduced_in_sandbox: null };
     const done = () => { if (o.noWrite) return out; try { fs.writeFileSync(path.join(dir, 'work', 'sandbox.json'), JSON.stringify({ steps, sandbox: out.sandbox, could_not_run: out.could_not_run || undefined, reproduced_in_sandbox: out.reproduced_in_sandbox, baseline: out.baseline || null, redirect_observed: !!out.redirect_observed }, null, 2) + '\n', { mode: 0o600 }); } catch { /* work folder missing */ } return out; };
     if (!opt.sandbox) { steps.push(step('sandbox', 'Sandbox (throwaway copy in Docker)', 'NOT_RUN', 'not requested: add --sandbox (needs Docker and a local copy of the site)')); return done(); }
@@ -118,9 +151,11 @@ async function run(id, o) {
         // the plugins are those of the COPY itself (folders with a plugin header), plus whatever the analysis named: never an empty set by accident
         const slugs = new Set([...comps.filter(c => c.kind === 'plugin').map(c => c.slug), ...pluginFolders(path.join(handle.dir, 'site', 'wp-content', 'plugins'))]);
         let actFailed = null;   // the plugins of the site could not be switched on: the sandbox does not match the site, so it gives NO evidence either way
-        const fresh = handle.steps.find(s => s.id === 'database' && /fresh WordPress install/.test(s.reason || ''));
+        // TEST-COPY-SPEC 6d-1: a build from a database file NEVER switches plugins on to start with: the imported database says which are active
+        const dbBuild = isDbBuild(handle);
+        const fresh = !dbBuild && handle.steps.find(s => s.id === 'database' && /fresh WordPress install/.test(s.reason || ''));
         if (fresh) { const all = [...slugs].sort(); if (all.length) { const r = handle.wp.run(['plugin', 'activate', ...all]); if (!r.ok) { actFailed = r.stderr.trim().split('\n')[0]; steps.push(step('sandbox-activate', 'Sandbox: activate the plugins of the copy', 'FAILED', actFailed)); } } }
-        const active = names(handle.wp.run(['plugin', 'list', '--status=active', '--field=name'])).filter(p => slugs.has(p) || true).sort();
+        const active = baselineSet(handle, names(handle.wp.run(['plugin', 'list', '--status=active', '--field=name'])).filter(p => slugs.has(p) || true).sort());
         const requires = {};
         for (const p of active) { const c = comps.find(x => x.kind === 'plugin' && x.slug === p); if (!c) continue; requires[p] = [...new Set([...(c.requires_plugins || []), ...(c.implied || []).filter(i => !i.soft).map(i => i.slug)])].filter(d => active.includes(d) && d !== p).sort(); }
         const themes = names(handle.wp.run(['theme', 'list', '--field=name'])).sort();
@@ -153,6 +188,9 @@ async function run(id, o) {
         out.redirect_observed = !!tester.redirectSeen;   // only the baseline run has happened here: the sandbox as it is
         out.reproduced_in_sandbox = base === 'fail' ? 'yes' : base === 'pass' ? 'no' : 'could-not-test';
         steps.push(step('sandbox-oracle', 'Oracle in the sandbox: is the symptom present?', base === 'unresolved' ? 'NOT_RUN' : 'PASSED', `symptom reproduced in the sandbox: ${out.reproduced_in_sandbox}${base === 'pass' ? '. NOT reproduced: every hypothesis stays PROBABLE_NEEDS_REVIEW or below, nothing can be REPRODUCIBLE.' : ''}${base === 'unresolved' ? ' (the page failed in a different way, or the oracle could not be evaluated)' : ''}`, { reproduced: out.reproduced_in_sandbox }));
+        // 6d-1: the copy's OWN debug log after the front page and the baseline pages, kept as UNVERIFIED data (work/copy-log.json). It changes no
+        // status, no verdict and not reproduced_in_sandbox: it may count only after the fidelity check (6d-2).
+        if (dbBuild && !o.noWrite) writeCopyLog(dir, readCopyLog(path.join(handle.dir, 'logs', 'debug.log'), { secrets: handle.test_login ? [handle.test_login.password] : [] }));
 
         // a caller (verify-fixes.js) may use this running sandbox, with the symptom present, to test candidate fixes before the teardown
         if (o.verify && base === 'fail') out.verification = await o.verify({ handle, tester, baseline: out.baseline, issue, steps });
@@ -179,4 +217,4 @@ async function run(id, o) {
     return done();
 }
 
-module.exports = { run, missingFromCopy, makeTester, makeApplier, pluginFolders, names, step };
+module.exports = { run, missingFromCopy, makeTester, makeApplier, pluginFolders, names, step, isDbBuild, baselineSet, readCopyLog, writeCopyLog, removeCopyLog, COPY_LOG_MAX };
