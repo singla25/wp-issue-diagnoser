@@ -6,13 +6,17 @@
 //   MariaDB can start) · no-new-privileges · memory, CPU and process limits · ports bound to 127.0.0.1 only · images pinned by digest ·
 //   random project name + labels · bind mounts only from inside the sandbox folder · no host environment passed through
 //
-// Network: the database and the WP-CLI container live on an INTERNAL network (no route out). Only the WordPress container is also on a
-// normal network, because Docker cannot publish a port on an internal-only network. Its DNS is pointed at an unroutable address, so raw
-// cURL / fsockopen to a HOST NAME fails too; a raw connection to an IP address is NOT blocked at the network level. See LIMITS.
+// Network: the database and the WP-CLI container live on an INTERNAL network (no route out). Without a database file, the WordPress container
+// is also on a normal network, because Docker cannot publish a port on an internal-only network. Its DNS is pointed at an unroutable address,
+// so raw cURL / fsockopen to a HOST NAME fails too; a raw connection to an IP address is NOT blocked at the network level. See LIMITS.
+// With a database file (TEST-COPY-SPEC 6c-1), the WordPress container is on the internal network ONLY, with no published port, and a front
+// proxy (issue/sandbox-proxy.js: the same pinned WordPress image running a fixed Apache reverse-proxy config, as 33:33, no capability, read-only
+// root file system) is the only container with a route out and the only one that publishes a port. See LIMITS_PROXIED.
 
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const proxy = require('./sandbox-proxy');
 
 const PIN_FILE = path.join(__dirname, '..', 'data', 'sandbox-images.json');
 const PROJECT_RE = /^pgsb[0-9a-f]{8}$/;
@@ -23,13 +27,24 @@ const MAX = { mem_mb: 1024, cpus: 2, pids: 1024 };
 const WP_UID = '33:33'; // www-data in the official images
 
 // Shown in every sandbox report, first, in plain words.
-const NOTICE = 'The WordPress (web) container can still make RAW OUTBOUND connections: code in the copied plugins or theme that opens its own socket to an IP address (cURL, fsockopen, file_get_contents on a URL with an IP) is not blocked, because Docker cannot publish a port on a network with no route out and a firewall inside the container would need extra privileges. WordPress\'s own HTTP API, host-name lookups and mail ARE blocked. Only the database and WP-CLI containers have no route out at all.';
+const NOTICE = 'Without a database file, the WordPress (web) container can still make RAW OUTBOUND connections: code in the copied plugins or theme that opens its own socket to an IP address (cURL, fsockopen, file_get_contents on a URL with an IP) is not blocked, because Docker cannot publish a port on a network with no route out and a firewall inside the container would need extra privileges. WordPress\'s own HTTP API, host-name lookups and mail ARE blocked. With a database file, the web container has no route out at all (raw IP connections, SMTP and host-name lookups fail); a small front proxy is then the only container with a route out, and it runs only a fixed reverse-proxy configuration. The database and WP-CLI containers never have a route out.';
+// Shown instead of NOTICE when the test copy was built from a database file (topology "proxied", TEST-COPY-SPEC 6c-1). Owner-approved text.
+const NOTICE_DUMP = 'A database file was used for this test copy. It stays on this computer. The raw file copy is deleted right after the import, and the test copy is deleted when the test ends unless the sandbox was kept on request. With a database file the web container has no route out (raw IP connections, SMTP and host-name lookups failed in the test); a small front proxy running only a fixed reverse-proxy configuration is the only container with a route out.';
 const RECOMMENDATION = 'Recommendation: run sandboxes only for copies of sites you own or are explicitly authorised to test, and whose plugin code you trust. Do not run a sandbox on untrusted or third-party code.';
 const LIMITS = [
     'WP_HTTP_BLOCK_EXTERNAL and the pre_http_request filter stop WordPress\'s own HTTP API (wp_remote_get, wp_remote_post, ...). They do NOT stop code that opens its own connection: raw cURL, fsockopen, file_get_contents on a URL, exec/shell_exec.',
     'To cover that, the WordPress container\'s DNS points at an unroutable address, so such code fails when it uses a host name. A connection to a raw IP address is NOT blocked at the network level (Docker cannot publish a port on an internal-only network, and a firewall inside the container would need extra privileges).',
     'The database and WP-CLI containers are on an internal network with no route out at all.',
     'Mail is switched off by a must-use plugin (pre_wp_mail) and cron is disabled; code that talks SMTP itself, or sends mail with the PHP mail() function, is not intercepted (the image has no mail transport, so it fails).',
+    'Payment gateways found in live mode stop the sandbox from starting unless you pass --neutralise-payments, which switches them off; API keys and webhook secrets in options are blanked, but keys stored anywhere else (a custom table, a file) are not found.'
+];
+// The limits of a test copy built from a database file: the web container sits behind the front proxy (TEST-COPY-SPEC 6c-1).
+const LIMITS_PROXIED = [
+    'WP_HTTP_BLOCK_EXTERNAL and the pre_http_request filter stop WordPress\'s own HTTP API (wp_remote_get, wp_remote_post, ...). They do NOT stop code that opens its own connection (raw cURL, fsockopen, file_get_contents on a URL, exec/shell_exec); in this test copy the network stops that instead (next line).',
+    'The web container is on an internal network only and has no route out: raw IP connections, SMTP and host-name lookups fail. It publishes no port.',
+    'A small front proxy is the only container with a route out. It is the same pinned WordPress image running only a fixed reverse-proxy configuration (no PHP, no files served, not usable as a forward proxy), as an unprivileged user with no extra rights and a read-only file system; it publishes the one port, on 127.0.0.1. The database and WP-CLI containers are on the internal network with no route out at all.',
+    'Mail is switched off by a must-use plugin (pre_wp_mail) and cron is disabled; the PHP mail() function fails (the image has no mail transport) and SMTP cannot leave the web container.',
+    'Site Health\'s loopback test (WordPress asking its own address) fails in the sandbox, as it does without a database file: the address belongs to this computer, not to the container.',
     'Payment gateways found in live mode stop the sandbox from starting unless you pass --neutralise-payments, which switches them off; API keys and webhook secrets in options are blanked, but keys stored anywhere else (a custom table, a file) are not found.'
 ];
 
@@ -97,7 +112,10 @@ function dbService(family, ref, creds) {
     };
 }
 
-function buildSpec({ project, issueId, siteDir, logDir, themes = [], images: pins = images(), hasLanguages = false, creds = { root: rand(), user: 'wp', pass: rand(), name: 'wordpress' } }) {
+// proxyConfFile (TEST-COPY-SPEC 6c-1): the host path of the generated proxy config (<sandbox>/proxy/proxy.conf). Given for every build that
+// imports a database file: the web container then goes on the internal network only, without a port, behind the `proxy` service. Without it
+// the specification is exactly what it was before.
+function buildSpec({ project, issueId, siteDir, logDir, themes = [], images: pins = images(), hasLanguages = false, creds = { root: rand(), user: 'wp', pass: rand(), name: 'wordpress' }, proxyConfFile = null }) {
     if (!PROJECT_RE.test(project)) throw new Error(`project name "${project}" must be pgsb + 8 hex digits`);
     const dbv = dbService(pins.images.db.family, pins.images.db.ref, creds);
     const label = extra => ({ 'pg.sandbox': '1', 'pg.owner': 'plugin-guard', 'pg.project': project, 'pg.issue': String(issueId), ...extra });
@@ -143,11 +161,28 @@ function buildSpec({ project, issueId, siteDir, logDir, themes = [], images: pin
         volumes: { dbdata: { labels: label({}) }, wpcore: { labels: label({}) } },
         networks: { back: { internal: true, labels: label({}) }, front: { labels: label({}) } }
     };
+    if (proxyConfFile) {
+        const w = spec.services.wordpress;
+        w.networks = ['back'];   // internal only: no route out
+        delete w.ports;          // nothing published by the web container
+        spec.services.proxy = {
+            image: w.image, ...hardened, cap_add: [],
+            entrypoint: [...proxy.ENTRYPOINT], user: WP_UID, read_only: true, tmpfs: [proxy.TMPFS],
+            depends_on: { wordpress: { condition: 'service_started' } },
+            // the image declares VOLUME /var/www/html: an empty, labelled named volume there, so Docker creates no anonymous, unlabelled one
+            volumes: [`${proxyConfFile}:${proxy.CONF_PATH}:ro`, 'proxyhtml:/var/www/html:ro'],
+            ports: ['127.0.0.1::80'], networks: ['back', 'front'], dns: ['192.0.2.1'],
+            mem_limit: '128m', cpus: 0.5, pids_limit: 128, labels: label({ 'pg.role': 'proxy' })
+        };
+        spec.volumes.proxyhtml = { labels: label({}) };
+    }
     return spec;
 }
 
 // -> list of violations (empty = the spec satisfies every safeguard). Pure; no Docker needed.
-function validateSpec(spec, { sandboxDir } = {}) {
+// proxyConf: the text of the generated proxy config (when absent it is read from the proxy's bind source inside the sandbox folder);
+// requireProxy: true for a build that imports a database file (the web container must then sit behind the proxy).
+function validateSpec(spec, { sandboxDir, proxyConf, requireProxy = false } = {}) {
     const v = [], push = m => v.push(m);
     if (!spec || typeof spec !== 'object') return ['spec is not an object'];
     if (!PROJECT_RE.test(String(spec.name))) push(`project name "${spec.name}" is not pgsb + 8 hex digits (a random prefix is required)`);
@@ -159,9 +194,13 @@ function validateSpec(spec, { sandboxDir } = {}) {
     const services = spec.services || {};
     if (!Object.keys(services).length) push('no services');
     const ALLOWED_SERVICE_KEYS = new Set(['image', 'cap_drop', 'cap_add', 'security_opt', 'restart', 'stop_grace_period', 'environment', 'command', 'entrypoint', 'user', 'healthcheck', 'volumes', 'networks', 'depends_on', 'ports', 'dns', 'mem_limit', 'cpus', 'pids_limit', 'labels']);
+    const PROXY_ONLY_KEYS = new Set(['read_only', 'tmpfs']);   // allowed for the `proxy` service alone
+    const hasProxy = Object.prototype.hasOwnProperty.call(services, 'proxy');
+    const routeOut = hasProxy ? 'proxy' : 'wordpress';          // the one service that may use a network with a route out and publish a port
+    if (requireProxy && !hasProxy) push('a database file is imported, so the web container must sit behind the front proxy: the "proxy" service is missing');
     for (const [name, s] of Object.entries(services)) {
         const at = m => push(`${name}: ${m}`);
-        for (const k of Object.keys(s)) if (!ALLOWED_SERVICE_KEYS.has(k)) at(`"${k}" is not an allowed service setting (privileged, network_mode, pid, ipc, devices, sysctls, ... are all refused)`);
+        for (const k of Object.keys(s)) if (!ALLOWED_SERVICE_KEYS.has(k) && !(name === 'proxy' && PROXY_ONLY_KEYS.has(k))) at(`"${k}" is not an allowed service setting (privileged, network_mode, pid, ipc, devices, sysctls, ... are all refused)`);
         if (s.privileged) at('must not be privileged');
         if (!s.image || !DIGEST_REF.test(s.image)) at(`image "${s.image}" is not pinned by digest (repo@sha256:...)`);
         if (!Array.isArray(s.cap_drop) || !s.cap_drop.includes('ALL')) at('cap_drop must include ALL');
@@ -186,12 +225,50 @@ function validateSpec(spec, { sandboxDir } = {}) {
         for (const [k, val] of Object.entries(s.environment || {})) if (val === null || val === undefined || typeof val !== 'string') at(`environment ${k} must be a literal string (a null value would be taken from the host)`);
         for (const n of s.networks || []) {
             if (!nets[n]) at(`network "${n}" is not declared`);
-            else if (name !== 'wordpress' && !nets[n].internal) at(`only the wordpress service may use a network with a route out ("${n}" is not internal)`);
+            else if (name !== routeOut && !nets[n].internal) at(`only the ${routeOut} service may use a network with a route out ("${n}" is not internal)`);
         }
-        if (name === 'wordpress' && !(s.dns && s.dns.length && s.dns.every(d => /^192\.0\.2\./.test(d)))) at('dns must point at an unroutable address (192.0.2.0/24) so host-name lookups made by raw sockets fail');
+        if ((name === 'wordpress' || name === 'proxy') && !(s.dns && s.dns.length && s.dns.every(d => /^192\.0\.2\./.test(d)))) at('dns must point at an unroutable address (192.0.2.0/24) so host-name lookups made by raw sockets fail');
     }
-    for (const [name, s] of Object.entries(services)) if (name !== 'wordpress' && (s.ports || []).length) push(`${name}: only the wordpress service may publish a port`);
+    for (const [name, s] of Object.entries(services)) if (name !== routeOut && (s.ports || []).length) push(`${name}: only the ${routeOut} service may publish a port`);
+    if (hasProxy) for (const m of proxyViolations(spec, { sandboxDir, proxyConf })) push(m);
     return v;
 }
 
-module.exports = { NOTICE, RECOMMENDATION, buildSpec, validateSpec, images, usable, phpOf, matrix, dbService, DB_FAMILIES, newProject, rand, ALLOWED_CAPS, MAX, LIMITS, PROJECT_RE, DIGEST_REF, WP_UID, PIN_FILE };
+// TEST-COPY-SPEC 6c-1: the front proxy and the web container behind it. Every rule here is in ADDITION to the general ones above.
+function proxyViolations(spec, { sandboxDir, proxyConf } = {}) {
+    const v = [], services = spec.services || {}, nets = spec.networks || {};
+    const p = services.proxy || {}, w = services.wordpress, at = m => v.push(`proxy: ${m}`);
+    if (!w) v.push('proxy: there is no wordpress service to pass requests to');
+    else {
+        if ((w.ports || []).length) v.push('wordpress: behind the proxy the web container must publish no port');
+        if (!Array.isArray(w.networks) || !w.networks.length || w.networks.some(n => !nets[n] || !nets[n].internal)) v.push('wordpress: behind the proxy the web container must be on internal networks only (no route out)');
+        if (p.image !== w.image) at(`image must be exactly the wordpress image (${w.image}); no other image is allowed for the proxy`);
+    }
+    if (JSON.stringify(p.entrypoint) !== JSON.stringify(proxy.ENTRYPOINT)) at(`entrypoint must be exactly ${JSON.stringify(proxy.ENTRYPOINT)}`);
+    if ('command' in p) at('no command: the entrypoint is fixed');
+    if ('environment' in p) at('no environment: the proxy gets no variables');
+    if ('healthcheck' in p) at('no healthcheck setting');
+    if (!Array.isArray(p.cap_add) || p.cap_add.length) at('cap_add must be [] (the proxy needs no capability)');
+    if (p.user !== WP_UID) at(`user must be ${WP_UID} (www-data)`);
+    if (p.read_only !== true) at('read_only must be true');
+    if (!Array.isArray(p.tmpfs) || p.tmpfs.length !== 1 || p.tmpfs[0] !== proxy.TMPFS) at(`tmpfs must be exactly ["${proxy.TMPFS}"]`);
+    if ((p.labels || {})['pg.role'] !== 'proxy') at('label pg.role must be "proxy"');
+    if (!Array.isArray(p.networks) || !p.networks.includes('back')) at('must be on the internal network "back" to reach the web container');
+    for (const port of p.ports || []) if (String(port) !== '127.0.0.1::80') at(`port "${port}" must be exactly 127.0.0.1::80`);
+    const vols = Array.isArray(p.volumes) ? p.volumes.map(String) : [];
+    const binds = vols.filter(m => /^[/.~]/.test(m)), named = vols.filter(m => !/^[/.~]/.test(m));
+    const want = sandboxDir ? path.join(path.resolve(sandboxDir), 'proxy', 'proxy.conf') : null;
+    if (binds.length !== 1) at(`exactly one bind mount is allowed, the config file (found ${binds.length})`);
+    else if (!want || binds[0] !== `${want}:${proxy.CONF_PATH}:ro`) at(`the one bind mount must be "${want || '<sandbox>/proxy/proxy.conf'}:${proxy.CONF_PATH}:ro" (read-only)`);
+    if (named.length > 1 || (named.length === 1 && named[0] !== 'proxyhtml:/var/www/html:ro')) at('the only named volume allowed is "proxyhtml:/var/www/html:ro" (an empty volume where the image declares one)');
+    const pv = (spec.volumes || {}).proxyhtml;
+    if (named.length === 1 && !(pv && pv.labels && pv.labels['pg.sandbox'] === '1' && pv.labels['pg.owner'] === 'plugin-guard' && pv.labels['pg.project'] === spec.name)) at('the volume "proxyhtml" must carry the Plugin Guard labels');
+    for (const [n, s] of Object.entries(services)) if (n !== 'proxy' && (s.volumes || []).some(m => String(m).split(':')[0] === 'proxyhtml')) at(`the volume "proxyhtml" is the proxy's own; ${n} may not mount it`);
+    let text = proxyConf;
+    if (typeof text !== 'string' && want) { try { const st = fs.lstatSync(want); if (st.isFile()) text = fs.readFileSync(want, 'utf8'); } catch { /* reported below */ } }
+    if (typeof text !== 'string') at('the proxy configuration could not be read to check it');
+    else for (const m of proxy.checkConf(text)) v.push(`proxy: ${m}`);
+    return v;
+}
+
+module.exports = { NOTICE, NOTICE_DUMP, RECOMMENDATION, buildSpec, validateSpec, proxyViolations, LIMITS_PROXIED, images, usable, phpOf, matrix, dbService, DB_FAMILIES, newProject, rand, ALLOWED_CAPS, MAX, LIMITS, PROJECT_RE, DIGEST_REF, WP_UID, PIN_FILE };

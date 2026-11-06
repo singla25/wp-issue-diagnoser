@@ -109,7 +109,7 @@ async function run(id, o) {
         if (opt.exportDb && !opt.dump) so.exportDatabase = file => new WpCli({ path: o.root }).exportDatabase(file, sandbox.sandboxesRoot());
         handle = sandbox.create(id, so);
         for (const s of handle.steps) steps.push(step(`sandbox-${s.id}`, `Sandbox: ${s.id}`, s.status, s.reason));
-        steps.push(step('sandbox-notice', 'Sandbox: what is NOT blocked', 'PASSED', `NOTICE: ${policy.NOTICE} ${policy.RECOMMENDATION}`));
+        steps.push(step('sandbox-notice', 'Sandbox: what is NOT blocked', 'PASSED', `NOTICE: ${handle.topology === 'proxied' ? policy.NOTICE_DUMP : policy.NOTICE} ${policy.RECOMMENDATION}`));
         for (const w of handle.warnings) steps.push(step('sandbox-warning', 'Sandbox warning', 'PASSED', `WARNING: ${w}`));
         out.sandbox = { url: handle.url, project: handle.project, anonymised: handle.anonymised, real_data_kept: handle.real_data, unscrubbed_tables: handle.tables_unscrubbed, limits: handle.limits, notice: policy.NOTICE, recommendation: policy.RECOMMENDATION, copy: { files: handle.copy.files, symlinks_skipped: handle.copy.symlinks_skipped, skipped_by_reason: handle.copy.skipped_by_reason } };
 

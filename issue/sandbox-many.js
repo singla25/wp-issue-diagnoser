@@ -37,7 +37,7 @@ async function runMany(ids, { root, options = {}, env = process.env, sandboxOpti
         for (const s of handle.steps) out.steps.push(step(`sandbox-${s.id}`, `Sandbox: ${s.id}`, s.status, s.reason));
         for (const w of handle.warnings) out.steps.push(step('sandbox-warning', 'Sandbox warning', 'PASSED', `WARNING: ${w}`));
         const policy = require('./sandbox-policy');
-        out.steps.push(step('sandbox-notice', 'Sandbox: what is NOT blocked', 'PASSED', `NOTICE: ${policy.NOTICE} ${policy.RECOMMENDATION}`));
+        out.steps.push(step('sandbox-notice', 'Sandbox: what is NOT blocked', 'PASSED', `NOTICE: ${handle.topology === 'proxied' ? policy.NOTICE_DUMP : policy.NOTICE} ${policy.RECOMMENDATION}`));
         out.sandbox = { url: handle.url, project: handle.project, anonymised: handle.anonymised, real_data_kept: handle.real_data, unscrubbed_tables: handle.tables_unscrubbed, limits: handle.limits, notice: policy.NOTICE, recommendation: policy.RECOMMENDATION, copy: { files: handle.copy.files, symlinks_skipped: handle.copy.symlinks_skipped, skipped_by_reason: handle.copy.skipped_by_reason } };
 
         // ---- plugins, in a fixed order ----

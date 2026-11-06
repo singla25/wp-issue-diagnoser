@@ -57,6 +57,8 @@ if (args[0] === 'compose') {
         const svc = args[args.indexOf('exec') + 1 + args.slice(args.indexOf('exec') + 1).findIndex(a => !a.startsWith('-') && a !== '0')];
         const sc = state.containers.find(c => c.id === `c-${p}-${svc}`);
         if (sc && sc.running === false) fail(`service "${svc}" is not running\n`);
+        // mysqladmin_fail: the MySQL shutdown step at teardown fails (a test checks that compose down, volume and dump removal still run)
+        if (cfg.mysqladmin_fail && args.join(' ').includes('mysqladmin')) fail('mysqladmin: connect to server at 127.0.0.1 failed\n');
         const wpAt = args.indexOf('wp'), wp = args.slice(wpAt + 1).filter(a => !a.startsWith('--path=')).join(' ');
         // a rule may also: write a marker file (marker: name beside this script) and wait (sleep_ms), to let a test interrupt a running import
         for (const r of cfg.wp || []) if (wp.startsWith(r.match) && (!r.stdin || stdin.includes(r.stdin))) { if (r.marker) fs.writeFileSync(path.join(dir, r.marker), '1'); if (r.sleep_ms) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, r.sleep_ms); if (r.status) fail(r.stderr || 'Error\n', r.status); out(r.out || ''); }

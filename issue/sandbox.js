@@ -8,6 +8,9 @@
 // copy is deleted right after) -> payment gateways -> anonymise -> START the web container -> read its new port (127.0.0.1 only) -> rewrite
 // siteurl and home -> front-page check. No web container runs while real rows are in the database (unless --keep-real-data was chosen);
 // if the import or anonymisation fails, the web container is never started again and everything is destroyed.
+// Topology with a dump (TEST-COPY-SPEC 6c-1): the web container is on the internal network only (no route out, no port) and the front proxy
+// (sandbox-proxy.js, generated config in <sandbox>/proxy/proxy.conf) publishes the one port; it is read with `compose port proxy 80` and stays
+// the same when the web container is stopped and started. Without a dump the topology is the one before 6c-1.
 // Teardown (destroy) runs on success, on any error, on SIGINT/SIGTERM/SIGHUP, on an uncaught exception and on process exit. A SIGKILL cannot
 // be caught, so the next create() (or `issue sandbox sweep`) removes whatever a dead process left, found by labels, never by guessing.
 // Docker is always called with an argument array and no shell, with a rebuilt environment (see sandbox-wpcli.js).
@@ -20,6 +23,7 @@ const { spawnSync } = require('child_process');
 const policy = require('./sandbox-policy');
 const copy = require('./sandbox-copy');
 const cfg = require('./sandbox-config');
+const frontProxy = require('./sandbox-proxy');
 const { SandboxWpCli, SandboxRefusal, cleanEnv, checkLocalSocket } = require('./sandbox-wpcli');
 const intake = require('../lib/dump-intake');
 const vd = require('../lib/version-detect');
@@ -196,9 +200,11 @@ function detectPrefix(file) {
 }
 
 const USER_STEPS = []; // documented for the report
-// The published port of the web container, checked to be on 127.0.0.1 (read after `up` and again after every start: it changes).
-function readPort(ctx, project, composeFile) {
-    const portOut = docker(ctx, ['compose', '-p', project, '-f', composeFile, 'port', 'wordpress', '80']);
+// The published port of the web container (without a dump) or of the front proxy (with a dump), checked to be on 127.0.0.1 (read after `up`
+// and again after every start).
+function readPort(ctx, project, composeFile, service = 'wordpress') {
+    if (service !== 'wordpress' && service !== 'proxy') throw new SandboxRefusal(`no port is read from the service "${service}"`);
+    const portOut = docker(ctx, ['compose', '-p', project, '-f', composeFile, 'port', service, '80']);
     const m = /^(\d+\.\d+\.\d+\.\d+|\[[0-9a-f:]+\]):(\d+)$/.exec(portOut.stdout.trim().split('\n')[0] || '');
     if (!m || m[1] !== '127.0.0.1') throw new SandboxRefusal(`the WordPress port is published on "${portOut.stdout.trim()}", not on 127.0.0.1: refusing`);
     return { url: `http://127.0.0.1:${m[2]}`, port: Number(m[2]) };
@@ -214,6 +220,16 @@ const READY_PHP = "$c=stream_context_create(['http'=>['timeout'=>3,'follow_locat
 function waitForWeb(ctx, project, composeFile, tries = 90) {
     for (let i = 0; i < tries; i++) {
         if (docker(ctx, ['compose', '-p', project, '-f', composeFile, 'exec', '-T', 'wordpress', 'php', '-r', READY_PHP], { timeoutMs: 20000 }).ok) return true;
+        sleep(1000);
+    }
+    return false;
+}
+// Through the front proxy, from inside the proxy container (its own PHP CLI, no host request): ready when the answer is not the proxy's own
+// "cannot reach the web container" page (sandbox-proxy.js OWN_ERROR). Any answer of WordPress itself counts, an error page included.
+const PROXY_READY_PHP = `$c=stream_context_create(['http'=>['timeout'=>20,'follow_location'=>0,'ignore_errors'=>true]]);$b=@file_get_contents('http://127.0.0.1/',false,$c);exit(($b!==false&&strpos($b,'${frontProxy.OWN_ERROR}')!==0)?0:1);`;
+function waitForProxy(ctx, project, composeFile, tries = 60) {
+    for (let i = 0; i < tries; i++) {
+        if (docker(ctx, ['compose', '-p', project, '-f', composeFile, 'exec', '-T', 'proxy', 'php', '-r', PROXY_READY_PHP], { timeoutMs: 30000 }).ok) return true;
         sleep(1000);
     }
     return false;
@@ -317,19 +333,32 @@ function create(issueId, o = {}) {
         fs.writeFileSync(path.join(dir, 'site', 'wp-config.php'), cfg.wpConfig({ creds, prefix }), { mode: 0o644 });
         fs.writeFileSync(path.join(dir, 'site', 'wp-content', 'mu-plugins', 'pg-sandbox-guard.php'), cfg.MU_PLUGIN, { mode: 0o644 });
         const themes = fs.existsSync(path.join(dir, 'site', 'wp-content', 'themes')) ? readdir(path.join(dir, 'site', 'wp-content', 'themes'), { withFileTypes: true }).filter(e => e.isDirectory() && /^[A-Za-z0-9._-]+$/.test(e.name)).map(e => e.name).sort() : [];
-        const spec = policy.buildSpec({ project, issueId, siteDir: path.join(dir, 'site'), logDir: path.join(dir, 'logs'), themes, hasLanguages: fs.existsSync(path.join(dir, 'site', 'wp-content', 'languages')), creds, images: vm.pinsFor(versions, pf.pins) });
-        const violations = policy.validateSpec(spec, { sandboxDir: dir });
+        // with a database file the web container goes behind the front proxy (6c-1); its config is generated here and checked with the spec
+        const proxied = !!dumpFile;
+        let proxyConf = null, proxyConfFile = null;
+        if (proxied) {
+            fs.mkdirSync(path.join(dir, 'proxy'), { mode: 0o700 });
+            proxyConfFile = path.join(dir, 'proxy', 'proxy.conf');
+            proxyConf = frontProxy.conf();
+            fs.writeFileSync(proxyConfFile, proxyConf, { mode: 0o644, flag: 'wx' });
+            fs.chmodSync(proxyConfFile, 0o644);   // read by the proxy's www-data through a read-only bind mount
+        }
+        const spec = policy.buildSpec({ project, issueId, siteDir: path.join(dir, 'site'), logDir: path.join(dir, 'logs'), themes, hasLanguages: fs.existsSync(path.join(dir, 'site', 'wp-content', 'languages')), creds, images: vm.pinsFor(versions, pf.pins), proxyConfFile });
+        const violations = policy.validateSpec(spec, { sandboxDir: dir, proxyConf, requireProxy: proxied });
         if (violations.length) throw new SandboxRefusal(`the container specification breaks a safeguard, nothing was started:\n  - ${violations.join('\n  - ')}`);
         const composeFile = path.join(dir, 'compose.json');
         fs.writeFileSync(composeFile, JSON.stringify(spec, null, 2), { mode: 0o600 });
         const chk = docker(ctx, ['compose', '-p', project, '-f', composeFile, 'config', '--quiet']);
         if (!chk.ok) throw new SandboxUnavailable(`Docker Compose rejected the specification: ${chk.stderr.trim().split('\n')[0]}`);
         step('spec', 'PASSED', `container specification checked against ${Object.keys(spec.services).length * 12}+ safeguards and by Docker Compose; project ${project}`);
+        const portService = proxied ? 'proxy' : 'wordpress';
+        if (proxied) step('topology', 'PASSED', 'built from a database file: the web container is on the internal network only (no route out, no published port); a front proxy running a fixed reverse-proxy configuration is the only container with a route out and publishes the port on 127.0.0.1');
+        writeState({ topology: proxied ? 'proxied' : 'direct' });
 
         // ---- start: all three containers, the database still EMPTY ----
         const up = docker(ctx, ['compose', '-p', project, '-f', composeFile, 'up', '-d', '--wait', '--wait-timeout', '240'], { timeoutMs: 300000 });
         if (!up.ok) throw new SandboxUnavailable(`the containers did not start: ${up.stderr.trim().split('\n').slice(-3).join(' | ')}`);
-        let { url, port } = readPort(ctx, project, composeFile);
+        let { url, port } = readPort(ctx, project, composeFile, portService);
         fs.writeFileSync(path.join(dir, 'logs', 'url.txt'), url, { mode: 0o644 });
         const wp = new SandboxWpCli({ sandboxesRoot: ctx.sandboxesRoot, sandboxDir: dir, project, originals: ctx.originals, dockerBin: ctx.dockerBin, runner: ctx.runner, env: ctx.env });
         // the web image's entrypoint fills the shared core volume on its first start; the WP-CLI container needs it
@@ -404,12 +433,14 @@ function create(issueId, o = {}) {
         // ---- web container back, then the address ----
         if (dumpFile) {
             if (hooks.beforeWebStart) hooks.beforeWebStart({ project, composeFile, wp, prefix });
-            const start = docker(ctx, ['compose', '-p', project, '-f', composeFile, 'start', 'wordpress'], { timeoutMs: 180000 });
+            // both: the web container, and the front proxy (normally still running; a no-op then) in case it stopped
+            const start = docker(ctx, ['compose', '-p', project, '-f', composeFile, 'start', 'wordpress', ...(proxied ? ['proxy'] : [])], { timeoutMs: 180000 });
             if (!start.ok) throw new SandboxUnavailable(`the web container did not start again after the import: ${start.stderr.trim().split('\n')[0]}`);
-            ({ url, port } = readPort(ctx, project, composeFile));   // the host port is chosen anew on every start: read it again, 127.0.0.1 only
+            ({ url, port } = readPort(ctx, project, composeFile, portService));   // read again after the start, 127.0.0.1 only (the proxy's port normally stays the same)
             fs.writeFileSync(path.join(dir, 'logs', 'url.txt'), url, { mode: 0o644 });
             writeState({ status: 'starting', web: 'running', url, port });
             if (!waitForWeb(ctx, project, composeFile)) throw new SandboxUnavailable('the web container started again but Apache did not answer within 90 seconds');
+            if (proxied && !waitForProxy(ctx, project, composeFile)) throw new SandboxUnavailable('the web container started again but the front proxy could not reach it within 60 seconds');
             step('web-started', 'PASSED', `the web container was started again after the ${personal ? 'anonymisation' : 'import (real data kept on request)'}; WordPress on ${url} (bound to 127.0.0.1 only)`);
             // siteurl and home are read and replaced separately (they can differ, e.g. WordPress in a sub-folder); the longer one first
             const readOpt = name => { const r = wp.sql(`SELECT option_value FROM \`${prefix}options\` WHERE option_name = '${name}'`); return r.ok ? (r.stdout.split('\n')[1] || '').trim() : ''; };
@@ -431,7 +462,7 @@ function create(issueId, o = {}) {
         writeState({ status: 'ready', url, port });
         const handle = {
             id: issueId, project, dir, url, port, prefix, wp, steps, warnings, composeFile, real_data: realData && !personal,
-            anonymised: realData && personal, limits: policy.LIMITS, copy: rep, tables_unscrubbed: an.unscrubbed, versions,
+            anonymised: realData && personal, limits: proxied ? policy.LIMITS_PROXIED : policy.LIMITS, topology: proxied ? 'proxied' : 'direct', copy: rep, tables_unscrubbed: an.unscrubbed, versions,
             destroy: () => destroy(issueId, o)
         };
         return handle;
@@ -448,4 +479,4 @@ function list(o = {}) {
     return dirs.map(n => ({ issue: n, ...(readState(path.join(ctx.sandboxesRoot, n)) || {}), alive: pidAlive((readState(path.join(ctx.sandboxesRoot, n)) || {}).pid) }));
 }
 
-module.exports = { MYSQL_SHUTDOWN, shutdownMysql, create, destroy, sweep, preflight, chooseVersions, imagePresent, list, detectPrefix, labelled, removeProject, sandboxesRoot, SandboxUnavailable, SandboxRefusal, active, docker, context, readPort, webRunning, httpStatus };
+module.exports = { MYSQL_SHUTDOWN, shutdownMysql, create, destroy, sweep, preflight, chooseVersions, imagePresent, list, detectPrefix, labelled, removeProject, sandboxesRoot, SandboxUnavailable, SandboxRefusal, active, docker, context, readPort, webRunning, waitForProxy, PROXY_READY_PHP, httpStatus };

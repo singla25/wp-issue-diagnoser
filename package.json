@@ -95,7 +95,9 @@
     "selftest:guard-polarity": "node scripts/selftest-guard-polarity.js",
     "checkpoints": "node scripts/gen-checkpoints.js",
     "selftest:6b": "node scripts/selftest-6b.js",
-    "selftest:6b-docker": "node scripts/selftest-6b-docker.js"
+    "selftest:6b-docker": "node scripts/selftest-6b-docker.js",
+    "selftest:6c1-fake": "node scripts/selftest-6c1-fake.js",
+    "selftest:6c1-docker": "node scripts/selftest-6c1-docker.js"
   },
   "license": "ISC",
   "dependencies": {

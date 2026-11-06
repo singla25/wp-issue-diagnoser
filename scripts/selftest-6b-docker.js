@@ -42,6 +42,7 @@ const newId = () => `iss-20261105-6100${String(seq++).padStart(2, "0")}-${crypto
 
 (async () => {
     const before = labelled();
+    const T0 = Date.now();   // for the anonymous-volume check below
     // ================================================================ 1
     group('the real mariadb-dump header (pinned mariadb 11.8.9, no network)');
     const name = `pg6b-${crypto.randomBytes(4).toString('hex')}`;
@@ -56,7 +57,12 @@ const newId = () => `iss-20261105-6100${String(seq++).padStart(2, "0")}-${crypto
         ok(/COLLATE=utf8mb4_0900_ai_ci/.test(dump) && vd.collationHint(dump) === null, 'MariaDB writes utf8mb4_0900_ai_ci too, and the collation hint is refused for this file (MariaDB-only syntax present)');
         const bare = dk(['exec', name, 'mariadb-dump', '--skip-comments', '-uroot', '-ppg6btest', 't']).stdout || '';
         ok(vd.parseDumpHeader(bare) && vd.parseDumpHeader(bare).family === 'MariaDB' && vd.collationHint(bare) === null, 'mariadb-dump --skip-comments: no version line, still recognised as MariaDB by its /*M! syntax, no MySQL hint');
-    } finally { dk(['rm', '-f', name]); }
+    } finally { dk(['rm', '-f', '-v', name]); }   // -v: also the anonymous volume the mariadb image declares at /var/lib/mysql (rm -f alone left one per run)
+    {
+        const anon = dk(['volume', 'ls', '-q', '--filter', 'dangling=true']).stdout.split('\n').filter(Boolean);
+        const mine = anon.filter(v => Date.parse(dk(['volume', 'inspect', '--format', '{{.CreatedAt}}', v]).stdout.trim()) >= T0 - 2000);
+        ok(mine.length === 0, `the throwaway mariadb container left no anonymous volume behind (${mine.length} found from this run)`);
+    }
 
     // ================================================================ 2
     group('a real sandbox from a MariaDB export: versions.json and the default images');

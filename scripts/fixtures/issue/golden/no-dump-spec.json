@@ -1,0 +1,211 @@
+{
+  "name": "pgsb0a1b2c3d",
+  "services": {
+    "db": {
+      "image": "mariadb@sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "cap_drop": [
+        "ALL"
+      ],
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "restart": "no",
+      "stop_grace_period": "5s",
+      "cap_add": [
+        "CHOWN",
+        "DAC_OVERRIDE",
+        "FOWNER",
+        "SETGID",
+        "SETUID"
+      ],
+      "environment": {
+        "MARIADB_ROOT_PASSWORD": "GoldenRootPass",
+        "MARIADB_DATABASE": "wordpress",
+        "MARIADB_USER": "wp",
+        "MARIADB_PASSWORD": "GoldenUserPass"
+      },
+      "command": [
+        "--skip-name-resolve",
+        "--max-connections=50"
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "healthcheck.sh",
+          "--connect",
+          "--innodb_initialized"
+        ],
+        "interval": "3s",
+        "timeout": "3s",
+        "retries": 40,
+        "start_period": "5s"
+      },
+      "volumes": [
+        "dbdata:/var/lib/mysql"
+      ],
+      "networks": [
+        "back"
+      ],
+      "mem_limit": "512m",
+      "cpus": 1,
+      "pids_limit": 256,
+      "labels": {
+        "pg.sandbox": "1",
+        "pg.owner": "plugin-guard",
+        "pg.project": "pgsb0a1b2c3d",
+        "pg.issue": "iss-20261105-100000-abcdef",
+        "pg.role": "db"
+      }
+    },
+    "wordpress": {
+      "image": "wordpress@sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "cap_drop": [
+        "ALL"
+      ],
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "restart": "no",
+      "stop_grace_period": "5s",
+      "cap_add": [
+        "CHOWN",
+        "DAC_OVERRIDE",
+        "FOWNER",
+        "SETGID",
+        "SETUID"
+      ],
+      "environment": {
+        "WORDPRESS_DB_HOST": "db:3306",
+        "WORDPRESS_DB_USER": "wp",
+        "WORDPRESS_DB_PASSWORD": "GoldenUserPass",
+        "WORDPRESS_DB_NAME": "wordpress"
+      },
+      "depends_on": {
+        "db": {
+          "condition": "service_healthy"
+        }
+      },
+      "volumes": [
+        "wpcore:/var/www/html",
+        "/golden/sandboxes/iss-20261105-100000-abcdef/site/wp-config.php:/var/www/html/wp-config.php:ro",
+        "/golden/sandboxes/iss-20261105-100000-abcdef/site/wp-content/plugins:/var/www/html/wp-content/plugins",
+        "/golden/sandboxes/iss-20261105-100000-abcdef/site/wp-content/mu-plugins:/var/www/html/wp-content/mu-plugins",
+        "/golden/sandboxes/iss-20261105-100000-abcdef/site/wp-content/uploads:/var/www/html/wp-content/uploads",
+        "/golden/sandboxes/iss-20261105-100000-abcdef/site/wp-content/languages:/var/www/html/wp-content/languages",
+        "/golden/sandboxes/iss-20261105-100000-abcdef/site/wp-content/themes/acme:/var/www/html/wp-content/themes/acme",
+        "/golden/sandboxes/iss-20261105-100000-abcdef/site/wp-content/themes/twentytwentyfive:/var/www/html/wp-content/themes/twentytwentyfive",
+        "/golden/sandboxes/iss-20261105-100000-abcdef/logs:/var/log/pg"
+      ],
+      "ports": [
+        "127.0.0.1::80"
+      ],
+      "networks": [
+        "back",
+        "front"
+      ],
+      "dns": [
+        "192.0.2.1"
+      ],
+      "mem_limit": "768m",
+      "cpus": 1,
+      "pids_limit": 512,
+      "labels": {
+        "pg.sandbox": "1",
+        "pg.owner": "plugin-guard",
+        "pg.project": "pgsb0a1b2c3d",
+        "pg.issue": "iss-20261105-100000-abcdef",
+        "pg.role": "wordpress"
+      }
+    },
+    "cli": {
+      "image": "wordpress@sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "cap_drop": [
+        "ALL"
+      ],
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "restart": "no",
+      "stop_grace_period": "5s",
+      "cap_add": [],
+      "entrypoint": [
+        "tail",
+        "-f",
+        "/dev/null"
+      ],
+      "user": "33:33",
+      "environment": {
+        "WORDPRESS_DB_HOST": "db:3306",
+        "WORDPRESS_DB_USER": "wp",
+        "WORDPRESS_DB_PASSWORD": "GoldenUserPass",
+        "WORDPRESS_DB_NAME": "wordpress"
+      },
+      "depends_on": {
+        "wordpress": {
+          "condition": "service_started"
+        }
+      },
+      "volumes": [
+        "wpcore:/var/www/html",
+        "/golden/sandboxes/iss-20261105-100000-abcdef/site/wp-config.php:/var/www/html/wp-config.php:ro",
+        "/golden/sandboxes/iss-20261105-100000-abcdef/site/wp-content/plugins:/var/www/html/wp-content/plugins",
+        "/golden/sandboxes/iss-20261105-100000-abcdef/site/wp-content/mu-plugins:/var/www/html/wp-content/mu-plugins",
+        "/golden/sandboxes/iss-20261105-100000-abcdef/site/wp-content/uploads:/var/www/html/wp-content/uploads",
+        "/golden/sandboxes/iss-20261105-100000-abcdef/site/wp-content/languages:/var/www/html/wp-content/languages",
+        "/golden/sandboxes/iss-20261105-100000-abcdef/site/wp-content/themes/acme:/var/www/html/wp-content/themes/acme",
+        "/golden/sandboxes/iss-20261105-100000-abcdef/site/wp-content/themes/twentytwentyfive:/var/www/html/wp-content/themes/twentytwentyfive",
+        "/golden/sandboxes/iss-20261105-100000-abcdef/logs:/var/log/pg"
+      ],
+      "networks": [
+        "back"
+      ],
+      "mem_limit": "256m",
+      "cpus": 0.5,
+      "pids_limit": 128,
+      "labels": {
+        "pg.sandbox": "1",
+        "pg.owner": "plugin-guard",
+        "pg.project": "pgsb0a1b2c3d",
+        "pg.issue": "iss-20261105-100000-abcdef",
+        "pg.role": "cli"
+      }
+    }
+  },
+  "volumes": {
+    "dbdata": {
+      "labels": {
+        "pg.sandbox": "1",
+        "pg.owner": "plugin-guard",
+        "pg.project": "pgsb0a1b2c3d",
+        "pg.issue": "iss-20261105-100000-abcdef"
+      }
+    },
+    "wpcore": {
+      "labels": {
+        "pg.sandbox": "1",
+        "pg.owner": "plugin-guard",
+        "pg.project": "pgsb0a1b2c3d",
+        "pg.issue": "iss-20261105-100000-abcdef"
+      }
+    }
+  },
+  "networks": {
+    "back": {
+      "internal": true,
+      "labels": {
+        "pg.sandbox": "1",
+        "pg.owner": "plugin-guard",
+        "pg.project": "pgsb0a1b2c3d",
+        "pg.issue": "iss-20261105-100000-abcdef"
+      }
+    },
+    "front": {
+      "labels": {
+        "pg.sandbox": "1",
+        "pg.owner": "plugin-guard",
+        "pg.project": "pgsb0a1b2c3d",
+        "pg.issue": "iss-20261105-100000-abcdef"
+      }
+    }
+  }
+}
