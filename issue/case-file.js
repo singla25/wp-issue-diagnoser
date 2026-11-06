@@ -196,12 +196,27 @@ function build(f, ctx) {
     // Part 6b: the 'Versions' block (issue/version-match.js), only when a test copy was built: each version with its source and how close the copy is
     const vers = versionLines(ctx.versions);
     if (vers.length) dev.push(...vers);
+    // 6c-2: the user data of the test copy (dummy users, counts per table, tables that could not be checked), only when one was built from a database file
+    dev.push(...userDataLines(ctx.userData));
     return {
         title: f.issue_title_short || f.issue.title,
         status: { ...n, line: statusLine(n), looked: looked.line, php: looked.php, note: f.log_note || null, sandbox_note: ctx.sandboxNote || null, ...(ctx.logHelp && ctx.logHelp.length ? { log_help: ctx.logHelp.slice() } : {}), empty: !n.likely && !n.confirmed && !n.check && !n.signs },
         see, no_cause_note: noCause ? NO_CAUSE_NOTE : null, cases, checked, developer: dev,
         excerpt: box && cd && cd.excerpt && cd.excerpt.available ? { title: `${cd.excerpt.file}, lines ${cd.excerpt.from} to ${cd.excerpt.to} (line ${cd.excerpt.cited} is marked with >)`, lines: causeDetail.excerptLines(cd.excerpt) } : null
     };
+}
+
+// the cleaned user-data object (issue/result.js cleanUserData) -> the lines of the developer block. Numbers and fixed words only.
+const OTHER_TABLES_NOTE = 'Email addresses and IP addresses in other tables (form entries, order notes, plugin settings) are not hidden in this version.';
+function userDataLines(u) {
+    if (!u || u.users !== 'dummy' || !Number.isInteger(u.unchecked_tables)) return [];
+    const counts = Object.entries(u.removal_counts || {}).filter(([k, v]) => /^[A-Za-z0-9_]{1,64}$/.test(k) && (v === null || Number.isInteger(v))).map(([k, v]) => `${k} ${v === null ? 'not counted' : v}`);
+    return [
+        `Test copy users: dummy users only, your real users were not copied; ${u.dummy_admin ? 'one dummy administrator (pgadmin) with a test password that was shown once and not saved' : 'no dummy administrator'}.`,
+        `Test copy, rewritten or removed: ${counts.length ? counts.join(', ') : 'nothing'}.`,
+        `${u.unchecked_tables} tables could not be checked and are copied as they are.`,
+        OTHER_TABLES_NOTE
+    ];
 }
 
 // versions.json -> the lines of the 'Versions' block. The texts are rebuilt from the checked fields only (status from the closed list, versions by pattern).
@@ -256,4 +271,4 @@ function cli(cf) {
     return L.join('\n');
 }
 
-module.exports = { versionLines, build, markdown, markdownDeveloper, cli, statusLine, lookedAt, skippedText, confirmedSentence, LIKELY, CHECK, CHECK_NO_CRASH, CONFIRMED, SIGNS, EMPTY_STATUS, NOT_CONFIRMED_SENTENCE, NO_CAUSE_NOTE, NOT_LIVE_SENTENCE, PHP_NOT_STATED, MODIFIED_NOTE, MODIFIED_ADVICE, NO_LOG_HELP };
+module.exports = { userDataLines, versionLines, build, markdown, markdownDeveloper, cli, statusLine, lookedAt, skippedText, confirmedSentence, LIKELY, CHECK, CHECK_NO_CRASH, CONFIRMED, SIGNS, EMPTY_STATUS, NOT_CONFIRMED_SENTENCE, NO_CAUSE_NOTE, NOT_LIVE_SENTENCE, PHP_NOT_STATED, MODIFIED_NOTE, MODIFIED_ADVICE, NO_LOG_HELP };

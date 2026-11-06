@@ -6,8 +6,12 @@
 // empty) -> the port must be on 127.0.0.1 -> core present. Without a dump: fresh install -> payment gateways -> (nothing to anonymise).
 // With a dump (checked and unpacked by lib/dump-intake.js): STOP the web container -> import (streamed over stdin, never mounted; the temporary
 // copy is deleted right after) -> payment gateways -> anonymise -> START the web container -> read its new port (127.0.0.1 only) -> rewrite
-// siteurl and home -> front-page check. No web container runs while real rows are in the database (unless --keep-real-data was chosen);
-// if the import or anonymisation fails, the web container is never started again and everything is destroyed.
+// siteurl and home -> front-page check. No web container runs while real rows are in the database; if the import or anonymisation fails,
+// the web container is never started again and everything is destroyed.
+// Users (TEST-COPY-SPEC 5, 6c-2): dummy users only. Every account is rewritten in place (IDs kept, so post authors need no remapping) and the
+// lowest-ID administrator becomes the one known dummy admin (pgadmin / pgadmin@example.invalid) with a new password generated at run time. The
+// password lives only in memory: it is handed to o.onTestLogin and kept on the handle as a non-enumerable field, never written to a file, a step,
+// a warning or state.json. Keeping real or named accounts is not available in this version.
 // Topology with a dump (TEST-COPY-SPEC 6c-1): the web container is on the internal network only (no route out, no port) and the front proxy
 // (sandbox-proxy.js, generated config in <sandbox>/proxy/proxy.conf) publishes the one port; it is read with `compose port proxy 80` and stays
 // the same when the web container is stopped and started. Without a dump the topology is the one before 6c-1.
@@ -266,6 +270,15 @@ function removeDumpCopy(dir) {
     try { fs.lstatSync(f); fs.rmSync(f, { force: true }); return true; } catch { return false; }
 }
 
+// work/user-data.json in the issue folder (like work/versions.json): the user-data handling of the copy as numbers and fixed words only
+// (dummy users, per-table counts of rewritten or removed rows, the number of tables that could not be checked). Never a password, never content.
+function userDataFile(issueDir) { return path.join(issueDir, 'work', 'user-data.json'); }
+function removeUserData(issueDir) { try { if (fs.lstatSync(userDataFile(issueDir)).isFile()) fs.rmSync(userDataFile(issueDir)); } catch { /* none */ } }
+function writeUserData(issueDir, data) {
+    try { if (!fs.lstatSync(path.join(issueDir, 'work')).isDirectory()) return; } catch { return; }
+    fs.writeFileSync(userDataFile(issueDir), JSON.stringify(data, null, 2) + '\n', { mode: 0o600 });
+}
+
 function create(issueId, o = {}) {
     const ctx = context(o), steps = [], warnings = [];
     const hooks = o.hooks || {};   // test-only observation points (beforeImport, afterImport, beforeWebStart); never set by a command
@@ -323,6 +336,7 @@ function create(issueId, o = {}) {
         }
         // ---- versions (Part 6b): the images that match the site best; the result goes into versions.json and the build steps ----
         const cv = chooseVersions(ctx, { issueId, root, dumpFile, pins: pf.pins });
+        if (cv.issueDir) removeUserData(cv.issueDir);   // a user-data.json of an earlier build never describes this one
         const versions = cv.res;
         const versionsText = JSON.stringify(versions, null, 2) + '\n';
         fs.writeFileSync(path.join(dir, 'versions.json'), versionsText, { mode: 0o600 });
@@ -391,12 +405,11 @@ function create(issueId, o = {}) {
             if (!inst.ok) throw new SandboxUnavailable(`WordPress could not be installed in the sandbox: ${inst.stderr.trim().split('\n')[0]}`);
             step('database', 'PASSED', 'no dump was given: fresh WordPress install (the plugins of the copy are not active; activate them with the bisect or --activate-all)');
         }
-        const personal = !o.keepRealData;
         const NOT_STARTED = 'The web container was not started again and the test copy was removed.';
         const tablesOut = wp.sql('SHOW TABLES');
         const tables = tablesOut.ok ? tablesOut.stdout.split('\n').slice(1).map(s => s.trim()).filter(t => t.startsWith(prefix)).map(t => t.slice(prefix.length)) : [];
         // with real rows, personal data can only be removed from tables that are known: fail closed when they are not
-        if (realData && personal) {
+        if (realData) {
             if (!tablesOut.ok) throw new SandboxUnavailable(`the tables of the imported database could not be listed (${tablesOut.stderr.trim().split('\n')[0] || 'no answer'}), so personal data could not be removed. ${NOT_STARTED}`);
             if (!tables.length) throw new SandboxUnavailable(`the imported database has no table with the prefix "${prefix}", so personal data could not be removed (is this the export of this site?). ${NOT_STARTED}`);
             if (!tables.includes('users')) throw new SandboxUnavailable(`the users table "${prefix}users" was not found in the imported database (the table prefix may be wrong), so user accounts could not be removed. ${NOT_STARTED}`);
@@ -415,20 +428,55 @@ function create(issueId, o = {}) {
         }
         else step('payments', 'PASSED', modes.length ? `${modes.length} gateway setting(s) found, none enabled in live mode` : 'no payment gateway settings found');
 
-        // ---- anonymise: the default ----
-        const an = cfg.anonymiseSql(prefix, tables, { personal, secrets: true });
-        for (const s of an.statements) { const r = wp.sql(s); if (!r.ok) throw new SandboxUnavailable(`anonymisation failed: ${r.stderr.trim().split('\n')[0]}`); }
-        if (realData && personal) {
+        // ---- anonymise: always (dummy users only) ----
+        // With real rows, the rows each personal-data statement rewrites or removes are COUNTED first (numbers only, never content).
+        const an = cfg.anonymiseSql(prefix, tables, { personal: true, secrets: true });
+        const removal = {};
+        for (const it of an.items) {
+            if (realData && it.count) {
+                const c = wp.sql(it.count), v = c.ok ? (c.stdout.split('\n')[1] || '').trim() : '';
+                const prev = it.table in removal ? removal[it.table] : 0;
+                removal[it.table] = prev !== null && /^\d{1,15}$/.test(v) ? prev + Number(v) : null;
+            }
+            const r = wp.sql(it.sql); if (!r.ok) throw new SandboxUnavailable(`anonymisation failed: ${r.stderr.trim().split('\n')[0]}`);
+        }
+        let adminId = null, adminNote = null, testLogin = null;
+        if (realData) {
             if (!an.covered.includes('users')) throw new SandboxUnavailable(`the users table was not anonymised. ${NOT_STARTED}`);
-            // re-check: every user row must now carry the placeholder login and address
-            const chk = wp.sql(`SELECT COUNT(*) AS pg_unscrubbed FROM \`${prefix}users\` WHERE user_login <> CONCAT('user', ID) OR user_email <> CONCAT('user', ID, '@example.invalid')`);
+            // the one known dummy admin: the lowest-ID account whose role list grants "administrator" (never created: none found = no dummy admin)
+            if (tables.includes('usermeta')) {
+                const pick = wp.sql(cfg.adminPickSql(prefix)), v = pick.ok ? (pick.stdout.split('\n')[1] || '').trim() : '';
+                if (/^[1-9][0-9]{0,19}$/.test(v)) {
+                    const rw = wp.sql(cfg.adminRewriteSql(prefix, v));
+                    if (rw.ok) adminId = v; else adminNote = 'the dummy administrator could not be set up';
+                } else adminNote = pick.ok ? 'no administrator account was found in your database file' : 'the administrator account could not be looked up';
+            } else adminNote = 'no administrator account was found in your database file';
+            // re-check: every user row must now carry the placeholder login and address, except exactly the one dummy admin (if any)
+            const q = cfg.usersCheckSql(prefix);
+            const chk = wp.sql(q.unscrubbed);
             const n = chk.ok ? (chk.stdout.split('\n')[1] || '').trim() : '';
             if (!/^\d+$/.test(n)) throw new SandboxUnavailable(`the anonymisation of the users table could not be checked (${chk.ok ? 'unexpected answer' : chk.stderr.trim().split('\n')[0] || 'no answer'}). ${NOT_STARTED}`);
             if (n !== '0') throw new SandboxUnavailable(`after the anonymisation ${n} user row(s) still had a real login or e-mail address. ${NOT_STARTED}`);
+            const ca = wp.sql(q.admins);
+            const m = ca.ok ? (ca.stdout.split('\n')[1] || '').trim() : '';
+            if (!/^\d+$/.test(m)) throw new SandboxUnavailable(`the dummy administrator could not be checked (${ca.ok ? 'unexpected answer' : ca.stderr.trim().split('\n')[0] || 'no answer'}). ${NOT_STARTED}`);
+            if (m !== (adminId ? '1' : '0')) throw new SandboxUnavailable(`after the anonymisation ${m} user row(s) looked like the dummy administrator, ${adminId ? 'exactly 1' : 'none'} expected. ${NOT_STARTED}`);
+            // its new password: generated now, set through the closed command table (sandbox-wpcli.js `user update <id> --user_pass=...`), kept in memory only
+            if (adminId) {
+                const pass = cfg.testPassword();
+                const up = wp.run(['user', 'update', adminId, `--user_pass=${pass}`, '--skip-email', '--skip-plugins', '--skip-themes']);
+                if (up.ok) testLogin = { user: cfg.DUMMY_ADMIN.login, password: pass };
+                else { adminNote = 'the test password could not be set'; warnings.push(`the test password of the dummy administrator could not be set (${up.stderr.split(pass).join('[REDACTED]').trim().split('\n')[0].slice(0, 160) || 'no answer'}); the copy has no test login`); }
+            }
         }
+        const removalText = Object.entries(removal).map(([k, v]) => `${k} ${v === null ? 'not counted' : v}`).join(', ');
         if (!realData) step('anonymise', 'SKIPPED', 'no real database was imported, so there is nothing to anonymise');
-        else if (personal) step('anonymise', 'PASSED', `users, e-mail addresses, password hashes, comments and WooCommerce orders scrubbed (${an.covered.join(', ')}); API keys, tokens and payment settings blanked. NOT scrubbed (tables of other plugins): ${an.unscrubbed.length ? an.unscrubbed.slice(0, 15).join(', ') : 'none'}${an.unscrubbed.length > 15 ? ', ...' : ''}`);
-        else { warnings.push('REAL PERSONAL DATA is in this sandbox (--keep-real-data): user names, e-mail addresses and password hashes of the original site were kept. API keys and payment settings were still blanked. Destroy the sandbox as soon as you are done; it is deleted when the investigation ends.'); step('anonymise', 'PASSED', 'KEPT REAL DATA on request (--keep-real-data); secrets still blanked'); }
+        else {
+            step('anonymise', 'PASSED', `dummy users only: every account rewritten in place (IDs kept), password hashes replaced; e-mail addresses, comments and WooCommerce orders scrubbed (${an.covered.join(', ')}); rewritten or removed: ${removalText || 'nothing'}; API keys, tokens and payment settings blanked. NOT scrubbed (tables of other plugins): ${an.unscrubbed.length ? an.unscrubbed.slice(0, 15).join(', ') : 'none'}${an.unscrubbed.length > 15 ? ', ...' : ''}`);
+            step('test-login', testLogin ? 'PASSED' : 'SKIPPED', testLogin ? `one dummy administrator (login ${cfg.DUMMY_ADMIN.login}, e-mail ${cfg.DUMMY_ADMIN.email}) with a new test password made for this copy (shown once in the terminal, never saved)` : `no dummy administrator: ${adminNote}`);
+        }
+        const userData = realData ? { schema: 1, users: 'dummy', dummy_admin: !!testLogin, removal_counts: removal, unchecked_tables: an.unscrubbed.length, other_tables_masked: false } : null;
+        if (userData && cv.issueDir) writeUserData(cv.issueDir, userData);
 
         // ---- web container back, then the address ----
         if (dumpFile) {
@@ -441,7 +489,7 @@ function create(issueId, o = {}) {
             writeState({ status: 'starting', web: 'running', url, port });
             if (!waitForWeb(ctx, project, composeFile)) throw new SandboxUnavailable('the web container started again but Apache did not answer within 90 seconds');
             if (proxied && !waitForProxy(ctx, project, composeFile)) throw new SandboxUnavailable('the web container started again but the front proxy could not reach it within 60 seconds');
-            step('web-started', 'PASSED', `the web container was started again after the ${personal ? 'anonymisation' : 'import (real data kept on request)'}; WordPress on ${url} (bound to 127.0.0.1 only)`);
+            step('web-started', 'PASSED', `the web container was started again after the anonymisation; WordPress on ${url} (bound to 127.0.0.1 only)`);
             // siteurl and home are read and replaced separately (they can differ, e.g. WordPress in a sub-folder); the longer one first
             const readOpt = name => { const r = wp.sql(`SELECT option_value FROM \`${prefix}options\` WHERE option_name = '${name}'`); return r.ok ? (r.stdout.split('\n')[1] || '').trim() : ''; };
             const olds = { siteurl: readOpt('siteurl'), home: readOpt('home') };
@@ -461,10 +509,14 @@ function create(issueId, o = {}) {
         }
         writeState({ status: 'ready', url, port });
         const handle = {
-            id: issueId, project, dir, url, port, prefix, wp, steps, warnings, composeFile, real_data: realData && !personal,
-            anonymised: realData && personal, limits: proxied ? policy.LIMITS_PROXIED : policy.LIMITS, topology: proxied ? 'proxied' : 'direct', copy: rep, tables_unscrubbed: an.unscrubbed, versions,
+            id: issueId, project, dir, url, port, prefix, wp, steps, warnings, composeFile,
+            anonymised: realData, limits: proxied ? policy.LIMITS_PROXIED : policy.LIMITS, topology: proxied ? 'proxied' : 'direct', copy: rep, tables_unscrubbed: an.unscrubbed, versions,
+            users: realData ? 'dummy' : null, removal_counts: realData ? removal : null, unchecked_tables: realData ? an.unscrubbed.length : null, dummy_admin: !!testLogin,
             destroy: () => destroy(issueId, o)
         };
+        // the test password: in memory only, not enumerable (so no JSON.stringify of the handle can carry it), and handed once to the caller
+        Object.defineProperty(handle, 'test_login', { value: testLogin ? { ...testLogin } : null, enumerable: false });
+        if (realData && typeof o.onTestLogin === 'function') o.onTestLogin(testLogin ? { ...testLogin } : { user: null, reason: adminNote });
         return handle;
     } catch (e) {
         removeDumpCopy(dir);   // first, on its own: the raw dump must go even if the folder cannot be removed

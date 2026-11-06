@@ -80,7 +80,7 @@ function pluginFolders(dir) {
     return names.filter(n => { try { return readdir(path.join(dir, n)).filter(f => f.endsWith('.php')).some(f => { const fd = fs.openSync(path.join(dir, n, f), 'r'); try { const b = Buffer.alloc(8192), k = fs.readSync(fd, b, 0, 8192, 0); return /Plugin Name:/i.test(b.toString('utf8', 0, k)); } finally { fs.closeSync(fd); } }); } catch { return false; } });
 }
 
-// o: { root, options: { sandbox, dump, exportDb, keepRealData, neutralisePayments, withUploads, maxSizeMb, keepSandbox, maxLoads, maxMinutes, noBisect }, analysis, env }
+// o: { root, options: { sandbox, dump, exportDb, neutralisePayments, withUploads, maxSizeMb, keepSandbox, maxLoads, maxMinutes, noBisect }, analysis, env }
 // An activation that stops with "Failed to open stream" / "Failed opening required" on a file: is that file in the ORIGINAL site but not in the copy? Then the copy step
 // dropped it, and the report says so instead of leaving the reader to blame the plugin. Read-only on the original; null when it cannot be told.
 function missingFromCopy(stderr, originalRoot, copyRoot) {
@@ -105,13 +105,13 @@ async function run(id, o) {
 
     let handle;
     try {
-        const so = { ...(o.sandboxOptions || {}), root: o.root, dump: opt.dump, keepRealData: !!opt.keepRealData, neutralisePayments: !!opt.neutralisePayments, withUploads: !!opt.withUploads, maxMb: opt.maxSizeMb ? Number(opt.maxSizeMb) : undefined };
+        const so = { ...(o.sandboxOptions || {}), root: o.root, dump: opt.dump, neutralisePayments: !!opt.neutralisePayments, withUploads: !!opt.withUploads, maxMb: opt.maxSizeMb ? Number(opt.maxSizeMb) : undefined };
         if (opt.exportDb && !opt.dump) so.exportDatabase = file => new WpCli({ path: o.root }).exportDatabase(file, sandbox.sandboxesRoot());
         handle = sandbox.create(id, so);
         for (const s of handle.steps) steps.push(step(`sandbox-${s.id}`, `Sandbox: ${s.id}`, s.status, s.reason));
         steps.push(step('sandbox-notice', 'Sandbox: what is NOT blocked', 'PASSED', `NOTICE: ${handle.topology === 'proxied' ? policy.NOTICE_DUMP : policy.NOTICE} ${policy.RECOMMENDATION}`));
         for (const w of handle.warnings) steps.push(step('sandbox-warning', 'Sandbox warning', 'PASSED', `WARNING: ${w}`));
-        out.sandbox = { url: handle.url, project: handle.project, anonymised: handle.anonymised, real_data_kept: handle.real_data, unscrubbed_tables: handle.tables_unscrubbed, limits: handle.limits, notice: policy.NOTICE, recommendation: policy.RECOMMENDATION, copy: { files: handle.copy.files, symlinks_skipped: handle.copy.symlinks_skipped, skipped_by_reason: handle.copy.skipped_by_reason } };
+        out.sandbox = { url: handle.url, project: handle.project, anonymised: handle.anonymised, unscrubbed_tables: handle.tables_unscrubbed, limits: handle.limits, notice: policy.NOTICE, recommendation: policy.RECOMMENDATION, copy: { files: handle.copy.files, symlinks_skipped: handle.copy.symlinks_skipped, skipped_by_reason: handle.copy.skipped_by_reason } };
 
         // ---- which plugins, and in which fixed order ----
         const comps = o.analysis ? o.analysis.components : [];

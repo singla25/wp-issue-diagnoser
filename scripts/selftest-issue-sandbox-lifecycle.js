@@ -90,7 +90,7 @@ const payRule = rows => ({ match: 'db query', stdin: "'woocommerce", out: rows }
     const extraEnv = new Set(log.flatMap(l => l.env_names).filter(n => !allowedEnv.has(n) && !/^(NODE_|npm_|_$|SHLVL|OLDPWD)/.test(n)));
     ok(extraEnv.size === 0, `the environment docker receives is the cleaned allow-list${extraEnv.size ? ' — UNEXPECTED: ' + [...extraEnv].join(',') : ''}`);
     ok(leftovers(A) > 0, 'the fake shows containers, volumes and networks exist while the sandbox is up');
-    ok(h.anonymised === true && h.real_data === false && log.some(l => /user_email/.test(l.stdin)), 'DEFAULT is anonymise: user/e-mail/password statements were sent');
+    ok(h.anonymised === true && !('real_data' in h) && h.users === 'dummy' && log.some(l => /user_email/.test(l.stdin)), 'DEFAULT is anonymise: user/e-mail/password statements were sent');
     ok(h.steps.some(s => s.id === 'anonymise' && /NOT scrubbed.*slidercraft_items/.test(s.reason)), 'the report lists the plugin tables that were NOT scrubbed (slidercraft_items)');
     ok(h.limits.some(l => /WP_HTTP_BLOCK_EXTERNAL/.test(l) && /do NOT stop/.test(l)) && h.limits.some(l => /raw IP/.test(l)), 'honest limits are returned with the sandbox (what WP_HTTP_BLOCK_EXTERNAL does not stop; raw IP not blocked)');
     const rep = h.destroy();
@@ -98,12 +98,13 @@ const payRule = rows => ({ match: 'db query', stdin: "'woocommerce", out: rows }
     ok(JSON.stringify(h.destroy()) && !fs.existsSync(h.dir), 'destroy is idempotent (second call is harmless)');
 
     // ================================================================ keep real data
-    group('--keep-real-data: explicit, warns, secrets are still blanked');
+    group('--keep-real-data is retired: refused before anything runs; a build always scrubs users and still blanks secrets');
+    let kre = null; try { require('./guard').parse(['issue', 'investigate', 'x', '--keep-real-data']); } catch (e) { kre = e; }
+    ok(kre && kre.exitCode === 2 && kre.message === '--keep-real-data was replaced by the user-accounts question; keeping real accounts is not available in this version.', 'the flag exits 2 with the one-line pointer');
     const K = fakeEnv('keep', { wp: wpRules([payRule(STRIPE_TEST)]) });
-    const hk = sandbox.create(newId(), K.opts({ dump: DUMP, keepRealData: true }));
+    const hk = sandbox.create(newId(), K.opts({ dump: DUMP }));
     const kl = K.log();
-    ok(hk.warnings.some(w => /REAL PERSONAL DATA/.test(w)) && hk.real_data === true && hk.anonymised === false, 'keeping real data prints a warning and is reported as real_data');
-    ok(!kl.some(l => /user_email = CONCAT/.test(l.stdin)) && kl.some(l => /option_value = ''/.test(l.stdin)), 'no user/e-mail scrubbing was sent, but API-key/secret blanking still was');
+    ok(kl.some(l => /user_email = CONCAT/.test(l.stdin)) && kl.some(l => /option_value = ''/.test(l.stdin)), 'a build always sends the user/e-mail scrubbing, and API-key/secret blanking still runs');
     hk.destroy();
 
     // ================================================================ payments

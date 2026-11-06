@@ -75,42 +75,88 @@ const CORE_TABLES = ['commentmeta', 'comments', 'links', 'options', 'postmeta', 
 const WOO_TABLES = ['woocommerce_sessions', 'woocommerce_api_keys', 'woocommerce_order_items', 'woocommerce_order_itemmeta', 'woocommerce_downloadable_product_permissions', 'woocommerce_log', 'woocommerce_payment_tokens', 'woocommerce_payment_tokenmeta', 'woocommerce_tax_rates', 'woocommerce_tax_rate_locations', 'woocommerce_shipping_zones', 'woocommerce_shipping_zone_locations', 'woocommerce_shipping_zone_methods', 'woocommerce_attribute_taxonomies', 'wc_orders', 'wc_orders_meta', 'wc_order_addresses', 'wc_order_operational_data', 'wc_order_stats', 'wc_order_product_lookup', 'wc_order_tax_lookup', 'wc_order_coupon_lookup', 'wc_customer_lookup', 'wc_product_meta_lookup', 'wc_admin_notes', 'wc_admin_note_actions', 'wc_category_lookup', 'wc_download_log', 'wc_product_attributes_lookup', 'wc_reserved_stock', 'wc_rate_limits', 'wc_webhooks', 'actionscheduler_actions', 'actionscheduler_claims', 'actionscheduler_groups', 'actionscheduler_logs'];
 const SECRET_NAME = ['%api\\_key%', '%apikey%', '%api\\_secret%', '%secret%', '%token%', '%password%', '%passwd%', '%license%', '%private\\_key%', '%access\\_key%', '%client\\_secret%', '%webhook%', '%smtp%'];
 
-// tables: the table names (without prefix) that exist. -> { statements, covered, unscrubbed }
+// tables: the table names (without prefix) that exist. -> { statements, items, covered, unscrubbed }
+// items: one entry per statement, in the same order: { table, kind: 'personal'|'secrets', sql, count }. `count` (personal statements only) is
+// a SELECT COUNT(*) AS pg_rows over exactly the rows the statement rewrites or removes; it is run BEFORE the statement and yields a number only,
+// never a row's content (TEST-COPY-SPEC 5: the report may say how many rows were removed per table, never what they held).
 function anonymiseSql(prefix, tables, { personal = true, secrets = true } = {}) {
     if (!/^[A-Za-z0-9_]+$/.test(prefix)) throw new Error('unsafe table prefix');
-    const has = new Set(tables), t = n => `\`${prefix}${n}\``, S = [];
+    const has = new Set(tables), t = n => `\`${prefix}${n}\``, S = [], items = [];
     const covered = new Set();
     let kind = 'personal';
-    const add = (table, sql) => { if (has.has(table) && ((kind === 'personal' && personal) || (kind === 'secrets' && secrets))) { S.push(sql); covered.add(table); } };
-    add('users', `UPDATE ${t('users')} SET user_login = CONCAT('user', ID), user_nicename = CONCAT('user-', ID), user_email = CONCAT('user', ID, '@example.invalid'), user_url = '', display_name = CONCAT('User ', ID), user_pass = '!', user_activation_key = ''`);
-    add('usermeta', `DELETE FROM ${t('usermeta')} WHERE meta_key IN ('session_tokens', 'community-events-location', 'closedpostboxes_dashboard', 'dismissed_wp_pointers')`);
-    add('usermeta', `UPDATE ${t('usermeta')} SET meta_value = CONCAT('User ', user_id) WHERE meta_key IN ('first_name', 'last_name', 'nickname')`);
-    add('usermeta', `UPDATE ${t('usermeta')} SET meta_value = '' WHERE meta_key = 'description' OR meta_key LIKE 'billing\\_%' OR meta_key LIKE 'shipping\\_%'`);
-    add('comments', `UPDATE ${t('comments')} SET comment_author = 'Anonymous', comment_author_email = CONCAT('comment', comment_ID, '@example.invalid'), comment_author_url = '', comment_author_IP = '0.0.0.0', comment_agent = ''`);
-    add('options', `UPDATE ${t('options')} SET option_value = 'admin@example.invalid' WHERE option_name IN ('admin_email', 'new_admin_email')`);
+    const cnt = (table, where) => `SELECT COUNT(*) AS pg_rows FROM ${t(table)}${where ? ` WHERE ${where}` : ''}`;
+    const add = (table, sql, count) => { if (has.has(table) && ((kind === 'personal' && personal) || (kind === 'secrets' && secrets))) { S.push(sql); items.push({ table, kind, sql, count: kind === 'personal' ? count : null }); covered.add(table); } };
+    add('users', `UPDATE ${t('users')} SET user_login = CONCAT('user', ID), user_nicename = CONCAT('user-', ID), user_email = CONCAT('user', ID, '@example.invalid'), user_url = '', display_name = CONCAT('User ', ID), user_pass = '!', user_activation_key = ''`, cnt('users'));
+    const W_META_DEL = "meta_key IN ('session_tokens', 'community-events-location', 'closedpostboxes_dashboard', 'dismissed_wp_pointers')";
+    add('usermeta', `DELETE FROM ${t('usermeta')} WHERE ${W_META_DEL}`, cnt('usermeta', W_META_DEL));
+    const W_META_NAMES = "meta_key IN ('first_name', 'last_name', 'nickname')";
+    add('usermeta', `UPDATE ${t('usermeta')} SET meta_value = CONCAT('User ', user_id) WHERE ${W_META_NAMES}`, cnt('usermeta', W_META_NAMES));
+    const W_META_BLANK = "meta_key = 'description' OR meta_key LIKE 'billing\\_%' OR meta_key LIKE 'shipping\\_%'";
+    add('usermeta', `UPDATE ${t('usermeta')} SET meta_value = '' WHERE ${W_META_BLANK}`, cnt('usermeta', W_META_BLANK));
+    add('comments', `UPDATE ${t('comments')} SET comment_author = 'Anonymous', comment_author_email = CONCAT('comment', comment_ID, '@example.invalid'), comment_author_url = '', comment_author_IP = '0.0.0.0', comment_agent = ''`, cnt('comments'));
+    const W_ADMIN_MAIL = "option_name IN ('admin_email', 'new_admin_email')";
+    add('options', `UPDATE ${t('options')} SET option_value = 'admin@example.invalid' WHERE ${W_ADMIN_MAIL}`, cnt('options', W_ADMIN_MAIL));
     kind = 'secrets'; // API keys, tokens and payment settings are blanked whatever the personal-data choice
     add('options', `UPDATE ${t('options')} SET option_value = '' WHERE (${SECRET_NAME.map(p => `option_name LIKE '${p}'`).join(' OR ')}) AND option_name NOT LIKE '\\_transient%' AND option_name NOT LIKE '\\_site\\_transient%'`);
     // serialized plugin settings that contain a secret anywhere inside them: blank the whole setting (this also leaves a payment gateway unconfigured)
     add('options', `UPDATE ${t('options')} SET option_value = '' WHERE option_name LIKE '%\\_settings' AND (option_value LIKE '%secret%' OR option_value LIKE '%api\\_key%' OR option_value LIKE '%apikey%' OR option_value LIKE '%token%' OR option_value LIKE '%password%' OR option_value LIKE '%sk\\_live%' OR option_value LIKE '%pk\\_live%')`);
     kind = 'personal';
-    add('options', `DELETE FROM ${t('options')} WHERE option_name LIKE '\\_transient\\_%' OR option_name LIKE '\\_site\\_transient\\_%'`);
+    const W_TRANSIENT = "option_name LIKE '\\_transient\\_%' OR option_name LIKE '\\_site\\_transient\\_%'";
+    add('options', `DELETE FROM ${t('options')} WHERE ${W_TRANSIENT}`, cnt('options', W_TRANSIENT));
     if (personal && has.has('posts') && has.has('postmeta')) {
-        S.push(`UPDATE ${t('postmeta')} pm JOIN ${t('posts')} p ON p.ID = pm.post_id AND p.post_type IN ('shop_order', 'shop_order_refund', 'shop_subscription') SET pm.meta_value = '' WHERE pm.meta_key LIKE '\\_billing\\_%' OR pm.meta_key LIKE '\\_shipping\\_%' OR pm.meta_key IN ('_customer_ip_address', '_customer_user_agent', '_transaction_id', '_stripe_customer_id', '_stripe_source_id')`);
+        const J = `${t('postmeta')} pm JOIN ${t('posts')} p ON p.ID = pm.post_id AND p.post_type IN ('shop_order', 'shop_order_refund', 'shop_subscription')`;
+        const W = "pm.meta_key LIKE '\\_billing\\_%' OR pm.meta_key LIKE '\\_shipping\\_%' OR pm.meta_key IN ('_customer_ip_address', '_customer_user_agent', '_transaction_id', '_stripe_customer_id', '_stripe_source_id')";
+        const sql = `UPDATE ${J} SET pm.meta_value = '' WHERE ${W}`;
+        S.push(sql); items.push({ table: 'postmeta', kind: 'personal', sql, count: `SELECT COUNT(*) AS pg_rows FROM ${J} WHERE ${W}` });
         covered.add('posts'); covered.add('postmeta');
     }
-    add('wc_orders', `UPDATE ${t('wc_orders')} SET billing_email = CONCAT('order', id, '@example.invalid'), ip_address = '0.0.0.0', user_agent = '', transaction_id = ''`);
-    add('wc_order_addresses', `UPDATE ${t('wc_order_addresses')} SET first_name = '', last_name = '', company = '', address_1 = '', address_2 = '', city = '', state = '', postcode = '', country = '', email = CONCAT('order', order_id, '@example.invalid'), phone = ''`);
-    add('wc_customer_lookup', `UPDATE ${t('wc_customer_lookup')} SET first_name = 'Customer', last_name = CAST(customer_id AS CHAR), email = CONCAT('customer', customer_id, '@example.invalid'), username = CONCAT('customer', customer_id), city = '', postcode = '', country = '', state = ''`);
-    add('woocommerce_sessions', `DELETE FROM ${t('woocommerce_sessions')}`);
-    add('woocommerce_api_keys', `DELETE FROM ${t('woocommerce_api_keys')}`);
-    add('woocommerce_payment_tokens', `DELETE FROM ${t('woocommerce_payment_tokens')}`);
-    add('woocommerce_payment_tokenmeta', `DELETE FROM ${t('woocommerce_payment_tokenmeta')}`);
-    add('woocommerce_downloadable_product_permissions', `UPDATE ${t('woocommerce_downloadable_product_permissions')} SET user_email = 'download@example.invalid', user_id = 0`);
-    add('wc_download_log', `UPDATE ${t('wc_download_log')} SET user_ip_address = '0.0.0.0'`);
+    add('wc_orders', `UPDATE ${t('wc_orders')} SET billing_email = CONCAT('order', id, '@example.invalid'), ip_address = '0.0.0.0', user_agent = '', transaction_id = ''`, cnt('wc_orders'));
+    add('wc_order_addresses', `UPDATE ${t('wc_order_addresses')} SET first_name = '', last_name = '', company = '', address_1 = '', address_2 = '', city = '', state = '', postcode = '', country = '', email = CONCAT('order', order_id, '@example.invalid'), phone = ''`, cnt('wc_order_addresses'));
+    add('wc_customer_lookup', `UPDATE ${t('wc_customer_lookup')} SET first_name = 'Customer', last_name = CAST(customer_id AS CHAR), email = CONCAT('customer', customer_id, '@example.invalid'), username = CONCAT('customer', customer_id), city = '', postcode = '', country = '', state = ''`, cnt('wc_customer_lookup'));
+    add('woocommerce_sessions', `DELETE FROM ${t('woocommerce_sessions')}`, cnt('woocommerce_sessions'));
+    add('woocommerce_api_keys', `DELETE FROM ${t('woocommerce_api_keys')}`, cnt('woocommerce_api_keys'));
+    add('woocommerce_payment_tokens', `DELETE FROM ${t('woocommerce_payment_tokens')}`, cnt('woocommerce_payment_tokens'));
+    add('woocommerce_payment_tokenmeta', `DELETE FROM ${t('woocommerce_payment_tokenmeta')}`, cnt('woocommerce_payment_tokenmeta'));
+    add('woocommerce_downloadable_product_permissions', `UPDATE ${t('woocommerce_downloadable_product_permissions')} SET user_email = 'download@example.invalid', user_id = 0`, cnt('woocommerce_downloadable_product_permissions'));
+    add('wc_download_log', `UPDATE ${t('wc_download_log')} SET user_ip_address = '0.0.0.0'`, cnt('wc_download_log'));
     const known = new Set([...CORE_TABLES, ...WOO_TABLES]);
     // known WooCommerce tables that hold no personal data are "covered" by not needing a statement
     const covers = [...has].filter(n => known.has(n));
-    return { statements: S, covered: [...covered].sort(), recognised_without_personal_data: covers.filter(n => !covered.has(n)).sort(), unscrubbed: [...has].filter(n => !known.has(n)).sort() };
+    return { statements: S, items, covered: [...covered].sort(), recognised_without_personal_data: covers.filter(n => !covered.has(n)).sort(), unscrubbed: [...has].filter(n => !known.has(n)).sort() };
+}
+
+// ---------------------------------------------------------------- the one known dummy administrator (TEST-COPY-SPEC 5, 6c-2)
+// After every account was rewritten in place as user<ID> / user<ID>@example.invalid, exactly ONE account becomes the known dummy admin: the
+// lowest-ID user whose stored role list grants "administrator". No account is ever created by SQL: without an administrator there is no dummy admin.
+const DUMMY_ADMIN = { login: 'pgadmin', email: 'pgadmin@example.invalid' };
+function adminPickSql(prefix) {
+    if (!/^[A-Za-z0-9_]+$/.test(prefix)) throw new Error('unsafe table prefix');
+    return `SELECT MIN(u.ID) AS pg_admin FROM \`${prefix}users\` u JOIN \`${prefix}usermeta\` m ON m.user_id = u.ID WHERE m.meta_key = '${prefix}capabilities' AND m.meta_value LIKE '%s:13:"administrator";b:1;%'`;
+}
+function adminRewriteSql(prefix, id) {
+    if (!/^[A-Za-z0-9_]+$/.test(prefix)) throw new Error('unsafe table prefix');
+    if (!/^[1-9][0-9]{0,19}$/.test(String(id))) throw new Error('the dummy admin id must be a positive number');
+    return `UPDATE \`${prefix}users\` SET user_login = '${DUMMY_ADMIN.login}', user_nicename = '${DUMMY_ADMIN.login}', user_email = '${DUMMY_ADMIN.email}', display_name = '${DUMMY_ADMIN.login}', user_url = '' WHERE ID = ${id}`;
+}
+// The re-check after the anonymisation (fail closed, run while the web container is stopped). Every row must be a placeholder
+// (user<ID> / user<ID>@example.invalid) except rows that are exactly the dummy admin (login pgadmin AND e-mail pgadmin@example.invalid); a second
+// pg_admins query then requires the number of pgadmin rows to be exactly the number expected (1 when an administrator was chosen, else 0).
+function usersCheckSql(prefix) {
+    if (!/^[A-Za-z0-9_]+$/.test(prefix)) throw new Error('unsafe table prefix');
+    const placeholder = "COALESCE(user_login, '') = CONCAT('user', ID) AND COALESCE(user_email, '') = CONCAT('user', ID, '@example.invalid')";
+    const admin = `COALESCE(user_login, '') = '${DUMMY_ADMIN.login}' AND COALESCE(user_email, '') = '${DUMMY_ADMIN.email}'`;
+    return {
+        unscrubbed: `SELECT COUNT(*) AS pg_unscrubbed FROM \`${prefix}users\` WHERE NOT (${placeholder}) AND NOT (${admin})`,
+        admins: `SELECT COUNT(*) AS pg_admins FROM \`${prefix}users\` WHERE COALESCE(user_login, '') = '${DUMMY_ADMIN.login}' OR COALESCE(user_nicename, '') = '${DUMMY_ADMIN.login}' OR COALESCE(user_email, '') = '${DUMMY_ADMIN.email}'`
+    };
+}
+// The new password of the dummy admin: generated at run time from the operating system's random source, letters and digits only, 24 characters.
+const PASS_CHARS = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const TEST_PASSWORD = /^[A-Za-z0-9]{20,64}$/;
+function testPassword(len = 24) {
+    let s = '';
+    while (s.length < len) { for (const b of crypto.randomBytes(len * 2)) { if (b < 256 - (256 % PASS_CHARS.length) && s.length < len) s += PASS_CHARS[b % PASS_CHARS.length]; } }
+    return s;
 }
 
 // ---------------------------------------------------------------- payment gateways
@@ -142,4 +188,4 @@ function neutraliseSql(prefix) {
     return `UPDATE \`${prefix}options\` SET option_value = REPLACE(option_value, 's:7:"enabled";s:3:"yes";', 's:7:"enabled";s:2:"no";') WHERE option_name LIKE 'woocommerce\\_%\\_settings' AND option_name NOT IN ('woocommerce_bacs_settings', 'woocommerce_cheque_settings', 'woocommerce_cod_settings')`;
 }
 
-module.exports = { wpConfig, MU_PLUGIN, anonymiseSql, gatewayModes, blockingGateways, neutraliseSql, salt, SALT_KEYS, CORE_TABLES, WOO_TABLES, phpGet };
+module.exports = { wpConfig, MU_PLUGIN, anonymiseSql, adminPickSql, adminRewriteSql, usersCheckSql, testPassword, TEST_PASSWORD, DUMMY_ADMIN, gatewayModes, blockingGateways, neutraliseSql, salt, SALT_KEYS, CORE_TABLES, WOO_TABLES, phpGet };

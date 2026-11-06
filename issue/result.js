@@ -31,6 +31,21 @@ function verdict(val, retests, bis) {
     return { label, confidence, symptom_reproduced: sym, notes };
 }
 
+// TEST-COPY-SPEC 6c-2: the user-data handling of a test copy built from a database file (work/user-data.json, written by issue/sandbox.js): fixed
+// words and numbers only (users: 'dummy', rows rewritten or removed per table, the number of tables that could not be checked). Never content.
+const TABLE_NAME = /^[A-Za-z0-9_]{1,64}$/;
+function cleanUserData(ud) {
+    if (!ud || ud.schema !== 1 || ud.users !== 'dummy' || !Number.isInteger(ud.unchecked_tables) || ud.unchecked_tables < 0) return null;
+    const counts = {};
+    for (const [k, v] of Object.entries(ud.removal_counts || {})) if (TABLE_NAME.test(k) && (v === null || (Number.isInteger(v) && v >= 0))) counts[k] = v;
+    return { users: 'dummy', dummy_admin: ud.dummy_admin === true, removal_counts: counts, unchecked_tables: ud.unchecked_tables };
+}
+function userDataSummary(ud, sb) {
+    const c = cleanUserData(ud);
+    if (c) return c;
+    return { unchecked_tables: Array.isArray(sb && sb.unscrubbed_tables) ? sb.unscrubbed_tables.length : null };
+}
+
 function build(id, { validation, plans, dir, gate = false, verbose = false, policy = null }) {
     const issue = store.load(id), W = f => readJson(path.join(dir, 'work', f)), R = f => readJson(path.join(dir, 'result', f));
     const retests = R('retests.json') || [];
@@ -67,7 +82,7 @@ function build(id, { validation, plans, dir, gate = false, verbose = false, poli
         resolution: hyps.map(h => ({ hypothesis: h.id, options: ((planOf.get(h.id) || {}).options || []).map(o => ({ ...o })) })),
         validation: { checks: validation.checks, oracle: validation.oracle },
         timeline: steps,
-        sandbox: sbx ? { reproduced_in_sandbox: sbx.reproduced_in_sandbox, summary: sbx.sandbox ? { notice: sbx.sandbox.notice, recommendation: sbx.sandbox.recommendation, limits: sbx.sandbox.limits, anonymised: sbx.sandbox.anonymised, real_data_kept: sbx.sandbox.real_data_kept, unscrubbed_tables: sbx.sandbox.unscrubbed_tables } : null } : null,
+        sandbox: sbx ? { reproduced_in_sandbox: sbx.reproduced_in_sandbox, summary: sbx.sandbox ? { notice: sbx.sandbox.notice, recommendation: sbx.sandbox.recommendation, limits: sbx.sandbox.limits, anonymised: sbx.sandbox.anonymised, unscrubbed_tables: sbx.sandbox.unscrubbed_tables, ...userDataSummary(W('user-data.json'), sbx.sandbox) } : null } : null,
         bisect: bis ? { status: bis.status, causes: bis.causes, necessary: bis.necessary, theme: bis.theme, loads: bis.loads, cache_hits: bis.cache_hits, capped: bis.capped, executed: bis.executed, tests: bis.tests || [], symptom_without_plugins: !!bis.symptom_without_plugins } : null,
         probe: probe ? { planned: probe.planned, oracle: probe.oracle ? { result: probe.oracle.result, reason: probe.oracle.reason, matches: probe.oracle.matches } : null } : null,
         notices: ((ev && ev.notices) || []).map(n => ({ severity: 'INFO', kind: n.kind, source: n.source ? `${n.source.kind}:${n.source.ref}` : null, note: 'This text looked like markup, a command, a path trick or an instruction. It was kept as plain text, escaped in every report, and not acted on.' })),
@@ -264,6 +279,8 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
             modified: ms && ms.count ? { lines: ms.lines, count: ms.count, files: ms.files } : null,
             // Part 6b: the versions of the test copy, only when a test copy was actually built this time (sandbox.json names it) and versions.json exists
             versions: sbx && sbx.sandbox ? W('versions.json') : null,
+            // 6c-2: the user data of the test copy, only when a test copy was built this time from a database file
+            userData: sbx && sbx.sandbox ? cleanUserData(W('user-data.json')) : null,
             facts: { hasLog: !!((lg.files || []).length || (lg.entries || []).length), hasCode: !!issue.root, phpSkipped: phpSk.total > 0, phpSkippedDetail: phpSk, probeRan: ran.probe, sandboxRan: ran.sandbox, sandboxFailed: !!(sbx && sbx.could_not_run),
                 sandboxReproduced: sbx ? sbx.reproduced_in_sandbox : null, php: issue.php_version || null, phpSource: issue.php_source || null, crash }
         });
@@ -420,4 +437,4 @@ function write(id, { validation, plans, dir, root, policy, gate = false, verbose
     return { findings: f, tasks: t.count, dir: R() };
 }
 
-module.exports = { write, build, markdown, gateMarkdown, tasks, verdict, LIMITS, NOT_PLUGIN };
+module.exports = { cleanUserData, write, build, markdown, gateMarkdown, tasks, verdict, LIMITS, NOT_PLUGIN };

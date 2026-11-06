@@ -31,14 +31,14 @@ async function runMany(ids, { root, options = {}, env = process.env, sandboxOpti
 
     let handle; const t0 = Date.now();
     try {
-        const so = { ...sandboxOptions, root, dump: options.dump, keepRealData: !!options.keepRealData, neutralisePayments: !!options.neutralisePayments, withUploads: !!options.withUploads, maxMb: options.maxSizeMb ? Number(options.maxSizeMb) : undefined };
+        const so = { ...sandboxOptions, root, dump: options.dump, neutralisePayments: !!options.neutralisePayments, withUploads: !!options.withUploads, maxMb: options.maxSizeMb ? Number(options.maxSizeMb) : undefined };
         if (options.exportDb && !options.dump) so.exportDatabase = file => new WpCli({ path: root }).exportDatabase(file, sandbox.sandboxesRoot());
         handle = sandbox.create(store.newId('auto-run'), so);
         for (const s of handle.steps) out.steps.push(step(`sandbox-${s.id}`, `Sandbox: ${s.id}`, s.status, s.reason));
         for (const w of handle.warnings) out.steps.push(step('sandbox-warning', 'Sandbox warning', 'PASSED', `WARNING: ${w}`));
         const policy = require('./sandbox-policy');
         out.steps.push(step('sandbox-notice', 'Sandbox: what is NOT blocked', 'PASSED', `NOTICE: ${handle.topology === 'proxied' ? policy.NOTICE_DUMP : policy.NOTICE} ${policy.RECOMMENDATION}`));
-        out.sandbox = { url: handle.url, project: handle.project, anonymised: handle.anonymised, real_data_kept: handle.real_data, unscrubbed_tables: handle.tables_unscrubbed, limits: handle.limits, notice: policy.NOTICE, recommendation: policy.RECOMMENDATION, copy: { files: handle.copy.files, symlinks_skipped: handle.copy.symlinks_skipped, skipped_by_reason: handle.copy.skipped_by_reason } };
+        out.sandbox = { url: handle.url, project: handle.project, anonymised: handle.anonymised, unscrubbed_tables: handle.tables_unscrubbed, limits: handle.limits, notice: policy.NOTICE, recommendation: policy.RECOMMENDATION, copy: { files: handle.copy.files, symlinks_skipped: handle.copy.symlinks_skipped, skipped_by_reason: handle.copy.skipped_by_reason } };
 
         // ---- plugins, in a fixed order ----
         const slugs = new Set([...components.filter(c => c.kind === 'plugin').map(c => c.slug), ...pluginFolders(path.join(handle.dir, 'site', 'wp-content', 'plugins'))]);

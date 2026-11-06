@@ -9,7 +9,7 @@ const os = require('os');
 const path = require('path');
 const zlib = require('zlib');
 const crypto = require('crypto');
-const { spawn } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pg-6a-'));
 process.env.PLUGIN_GUARD_SANDBOXES = path.join(tmp, 'sbx-cleanup');
@@ -101,12 +101,9 @@ const noDumpLeft = root => { let found = false; (function w(d) { let es; try { e
     ok(!NL.some(l => sub(l, 'stop') || sub(l, 'start')) && NL.filter(l => sub(l, 'port')).length === 1 && NL.some(l => l.args.includes('install')) && N.pages.length === 0, 'no stop, no start, one port read, a fresh install, no page check');
     hn.destroy();
 
-    group('--keep-real-data keeps working: same order, warning as before');
-    const K = fakeEnv('keep', { wp: wpRules() });
-    const hk = sandbox.create(newId(), K.opts({ dump: SQL, keepRealData: true }));
-    const KL = K.log(), kImp = KL.findIndex(isImport), kStart = KL.findIndex(l => sub(l, 'start', 'wordpress'));
-    ok(hk.real_data === true && hk.warnings.some(w => /REAL PERSONAL DATA/.test(w)) && kImp >= 0 && kStart > kImp && !KL.some(isAnon), 'real data kept on request: no personal scrubbing, web started after the import, warning shown');
-    hk.destroy();
+    group('--keep-real-data is retired: the command refuses it (exit 2, one sentence)');
+    const kr = spawnSync(process.execPath, [path.join(__dirname, 'guard.js'), 'issue', 'investigate', 'iss-20261105-000000-aaaaaa', '--sandbox', '--keep-real-data'], { encoding: 'utf8', timeout: 60000 });
+    ok(kr.status === 2 && kr.stderr.includes('--keep-real-data was replaced by the user-accounts question; keeping real accounts is not available in this version.'), 'refused with exit 2 and the one-line pointer');
 
     group('.sql.gz: unpacked as a stream; the prefix is read from the unpacked copy');
     const G = fakeEnv('gz', { wp: wpRules() });
@@ -152,9 +149,7 @@ const noDumpLeft = root => { let found = false; (function w(d) { let es; try { e
     ok(Ok2.log().some(l => /pg_unscrubbed/.test(l.stdin || '') && l.web_running === false) && hc.steps.some(s => s.id === 'web-started'), 'control: the users re-check runs while the web container is stopped, and with 0 rows left the build goes on');
     hc.destroy();
     const Kp = fakeEnv('closed-keep', { wp: wpRules([{ match: 'db query', stdin: 'SHOW TABLES', out: 'Tables_in_wordpress\n' }]) });
-    const hkp = sandbox.create(newId(), Kp.opts({ dump: SQL, keepRealData: true }));
-    ok(hkp.real_data === true && !Kp.log().some(l => /pg_unscrubbed/.test(l.stdin || '')), '--keep-real-data (explicit choice) is not blocked by the personal-data checks, as before');
-    hkp.destroy();
+    ok(await rejects(() => sandbox.create(newId(), Kp.opts({ dump: SQL })), /no table with the prefix/) && leftovers(Kp) === 0 && noDumpLeft(Kp.sandboxesRoot), 'there is no way around the personal-data checks any more (--keep-real-data is retired): no tables -> refused, nothing left behind');
 
     const S1 = fakeEnv('stopfail', { stop_fail: true, wp: wpRules() });
     ok(await rejects(() => sandbox.create(newId(), S1.opts({ dump: SQL })), /could not be stopped/) && !S1.log().some(isImport) && leftovers(S1) === 0 && noDumpLeft(S1.sandboxesRoot), 'the stop fails -> nothing is imported, all removed');

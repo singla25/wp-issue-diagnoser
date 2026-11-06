@@ -44,10 +44,16 @@ const FLAGS = {
     url: 'v', path: 'v', schedule: 'v', 'fail-on': 'v', 'wp-bin': 'v', delay: 'v', rule: 'v', as: 'v', reason: 'v', overwrite: 'b',
     root: 'v', config: 'v', env: 'v', mode: 'v', run: 'v', 'timeout-min': 'v', authorized: 'b', 'allow-stale': 'b', 'run-project-tests': 'b',
     title: 'v', description: 'v', pages: 'v', symptom: 'v', oracle: 'v', images: 'v', since: 'v', php: 'v', 'changed-before': 'v', login: 'b', 'no-prompt': 'b', investigate: 'b', 'no-probe': 'b', 'no-layout': 'b', 'probe-pages': 'v', viewports: 'v',
-    sandbox: 'b', 'db-dump': 'v', 'export-db': 'b', 'keep-real-data': 'b', 'neutralise-payments': 'b', 'with-uploads': 'b', 'max-size-mb': 'v', 'keep-sandbox': 'b', 'max-loads': 'v', 'max-minutes': 'v', 'no-bisect': 'b', hypothesis: 'v', 'no-sandbox': 'b', 'max-issues': 'v', 'sandbox-max-issues': 'v', 'older-than-days': 'v', yes: 'b', log: 'v', out: 'v', help: 'b', 'no-questions': 'b', gate: 'b', verbose: 'b', 'no-issues': 'b', 'no-sandboxes': 'b',
+    sandbox: 'b', 'db-dump': 'v', 'export-db': 'b', users: 'v', 'neutralise-payments': 'b', 'with-uploads': 'b', 'max-size-mb': 'v', 'keep-sandbox': 'b', 'max-loads': 'v', 'max-minutes': 'v', 'no-bisect': 'b', hypothesis: 'v', 'no-sandbox': 'b', 'max-issues': 'v', 'sandbox-max-issues': 'v', 'older-than-days': 'v', yes: 'b', log: 'v', out: 'v', help: 'b', 'no-questions': 'b', gate: 'b', verbose: 'b', 'no-issues': 'b', 'no-sandboxes': 'b',
     force: 'b', 'no-pdf': 'b', 'allow-wordpress-org': 'b', 'allow-vuln-db': 'b', 'deny-wordpress-org': 'b', 'deny-vuln-db': 'b', 'php-version': 'v', 'db-exported': 'v',
     'site-health': 'v'
 };
+
+// TEST-COPY-SPEC 6c-2: the old --keep-real-data flag is retired (every command, guard:auto included, parses with this function), and --users
+// accepts only "dummy". Both refusals exit 2.
+const KEEP_REAL_DATA_RETIRED = '--keep-real-data was replaced by the user-accounts question; keeping real accounts is not available in this version.';
+const USERS_REFUSED = 'keeping real or named accounts is not available in this version';
+const usageError = msg => Object.assign(new Error(msg), { exitCode: 2 });
 
 function parse(argv) {
     const o = { _: [] };
@@ -55,12 +61,14 @@ function parse(argv) {
         const a = argv[i];
         if (!a.startsWith('--')) { o._.push(a); continue; }
         const m = /^--([\w-]+)(?:=(.*))?$/.exec(a);
+        if (m && m[1] === 'keep-real-data') throw usageError(KEEP_REAL_DATA_RETIRED);
         if (!m || !FLAGS[m[1]]) throw new Error(`Unknown option "${a}"`);
         if (FLAGS[m[1]] === 'b') { o[m[1]] = true; continue; }
         const v = m[2] !== undefined ? m[2] : argv[++i];
         if (v === undefined) throw new Error(`--${m[1]} needs a value`);
         o[m[1]] = v;
     }
+    if (o.users !== undefined && o.users !== 'dummy') throw usageError(`--users ${String(o.users).slice(0, 40)}: ${USERS_REFUSED}. Use --users dummy (the default): your real users are not copied.`);
     return o;
 }
 
@@ -202,7 +210,7 @@ async function main() {
     throw new Error(`Unknown command "${cmd}"`);
 }
 
-module.exports = { parse, FLAGS };   // src/combined reuses the same option parser
+module.exports = { parse, FLAGS, KEEP_REAL_DATA_RETIRED, USERS_REFUSED };   // src/combined reuses the same option parser
 
 if (require.main === module) main().then(code => process.exit(code || 0)).catch(e => {
     console.error(`\nPlugin Guard: ${e.message}`);

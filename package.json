@@ -97,7 +97,9 @@
     "selftest:6b": "node scripts/selftest-6b.js",
     "selftest:6b-docker": "node scripts/selftest-6b-docker.js",
     "selftest:6c1-fake": "node scripts/selftest-6c1-fake.js",
-    "selftest:6c1-docker": "node scripts/selftest-6c1-docker.js"
+    "selftest:6c1-docker": "node scripts/selftest-6c1-docker.js",
+    "selftest:6c2": "node scripts/selftest-6c2.js",
+    "selftest:6c2-docker": "node scripts/selftest-6c2-docker.js"
   },
   "license": "ISC",
   "dependencies": {
