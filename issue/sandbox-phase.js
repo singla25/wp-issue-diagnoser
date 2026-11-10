@@ -54,7 +54,15 @@ function makeTester({ handle, issueId, env, plugins, requires, defaultTheme, sit
     const apply = makeApplier({ handle, plugins, requires, defaultTheme, siteTheme, muAll });
     const logFile = path.join(handle.dir, 'logs', 'debug.log');
     let n = 0;
-    return async function test(set) {
+    // 'Same fatal required': every call records ONE entry in test.history (the new fatals in the copy's log during this call, and whether a page
+    // answered 5xx), in call order, so the producer can put them next to the bisection's tests[] (issue/bisect.js calls the test once per new set)
+    async function test(set) {
+        const rec = { fatals: [], five: false };
+        try { return await once(set, rec); } finally { test.history.push(rec); }
+    }
+    test.history = [];
+    return test;
+    async function once(set, rec) {
         test.lastObs = null; test.lastError = null;   // 6d-2: the observed pages of THIS call (status and text flags), for the fidelity check of the baseline
         if (apply(set) === 'unresolved') { test.lastError = 'the test copy could not be set up for the test'; return 'unresolved'; }
         // ---- run the oracle ----
@@ -64,6 +72,8 @@ function makeTester({ handle, issueId, env, plugins, requires, defaultTheme, sit
         if (!r.ok) { log(`probe failed: ${r.reason}`); test.lastError = `the pages of the test copy could not be loaded: ${String(r.reason || 'the probe failed')}`; return 'unresolved'; }
         test.lastObs = (r.pages || []).map(p => ({ url: p.url, loaded: !!p.loaded, status: p.status, reused_status: p.reused_status, text_flags: p.text_flags, text_chars: p.text_chars }));
         let growth = null; try { const st = fs.statSync(logFile); const fd = fs.openSync(logFile, 'r'); const len = Math.min(st.size - size, 256 * 1024), b = Buffer.alloc(Math.max(0, len)); fs.readSync(fd, b, 0, b.length, size); fs.closeSync(fd); growth = { available: true, new_text: b.toString('utf8') }; } catch { growth = { available: false, reason: 'no debug.log in the sandbox yet' }; }
+        rec.fatals = growth.available ? fatalsOfText(growth.new_text) : [];
+        rec.five = (r.pages || []).some(p => Number(p.reused_status || p.status) >= 500) || (r.status_codes || []).some(x => x >= 500);
         const issue = store.load(issueId);
         const res = issue.oracle.type === 'debug-log' || issue.oracle.type === 'generic' ? require('./oracle').evaluate(issue.oracle, { pages: r.pages.map(p => ({ ...p, console_errors: p.console_errors || [], page_errors: p.page_errors || [], error_responses: p.error_responses || [] })), planned: r.pages.length, sandbox: true, logged_in: !!(r.login && r.login.ok), debug_log: growth }, { needsLogin: issue.needs_login, symptom: issue.symptom }) : r.oracle;
         if (r.pages.some(p => require('./oracle').redirectSigns(p).length)) test.redirectSeen = true;   // a redirect loop, a long chain or a cross-host redirect in the sandbox
@@ -73,8 +83,47 @@ function makeTester({ handle, issueId, env, plugins, requires, defaultTheme, sit
         // the symptom is absent, but the page may be broken some OTHER way (a fatal error, a 500): that says nothing about this symptom
         if (!['http-5xx', 'debug-log', 'generic'].includes(issue.oracle.type) && (r.status_codes.some(s => s >= 500) || r.fatal_text)) return 'unresolved';
         return 'pass';
-    };
+    }
 }
+
+// ---- 'Same fatal required' (owner-approved verdict text): "NOT A PLUGIN CONFLICT" only when the no-plugin step shows the SAME fatal ----
+// The fatals of a piece of the copy's log: fatal lines only (issue/logs.js parseLog, redacted), each as { kind, name, file, line } by the same
+// parsing the fidelity check uses (issue/fidelity.js fatalOf: class / function name, file relative to wp-content). Text from the log is data.
+const STEP_FATALS_MAX = 5;
+function fatalsOfText(text) {
+    if (!text) return [];
+    const fid = require('./fidelity'), out = [];
+    for (const e of require('./logs').parseLog(String(text), 'copy:debug.log')) {
+        if (!(e.level === 'fatal error' || e.level === 'parse error' || /Uncaught\s+\w*(?:Error|Exception)/.test(e.message))) continue;
+        const f = fid.fatalOf(e.message, e.file, e.line);
+        if (f && !out.some(x => x.kind === f.kind && x.name === f.name && x.file === f.file && x.line === f.line)) out.push(f);
+        if (out.length >= STEP_FATALS_MAX) break;
+    }
+    return out;
+}
+// An oracle that fails on ANY server failure counts any 5xx: there, a failing no-plugin step is the reported symptom only when it shows the same
+// fatal as the reported cause. http-5xx always; generic and debug-log only when the no-plugin step had a page that answered 5xx.
+const BARE_ALWAYS = new Set(['http-5xx']), BARE_IF_5XX = new Set(['generic', 'debug-log']);
+// rec: the tester's history entry of the failing no-plugin step -> null (the same fatal, or the rule does not apply) | true | 'unknown' (issue/bisect.js bareCheck)
+function bareVerdict(rec, { oracleType = null, cause = null } = {}) {
+    if (!(BARE_ALWAYS.has(oracleType) || (BARE_IF_5XX.has(oracleType) && !!(rec && rec.five)))) return null;
+    const fats = rec && Array.isArray(rec.fatals) ? rec.fatals : [];
+    if (cause && fats.some(f => require('./fidelity').sameFatal(cause, f))) return null;   // the same fatal: "not a plugin conflict" stands
+    return cause && fats.length ? true : 'unknown';
+}
+// the bareCheck for issue/bisect.js: the LAST history entry is the no-plugin step that just ran
+const bareCheckFor = (history, ctx) => () => bareVerdict(history[history.length - 1], ctx);
+// res: bisect.run() result; steps: the tester's history entries of the bisection's own calls, one per res.tests[i] -> each test gets its fatals
+function annotateBisect(res, { steps = [] } = {}) {
+    if (!res || !Array.isArray(res.tests)) return res;
+    res.tests.forEach((t, i) => { const s = steps[i]; t.fatals = s && Array.isArray(s.fatals) ? s.fatals.slice(0, STEP_FATALS_MAX) : []; });
+    return res;
+}
+// the plain sentence (result.js BARE_DIFFERENT / BARE_UNKNOWN) for the bisection step, or the old banner, or nothing
+const bisectBanner = res => (res.symptom_without_plugins ? 'NOT A PLUGIN CONFLICT: the symptom is present with every plugin switched off. '
+    : bisect.bareSentence(res.bare_different_failure) ? `${bisect.bareSentence(res.bare_different_failure)} ` : '');
+// the cause part of the bisection step: an inconclusive bisection names no cause
+const bisectCause = res => (res.status === 'inconclusive' ? 'no cause is named' : res.causes.length ? res.causes.map(c => `[${c.plugins.join(', ')}]`).join(' and ') : res.theme && res.theme.involved ? 'the theme' : 'no plugin set');
 
 // top-level plugin folders that contain a PHP file with a "Plugin Name:" header (sorted: a fixed order)
 function pluginFolders(dir) {
@@ -142,18 +191,28 @@ const realSide = (dir, issue) => require('./fidelity').realFrom({ probe: readWor
 const FIDELITY_WORD = { matched: 'the same problem as your site', 'status-only': 'the same kind of failure only (weaker)', 'did-not-match': 'did not show the same problem, so nothing from it is used', 'could-not-test': 'could not be tested', 'not-tested': 'not compared, nothing from it is used' };
 const fidelityStep = fd => step('sandbox-fidelity', 'Test copy: does it show the same problem as your site?', fd.level === 'matched' || fd.level === 'status-only' || fd.level === 'did-not-match' ? 'PASSED' : 'NOT_RUN', `${FIDELITY_WORD[fd.level]}${fd.reasons.length ? `: ${fd.reasons.join('; ')}` : ''}`, { level: fd.level });
 
+// a LIVE site is never copied with its database, whatever path asked for it (issue investigate, issue retest, the wizard, --yes): the database file
+// and --export-db are dropped here, centrally, before anything else; what live does without a database file is not changed
+const LIVE_NO_DB = 'A live site is never copied with its database.';
+const liveDbStep = () => step('sandbox-database', 'Sandbox: database file', 'NOT_RUN', LIVE_NO_DB);
 async function run(id, o) {
-    const issue = store.load(id), dir = store.dirOf(id), opt = o.options || {}, steps = [];
+    const issue = store.load(id), dir = store.dirOf(id), steps = [];
+    let opt = o.options || {};
+    const liveDb = issue.environment === 'live' && !!(opt.dump || opt.exportDb);
+    if (liveDb) { opt = { ...opt, dump: undefined, exportDb: false }; steps.push(liveDbStep()); }
     if (!o.noWrite) removeCopyLog(dir);   // a copy log of an earlier build never describes this one
     const keepFirst = keepsFirstEvidence(dir);
     if (!o.noWrite && !keepFirst) removeFidelity(dir);   // nor does a fidelity result
     const out = { steps, bisect: null, sandbox: null, reproduced_in_sandbox: null };
     const dbIntent = !!opt.sandbox && !!(opt.dump || opt.exportDb);   // a test copy from a database file was asked for: the fidelity check applies
     const setFidelity = fd => { out.fidelity = fd; if (!o.noWrite && !keepFirst) writeFidelity(dir, fd); steps.push(fidelityStep(fd)); };
-    const done = () => { if (o.noWrite) return out; try { fs.writeFileSync(path.join(dir, 'work', 'sandbox.json'), JSON.stringify({ steps, sandbox: out.sandbox, could_not_run: out.could_not_run || undefined, reproduced_in_sandbox: out.reproduced_in_sandbox, baseline: out.baseline || null, redirect_observed: !!out.redirect_observed, fidelity: out.fidelity || undefined }, null, 2) + '\n', { mode: 0o600 }); } catch { /* work folder missing */ } return out; };
+    const done = () => { if (o.noWrite) return out; try { fs.writeFileSync(path.join(dir, 'work', 'sandbox.json'), JSON.stringify({ steps, sandbox: out.sandbox, could_not_run: out.could_not_run || undefined, reproduced_in_sandbox: out.reproduced_in_sandbox, baseline: out.baseline || null, redirect_observed: !!out.redirect_observed, fidelity: out.fidelity || undefined, replica: out.replica }, null, 2) + '\n', { mode: 0o600 }); } catch { /* work folder missing */ } return out; };
+    // 6d-3: what the report's level needs to say what is missing: was a test copy asked for, with a database file, and did Docker work (null: not checked)
+    out.replica = { requested: !!opt.sandbox, database_file: !!(opt.dump || opt.exportDb), docker: null, ...(liveDb ? { db_dropped_live: true } : {}) };
     if (!opt.sandbox) { steps.push(step('sandbox', 'Sandbox (throwaway copy in Docker)', 'NOT_RUN', 'not requested: add --sandbox (needs Docker and a local copy of the site)')); return done(); }
     if (!o.root) { steps.push(step('sandbox', 'Sandbox (throwaway copy in Docker)', 'NOT_RUN', 'a local copy of the site (--root) is needed')); if (dbIntent) setFidelity(require('./fidelity').compare({ real: realSide(dir, issue), copy: { built: false } })); return done(); }
     const pf = sandbox.preflight(o.sandboxOptions || {});
+    out.replica.docker = !!pf.ok;
     if (!pf.ok) { steps.push(step('sandbox', 'Sandbox (throwaway copy in Docker)', 'NOT_RUN', `${pf.reason} Static-only mode: not reproduced, sandbox unavailable; every hypothesis stays UNVERIFIED or PROBABLE_NEEDS_REVIEW.`), step('bisect', 'Bisection', 'NOT_RUN', 'needs the sandbox')); if (dbIntent) setFidelity(require('./fidelity').compare({ real: realSide(dir, issue), copy: { error: pf.reason } })); return done(); }
 
     let handle;
@@ -227,11 +286,14 @@ async function run(id, o) {
         if (base === 'fail' && !use) steps.push(step('bisect', 'Bisection', 'NOT_RUN', 'the test copy did not show the same problem as your site, so it is not bisected and nothing from it is used'));
         else if (base === 'fail' && !opt.noBisect) {
             const top = (o.analysis && o.analysis.top) || [];
-            const res = await bisect.run({ plugins: active, requires, mu: muAll, top, test: tester, caps: { maxLoads: Number(opt.maxLoads) || undefined, maxMs: opt.maxMinutes ? Number(opt.maxMinutes) * 60000 : undefined }, logFile: path.join(dir, 'work', 'bisect.log'), label: { oracle: issue.oracle.type } });
+            const k0 = tester.history.length;
+            const res = await bisect.run({ plugins: active, requires, mu: muAll, top, test: tester, caps: { maxLoads: Number(opt.maxLoads) || undefined, maxMs: opt.maxMinutes ? Number(opt.maxMinutes) * 60000 : undefined }, logFile: path.join(dir, 'work', 'bisect.log'), label: { oracle: issue.oracle.type },
+                bareCheck: bareCheckFor(tester.history, { oracleType: issue.oracle.type, cause: realSide(dir, issue).cause_fatal }) });
+            annotateBisect(res, { steps: tester.history.slice(k0) });
             fs.writeFileSync(path.join(dir, 'work', 'bisect.json'), JSON.stringify({ ...res, log: undefined, executed: res.executed }, null, 2) + '\n', { mode: 0o600 });
             out.bisect = res;
             steps.push(step('bisect', 'Bisection (delta debugging in the sandbox)', res.status.startsWith('cause-found') ? 'PASSED' : res.status === 'not-reproduced-at-start' ? 'NOT_RUN' : 'PASSED',
-                `${res.symptom_without_plugins ? 'NOT A PLUGIN CONFLICT: the symptom is present with every plugin switched off. ' : ''}${res.status}: ${res.causes.length ? res.causes.map(c => `[${c.plugins.join(', ')}]`).join(' and ') : res.theme && res.theme.involved ? 'the theme' : 'no plugin set'}; ${res.loads} page loads, ${res.cache_hits} from the cache${res.capped ? `; STOPPED by the ${res.capped} cap, so the result is not proven minimal` : ''}; log in work/bisect.log`, { status_detail: res.status, loads: res.loads }));
+                `${bisectBanner(res)}${res.status}: ${bisectCause(res)}; ${res.loads} page loads, ${res.cache_hits} from the cache${res.capped ? `; STOPPED by the ${res.capped} cap, so the result is not proven minimal` : ''}; log in work/bisect.log`, { status_detail: res.status, loads: res.loads }));
         } else if (base === 'fail') steps.push(step('bisect', 'Bisection', 'NOT_RUN', 'switched off with --no-bisect'));
         else steps.push(step('bisect', 'Bisection', 'NOT_RUN', base === 'pass' ? 'the symptom is not present in the sandbox, so there is nothing to bisect' : 'the symptom could not be evaluated in the sandbox'));
     } catch (e) {
@@ -250,4 +312,4 @@ async function run(id, o) {
     return done();
 }
 
-module.exports = { run, missingFromCopy, makeTester, makeApplier, pluginFolders, names, step, isDbBuild, baselineSet, readCopyLog, writeCopyLog, removeCopyLog, COPY_LOG_MAX, writeFidelity, removeFidelity, keepsFirstEvidence, realSide, fidelityStep };
+module.exports = { LIVE_NO_DB, liveDbStep, fatalsOfText, annotateBisect, bareVerdict, bareCheckFor, bisectBanner, bisectCause, run, missingFromCopy, makeTester, makeApplier, pluginFolders, names, step, isDbBuild, baselineSet, readCopyLog, writeCopyLog, removeCopyLog, COPY_LOG_MAX, writeFidelity, removeFidelity, keepsFirstEvidence, realSide, fidelityStep };

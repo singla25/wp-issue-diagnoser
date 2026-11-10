@@ -27,18 +27,24 @@ const normName = n => one(n).replace(/\\\\/g, '\\').replace(/^\\+/, '').replace(
 function normFile(p) {
     let s = one(p).replace(/\\/g, '/').replace(/^file:\/\//, '');
     if (!s) return null;
-    const i = s.indexOf('wp-content/');
-    if (i >= 0) s = s.slice(i + 'wp-content/'.length);
+    // 'wp-content' only as a WHOLE path segment ('xwp-content/' or 'my-wp-content/' is not it)
+    const wc = /(?:^|\/)wp-content\//.exec(s);
+    if (wc) s = s.slice(wc.index + wc[0].length);
     else { const m = /(?:^|\/)((?:wp-includes|wp-admin)\/.+)$/.exec(s); if (m) s = m[1]; else s = s.replace(/^\/var\/www\/html\//, ''); }
     s = s.replace(/^\/+/, '');
     if (!s || s.split('/').includes('..') || s.length > 300) return null;
     return s;
 }
-// a page address -> its path (no query, no fragment, no trailing slash except the root)
+// a page address -> its path (no query, no fragment, no trailing slash except the root): what is STORED and shown (a query may hold personal values)
 function pathOf(u) {
     let p; try { p = new URL(String(u), 'http://x/').pathname; } catch { return null; }
     p = p.replace(/\/+$/, '');
     return (p || '/').slice(0, 300);
+}
+// 6d-3: what two pages are COMPARED by: the normalised path and the query as written (no fragment). Never stored; never a bare path suffix.
+function pageKeyOf(u) {
+    let x; try { x = new URL(String(u), 'http://x/'); } catch { return null; }
+    return `${x.pathname.replace(/\/+$/, '') || '/'}${x.search}`.slice(0, 600);
 }
 // the kind of failure of one observed page: '5xx', '4xx', 'white' (a success status with a blank or critical-error page), or null (it loaded fine)
 function statusClassOf(p) {
@@ -71,11 +77,12 @@ function fatalOf(message, file, line) {
     return null;
 }
 const sameFatal = (a, b) => !!a && !!b && a.kind === b.kind && normName(a.name) === normName(b.name) && !!a.file && !!b.file && a.file === b.file;
+// the same page: the normalised path and query are equal, or the copy's front page stands for the page the issue is about. No suffix match.
 const samePage = (real, copy, home) => {
     if (!real || !copy) return false;
     if (real === copy) return true;
     if (copy === '/') return real === (home || '/');
-    return real.endsWith(copy) && (real.length === copy.length || real[real.length - copy.length - 1] === '/');
+    return false;
 };
 const fatalOut = f => (f ? { kind: f.kind, name: f.name, file: f.file, line: f.line } : null);
 const classText = c => (c === 'white' ? 'a blank page' : c ? `HTTP ${c}` : 'no error');
@@ -85,7 +92,7 @@ const classText = c => (c === 'white' ? 'a blank page' : c ? `HTTP ${c}` : 'no e
 function compare({ real = {}, copy = {} } = {}) {
     const rf = (real.failing_pages || []).filter(p => p && p.path && CLASSES.includes(p.status_class));
     const cause = real.cause_fatal && real.cause_fatal.name && real.cause_fatal.file ? real.cause_fatal : null;
-    const out = (level, reasons, extra = {}) => ({ schema: 1, level, counts: COUNTS.has(level), page: null, status_class: null, real_fatal: fatalOut(cause), copy_fatal: null, reasons: reasons.map(stripPaths), likely_reasons: level === 'did-not-match' ? LIKELY_REASONS.slice() : [], ...extra });
+    const out = (level, reasons, extra = {}) => ({ schema: 1, level, counts: COUNTS.has(level), page: null, status_class: null, real_fatal: fatalOut(cause), copy_fatal: null, reasons: reasons.map(stripPaths), likely_reasons: level === 'did-not-match' ? LIKELY_REASONS.slice() : [], real_page: rf.length > 0, ...extra });
     if (copy.error) return out('could-not-test', [one(copy.error).slice(0, 300)]);
     if (!copy.built) return out('not-tested', ['the test copy was not built']);
     if (!rf.length && !cause) return out('not-tested', ['no failing page and no error message from your site to compare']);
@@ -95,7 +102,7 @@ function compare({ real = {}, copy = {} } = {}) {
     // the page: the first failing page of the real site that the copy loaded too
     let hit = null, miss = null;
     for (const r of rf) {
-        const c = loaded.find(p => samePage(r.path, p.path, real.home));
+        const c = loaded.find(p => samePage(r.key || r.path, p.key || p.path, real.home));
         if (!c) continue;
         if (c.status_class === r.status_class) { hit = { path: r.path, status_class: r.status_class }; break; }
         if (!miss) miss = { path: r.path, real: r.status_class, copy: c.status_class || null };
@@ -154,13 +161,13 @@ function causeFatal(hypotheses, clues) {
 function realFrom({ probe, hypotheses, evidence, issue } = {}) {
     const pages = probe && Array.isArray(probe.pages) ? probe.pages : [];
     const failing = [];
-    for (const p of pages) { const c = statusClassOf(p), q = p && pathOf(p.url); if (c && q && !failing.some(x => x.path === q && x.status_class === c)) failing.push({ path: q, status_class: c }); }
-    const home = issue && issue.url ? pathOf(issue.url) : '/';
+    for (const p of pages) { const c = statusClassOf(p), q = p && pathOf(p.url), k = p && pageKeyOf(p.url); if (c && q && !failing.some(x => (x.key || x.path) === k && x.status_class === c)) failing.push({ path: q, ...(k && k !== q ? { key: k } : {}), status_class: c }); }
+    const home = issue && issue.url ? pageKeyOf(issue.url) : '/';
     return { failing_pages: failing, cause_fatal: causeFatal(hypotheses, evidence && evidence.clues), home };
 }
 // pages: the observed pages of the copy's baseline; copyLog: issue/sandbox-phase.js readCopyLog() output
 function copyFrom({ pages, copyLog, error = null, built = true } = {}) {
-    const ps = (pages || []).map(p => ({ path: pathOf(p.url), status_class: statusClassOf(p), loaded: !!p.loaded })).filter(p => p.path);
+    const ps = (pages || []).map(p => ({ path: pathOf(p.url), ...(pageKeyOf(p.url) !== pathOf(p.url) ? { key: pageKeyOf(p.url) } : {}), status_class: statusClassOf(p), loaded: !!p.loaded })).filter(p => p.path);
     const fatals = ((copyLog && copyLog.last_fatals) || []).map(x => fatalOf(x.message, x.file, x.line)).filter(Boolean);
     return { built: !!built && !error, error: error ? one(error) : null, pages: ps, fatals, log_available: !!(copyLog && copyLog.available) };
 }
@@ -175,7 +182,9 @@ function clean(fd) {
         status_class: CLASSES.includes(fd.status_class) ? fd.status_class : null,
         real_fatal: fat(fd.real_fatal), copy_fatal: fat(fd.copy_fatal),
         reasons: (Array.isArray(fd.reasons) ? fd.reasons : []).filter(r => typeof r === 'string').slice(0, 4).map(r => stripPaths(r).slice(0, 300)),
-        likely_reasons: (Array.isArray(fd.likely_reasons) ? fd.likely_reasons : []).filter(r => LIKELY_REASONS.includes(r))
+        likely_reasons: (Array.isArray(fd.likely_reasons) ? fd.likely_reasons : []).filter(r => LIKELY_REASONS.includes(r)),
+        // 6d-3: was a failing page of the real site part of the comparison? (an older fidelity.json without the field: read from its first reason)
+        real_page: typeof fd.real_page === 'boolean' ? fd.real_page : !(fd.level === 'matched' && /^the copy's log has the same error/.test(String((fd.reasons || [])[0] || '')))
     };
 }
 
@@ -184,7 +193,7 @@ const MISMATCH = 'The test copy did not show the same problem as your site, so n
 const NOT_TESTED = 'The test copy could not be compared with your site, because no failing page or error message was available to compare. Nothing from it is used.';
 const statusOnlyText = c => `The test copy showed the same kind of failure (${c === 'white' ? 'a blank page' : `HTTP ${c || '5xx'}`} on the same page). No error message was available on either side to compare, so this is weaker evidence.`;
 // absolute host paths out of a reason (findings.json and the reader alike): a wp-content path becomes relative, any other one 'a folder on this computer'
-const stripPaths = t => one(t).replace(/(?<![\w.@+-])(?:\/[\w.@+-]+){2,}\/?/g, m => (/wp-content\//.test(m) ? m.slice(m.indexOf('wp-content/')) : /^\/var\/www\/html\/wp-(?:includes|admin)\//.test(m) ? m.replace('/var/www/html/', '') : 'a folder on this computer'));
+const stripPaths = t => one(t).replace(/(?<![\w.@+-])(?:\/[\w.@+-]+){2,}\/?/g, m => (/\/wp-content\//.test(m) ? m.slice(m.search(/\/wp-content\//) + 1) : /^\/var\/www\/html\/wp-(?:includes|admin)\//.test(m) ? m.replace('/var/www/html/', '') : 'a folder on this computer'));
 // one plain sentence from the sandbox failure text: the first sentence, no trailing full stop, no control characters, no absolute host path
 function plainReason(t) {
     let s = one(t).replace(/^(?:NOTICE|WARNING|ERROR):\s*/i, '');
@@ -204,4 +213,4 @@ function readerText(fd) {
     return null;
 }
 
-module.exports = { stripPaths, compare, realFrom, copyFrom, causeFatal, fatalOf, sameFatal, normName, normFile, pathOf, statusClassOf, clean, readerText, plainReason, couldNotTestText, statusOnlyText, LEVELS, COUNTS, LIKELY_REASONS, MISMATCH, NOT_TESTED };
+module.exports = { samePage, pageKeyOf, stripPaths, compare, realFrom, copyFrom, causeFatal, fatalOf, sameFatal, normName, normFile, pathOf, statusClassOf, clean, readerText, plainReason, couldNotTestText, statusOnlyText, LEVELS, COUNTS, LIKELY_REASONS, MISMATCH, NOT_TESTED };

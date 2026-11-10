@@ -16,6 +16,10 @@ const code = t => '`' + one(t).replace(/`/g, "'") + '`';
 const ORDER = ['REPRODUCIBLE', 'CONFIRMED', 'PROBABLE_NEEDS_REVIEW', 'UNVERIFIED', 'FIXED_VERIFIED'];
 
 const NOT_PLUGIN = 'NOT A PLUGIN CONFLICT: the symptom is still present with every plugin switched off. The cause is in the theme, a must-use plugin, WordPress core, the database content or the server, so plugin bisection cannot explain it and no plugin should be blamed for it on this evidence.';
+// 'Same fatal required' (owner-approved): the no-plugin step of the bisection failed, but not with the fatal the report names as the cause
+// (bisect.json bare_different_failure: true = a different error was read, 'unknown' = no error could be read or no cause is known to compare)
+// (the sentences live in issue/bisect.js, which writes them into bisect.log; a bisection like that has the status 'inconclusive' and names no cause)
+const { BARE_DIFFERENT, BARE_UNKNOWN, bareSentence } = require('./bisect');
 function verdict(val, retests, bis) {
     const H = val.hypotheses.filter(h => h.status !== 'REJECTED_FALSE_POSITIVE'), sym = val.symptom_reproduced;
     const fixed = (retests || []).length && retests[retests.length - 1].verdict === 'Fixed' && retests[retests.length - 1].fixed_verified;
@@ -28,7 +32,9 @@ function verdict(val, retests, bis) {
     else { label = 'Could not test'; confidence = 'none'; }
     const notes = [];
     if (bis && bis.symptom_without_plugins) notes.push(NOT_PLUGIN);
-    return { label, confidence, symptom_reproduced: sym, notes };
+    // a bisect.json without the field (written before this rule) renders exactly as before
+    const caution = bis && !bis.symptom_without_plugins ? bareSentence(bis.bare_different_failure) : null;
+    return { label, confidence, symptom_reproduced: sym, notes, ...(caution ? { cautions: [caution] } : {}) };
 }
 
 // TEST-COPY-SPEC 6c-2: the user-data handling of a test copy built from a database file (work/user-data.json, written by issue/sandbox.js): fixed
@@ -64,6 +70,16 @@ const copyLogPart = (sbx, W) => { const cl = sbx && sbx.sandbox ? cleanCopyLog(W
 // sandbox.json, so the first result stays with it); work/fidelity.json is the same result on its own.
 const fidelityOf = (sbx, W) => (sbx ? require('./fidelity').clean(sbx.fidelity || W('fidelity.json')) : null);
 const fidelityPart = (sbx, W) => { const fd = fidelityOf(sbx, W); return fd ? { fidelity: fd } : {}; };
+// sandbox.json `replica` (6d-3) plus whether a copy was built this time; an older sandbox.json without it: read from what it has (Docker not known)
+function replicaOf(sbx) {
+    if (!sbx) return { requested: false, database_file: false, docker: null, copy_built: false };
+    const r = sbx.replica && typeof sbx.replica === 'object' ? sbx.replica : {};
+    return { requested: typeof r.requested === 'boolean' ? r.requested : !!sbx.sandbox, database_file: typeof r.database_file === 'boolean' ? r.database_file : !!(sbx.fidelity || (sbx.sandbox && sbx.sandbox.anonymised)),
+        docker: typeof r.docker === 'boolean' ? r.docker : null, copy_built: !!sbx.sandbox, db_dropped_live: r.db_dropped_live === true };
+}
+const COPY_LOG_INTRO = 'No error log was found on this site. A test copy of your site showed the same problem and wrote its own log; the errors below are from a test copy of your site.';
+// your site had no failing page to compare: the copy is not said to show "the same problem" (level 2)
+const COPY_LOG_INTRO_NO_PAGE = 'No error log was found on this site. A test copy of your site wrote its own log; the errors below are from a test copy of your site. Your site had no failing page to compare with, so the match is not confirmed.';
 function userDataSummary(ud, sb) {
     const c = cleanUserData(ud);
     if (c) return c;
@@ -107,7 +123,7 @@ function build(id, { validation, plans, dir, gate = false, verbose = false, poli
         validation: { checks: validation.checks, oracle: validation.oracle },
         timeline: steps,
         sandbox: sbx ? { reproduced_in_sandbox: sbx.reproduced_in_sandbox, summary: sbx.sandbox ? { notice: sbx.sandbox.notice, recommendation: sbx.sandbox.recommendation, limits: sbx.sandbox.limits, anonymised: sbx.sandbox.anonymised, unscrubbed_tables: sbx.sandbox.unscrubbed_tables, ...userDataSummary(W('user-data.json'), sbx.sandbox), ...activePluginsSummary(W) } : null, ...copyLogPart(sbx, W), ...fidelityPart(sbx, W) } : null,
-        bisect: bis ? { status: bis.status, causes: bis.causes, necessary: bis.necessary, theme: bis.theme, loads: bis.loads, cache_hits: bis.cache_hits, capped: bis.capped, executed: bis.executed, tests: bis.tests || [], symptom_without_plugins: !!bis.symptom_without_plugins } : null,
+        bisect: bis ? { status: bis.status, causes: bis.causes, necessary: bis.necessary, theme: bis.theme, loads: bis.loads, cache_hits: bis.cache_hits, capped: bis.capped, executed: bis.executed, tests: bis.tests || [], symptom_without_plugins: !!bis.symptom_without_plugins, ...(bareSentence(bis.bare_different_failure) && !bis.symptom_without_plugins ? { bare_different_failure: bis.bare_different_failure } : {}) } : null,
         probe: probe ? { planned: probe.planned, oracle: probe.oracle ? { result: probe.oracle.result, reason: probe.oracle.reason, matches: probe.oracle.matches } : null } : null,
         notices: ((ev && ev.notices) || []).map(n => ({ severity: 'INFO', kind: n.kind, source: n.source ? `${n.source.kind}:${n.source.ref}` : null, note: 'This text looked like markup, a command, a path trick or an instruction. It was kept as plain text, escaped in every report, and not acted on.' })),
         reported: { description: issue.description, since: issue.since || null, changed_before: issue.changed_before || null, pages: issue.pages || [], url: issue.url || null, images: imgs },
@@ -289,7 +305,12 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
         // no error log on the site: the plain steps to turn logging on; a log that exists but could not be read is said as it is
         const hasLog = !!((lg.files || []).length || (lg.entries || []).length);
         const ikLog = ((ik.steps || []).find(s => s && s.id === 'intake-log')) || null;
-        const logHelp = hasLog ? null : ikLog && ikLog.log_state === 'unreadable' ? [ikLog.reason] : caseFileMod.NO_LOG_HELP;
+        // TEST-COPY-SPEC 6.2 (6d-3): no log on the site, but a test copy that showed the SAME problem (fidelity matched, copy-log.json 'verified'):
+        // the copy's own log is the report's log, named "from a test copy of your site". Otherwise the guided steps for the real site stay.
+        const fdNow = fidelityOf(sbx, W), clNow = sbx && sbx.sandbox ? cleanCopyLog(W('copy-log.json')) : null;
+        const copyLogLines = !hasLog && !(ikLog && ikLog.log_state === 'unreadable') && fdNow && fdNow.level === 'matched' && clNow && clNow.label === 'verified' && clNow.last_fatals.length
+            ? [fdNow.real_page === false ? COPY_LOG_INTRO_NO_PAGE : COPY_LOG_INTRO, ...clNow.last_fatals.slice(-3).map(x => `From a test copy of your site: ${x.message}${x.file ? ` (${x.file}${x.line ? `, line ${x.line}` : ''})` : ''}`)] : null;
+        const logHelp = hasLog || copyLogLines ? null : ikLog && ikLog.log_state === 'unreadable' ? [ikLog.reason] : caseFileMod.NO_LOG_HELP;
         if (!hasLog) for (const t of f.timeline) if (LOG_STEP(t)) f.not_tested_text[t.id] = `${t.label}: ${ikLog && ikLog.log_state === 'unreadable' && t.id === 'intake-log' ? ikLog.reason : NO_LOG_STEP}`;
         // PHP files that were not read: left out of the copy (reason not recorded), too large for the code analysis, or the parser could not read them (custom-code.json per-component file counts)
         const phpSk = { tooLarge: 0, unparsed: 0, other: Number(ik.php_skipped) > 0 ? Number(ik.php_skipped) : 0 };
@@ -299,6 +320,9 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
         f.case_file = caseFileMod.build(f, {
             vendorLines: (gj.same_vendor && gj.same_vendor.lines) || [],
             sandboxNote: ((f.summary.lines || []).find(l => /sandbox test could not run/.test(l)) || '').trim() || null,
+            copyLogLines, cautions: (f.verdict && f.verdict.cautions) || [],
+            // 6d-3: the report level and the "How close the copy is" box: what was asked for, whether Docker worked, whether a copy was built
+            replica: replicaOf(sbx),
             comps, probePages, templates: (cc.observations || []).filter(o => o.type === 'template-override-outdated'), causeDetail: cd, logHelp,
             modified: ms && ms.count ? { lines: ms.lines, count: ms.count, files: ms.files } : null,
             // Part 6b: the versions of the test copy, only when a test copy was actually built this time (sandbox.json names it) and versions.json exists
@@ -380,6 +404,7 @@ function markdown(f) {
     const top = f.hypotheses.filter(h => h.status !== 'REJECTED_FALSE_POSITIVE')[0];
     L.push(top ? `Most likely cause: ${esc(top.title)} (${top.status}). ${esc(top.mechanism)}` : 'No hypothesis survived validation.', '');
     for (const n of f.verdict.notes || []) L.push(`> **${esc(n)}**`, '');
+    for (const n of f.verdict.cautions || []) L.push(`> ${esc(n)}`, '');
     L.push('## Hypotheses', '');
     for (const h of f.hypotheses) {
         L.push(`### ${esc(h.title)} — ${h.status} (score ${h.score})`, '', esc(h.mechanism), '');
@@ -403,7 +428,7 @@ function markdown(f) {
         }
         L.push('');
     }
-    if (f.bisect) L.push('## Bisection', '', `Status ${code(f.bisect.status)}: ${f.bisect.causes.map(c => '[' + c.plugins.map(esc).join(', ') + ']').join(' and ') || 'no plugin set'}; ${f.bisect.loads} page loads, ${f.bisect.cache_hits} from the cache.${f.bisect.capped ? ` STOPPED by the ${esc(f.bisect.capped)} cap: not proven minimal.` : ''} Full log: work/bisect.log`, '');
+    if (f.bisect) L.push('## Bisection', '', `Status ${code(f.bisect.status)}: ${f.bisect.status === 'inconclusive' ? 'no cause is named' : f.bisect.causes.map(c => '[' + c.plugins.map(esc).join(', ') + ']').join(' and ') || 'no plugin set'}; ${f.bisect.loads} page loads, ${f.bisect.cache_hits} from the cache.${f.bisect.capped ? ` STOPPED by the ${esc(f.bisect.capped)} cap: not proven minimal.` : ''} Full log: work/bisect.log`, '', ...(f.bisect.bare_different_failure ? [esc(bareSentence(f.bisect.bare_different_failure)), ''] : []));
     if (f.sandbox && f.sandbox.summary) L.push('## Sandbox: what is NOT blocked', '', esc(f.sandbox.summary.notice), '', esc(f.sandbox.summary.recommendation), '');
     L.push('## Timeline', '');
     for (const s of f.timeline) L.push(`- ${s.status} ${esc(s.label)}${s.reason ? ': ' + esc(s.reason).slice(0, 300) : ''}`);
@@ -465,4 +490,4 @@ function write(id, { validation, plans, dir, root, policy, gate = false, verbose
     return { findings: f, tasks: t.count, dir: R() };
 }
 
-module.exports = { cleanUserData, cleanActivePlugins, cleanCopyLog, fidelityOf, write, build, markdown, gateMarkdown, tasks, verdict, LIMITS, NOT_PLUGIN };
+module.exports = { cleanUserData, cleanActivePlugins, cleanCopyLog, fidelityOf, write, build, markdown, gateMarkdown, tasks, verdict, LIMITS, NOT_PLUGIN, BARE_DIFFERENT, BARE_UNKNOWN, bareSentence, COPY_LOG_INTRO, COPY_LOG_INTRO_NO_PAGE };

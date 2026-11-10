@@ -197,9 +197,10 @@ async function wiz(answers, flags, extra = {}) {
     ok(!/throwaway copy/.test(sbA.text), 'Docker not usable: the question is not asked');
     // changed with the owner's request for the database backup: the first question is the backup (an .sql file); without one the sandbox is an OPTIONAL extra, default no
     const sbB = await wiz(['Layout broken', '', '', siteE, 'n'], { out: path.join(tmp, 'outK2'), 'no-probe': true, 'no-questions': true }, { preflight: () => ({ ok: true }) });
-    ok(!/database backup/.test(sbB.text) && /Optional: a deeper test in a throwaway copy .* Run it\? \[y\/N\]/.test(sbB.text) && !sbB.error, 'Docker usable and a terminal: the sandbox is asked first (optional, default no); "n" skips it and the backup is never asked');
+    ok(!sbB.error && !/deeper test/.test(sbB.text) && !/Run it\? \[y\/N\]/.test(sbB.text) && sbB.text.includes("Optional: a database export file of the site (.sql or .sql.gz), to test the problem on a copy of your site. Enter its path, or press Enter for none"), 'Docker usable and a terminal: the only question is the optional database file; the old deeper-test question is not asked');
     const sbDef = await wiz(['Layout broken', '', '', siteE, ''], { out: path.join(tmp, 'outK2b'), 'no-probe': true, 'no-questions': true }, { preflight: () => ({ ok: true }) });
-    ok(!sbDef.error && !/sandbox-start|SANDBOX/.test(sbDef.text) && /Optional: a deeper test/.test(sbDef.text), 'pressing Enter at the optional question means NO sandbox (the default is no)');
+    ok(!sbDef.error && !/sandbox-start|SANDBOX/.test(sbDef.text) && !/Building a test copy/.test(sbDef.text) && !/deeper test|Run it\? \[y\/N\]/.test(sbDef.text) && sbDef.text.includes("Optional: a database export file of the site (.sql or .sql.gz), to test the problem on a copy of your site. Enter its path, or press Enter for none"), 'pressing Enter at the database-file question means no file and no test copy');
+    ok(!sbB.error && !/Building a test copy|Your database file contains user accounts/.test(sbB.text) && !/deeper test/.test(sbB.text), 'with a terminal and no database file, the wizard builds no copy and prints no "deeper test" question');
     // the database backup: asked first, re-asked on a bad path, passed on as --db-dump, never for a live site
     fs.writeFileSync(path.join(tmp, 'backup.sql'), '-- dump\n'); fs.writeFileSync(path.join(tmp, 'notes.txt'), 'x');
     const cliLib = require('../lib/issue-cli'), realInv = cliLib.investigate; let seen = null;

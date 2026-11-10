@@ -74,7 +74,7 @@ function skippedText(d) {
     return `${d.total} PHP ${d.total === 1 ? 'file was' : 'files were'} not read: ${parts.join(', ')}`;
 }
 // what truly ran / did not run -> "Looked at: ... Not looked at: ..."
-function lookedAt(facts) {
+function lookedAt(facts, { box = false } = {}) {
     const yes = [], no = [];
     (facts.hasLog ? yes : no).push('your log');
     (facts.probeRan ? yes : no).push('the live page');
@@ -82,7 +82,9 @@ function lookedAt(facts) {
     if (facts.sandboxRan) yes.push('a throwaway test copy'); else no.push(facts.sandboxFailed ? 'a throwaway test copy (it could not run)' : 'a throwaway test copy');
     // the PHP version only as the reporter stated it; the host's PHP (or the sandbox image's) is never claimed as the site's
     if (facts.php) yes.push(`PHP ${facts.php} (${facts.phpSource === 'you confirmed' ? 'you confirmed' : 'you told us'})`);
-    return { yes, no, php: facts.php ? null : PHP_NOT_STATED, line: `Looked at: ${yes.length ? yes.join(', ') : 'nothing yet'}. Not looked at: ${no.length ? no.join(', ') : 'nothing'}.` };
+    // 6d-3: where the "How close the copy is" box is shown, an empty "Not looked at" is left out (never "Not looked at: nothing")
+    const notLine = no.length ? ` Not looked at: ${no.join(', ')}.` : box ? '' : ' Not looked at: nothing.';
+    return { yes, no, php: facts.php ? null : PHP_NOT_STATED, line: `Looked at: ${yes.length ? yes.join(', ') : 'nothing yet'}.${notLine}` };
 }
 
 function evidenceWhere(x) {
@@ -189,7 +191,11 @@ function build(f, ctx) {
     const noCause = !!facts.crash && !n.likely && !n.confirmed && cases.some(c => c.advisory);
     let k = 0;
     for (const c of cases) { c.n = noCause && c.advisory ? null : ++k; delete c.advisory; }
-    const looked = lookedAt(facts);
+    // 6d-3: the report level (TEST-COPY-SPEC 8) and the "How close the copy is" box (section 7)
+    const fdc = ctx.fidelity ? require('./fidelity').clean(ctx.fidelity) : null;
+    const level = copyLevel(fdc, ctx.replica || null, facts);
+    const close = ctx.replica && ctx.replica.copy_built && fdc ? closeness({ versions: ctx.versions, activePlugins: ctx.activePlugins, fidelity: fdc }) : null;
+    const looked = lookedAt(facts, { box: !!close });
     // what the reader sees: only what is known
     const see = [];
     const images = (f.reported && f.reported.images) || [];
@@ -218,10 +224,73 @@ function build(f, ctx) {
     dev.push(...activePluginLines(ctx.activePlugins));
     return {
         title: f.issue_title_short || f.issue.title,
-        status: { ...n, line: statusLine(n), looked: looked.line, php: looked.php, note: f.log_note || null, sandbox_note: ctx.sandboxNote || null, ...(ctx.logHelp && ctx.logHelp.length ? { log_help: ctx.logHelp.slice() } : {}), ...fidelityPart(ctx.fidelity), empty: !n.likely && !n.confirmed && !n.check && !n.signs },
+        status: { ...n, line: statusLine(n), looked: looked.line, php: looked.php, note: f.log_note || null, sandbox_note: ctx.sandboxNote || null, ...(ctx.logHelp && ctx.logHelp.length ? { log_help: ctx.logHelp.slice() } : {}), ...(ctx.copyLogLines && ctx.copyLogLines.length ? { copy_log: ctx.copyLogLines.slice() } : {}), ...((ctx.cautions || []).length ? { cautions: ctx.cautions.slice() } : {}), ...fidelityPart(ctx.fidelity), empty: !n.likely && !n.confirmed && !n.check && !n.signs },
+        level, ...(close ? { close } : {}),
         see, no_cause_note: noCause ? NO_CAUSE_NOTE : null, cases, checked, developer: dev,
         excerpt: box && cd && cd.excerpt && cd.excerpt.available ? { title: `${cd.excerpt.file}, lines ${cd.excerpt.from} to ${cd.excerpt.to} (line ${cd.excerpt.cited} is marked with >)`, lines: causeDetail.excerptLines(cd.excerpt) } : null
     };
+}
+
+// ---- 6d-3: the report level (TEST-COPY-SPEC 8; owner headings) ----
+//   1 Tested on a copy of your site          the fidelity check matched (or status-only, with its weaker sentence) against a failing page of your site
+//   2 Not tested on a copy                   a database file, Docker or the code is missing, or your site had no failing page to compare: with that list
+//   3 The test copy could not confirm this   the copy could not run, or did not show the same problem (the existing owner sentences say which)
+// Wording only: no status and no verdict changes with the level.
+const LEVEL_HEADING = { 1: 'Tested on a copy of your site', 2: 'Not tested on a copy', 3: 'The test copy could not confirm this' };
+const MISSING_TEXT = { database: 'a database export file of your site (.sql or .sql.gz)', docker: 'Docker on this computer, to build the test copy', code: 'the code of your site (its wp-content folder)', page: 'a page that fails on your site, to compare with the test copy', live: 'a copy built from your database is never made for a live site (try it on a local or staging copy of the site)' };
+const MISSING_INTRO = 'What a test on a copy of your site needs, and was missing:';
+const NOT_TESTED_LABEL = 'NOT TESTED: what this report says comes from reading your log and the code. It was not tried on a copy of your site.';
+// a copy WAS built and logged the reported error, but your site had no failing page to compare (level 2): not "not tried on a copy"
+const NOT_CONFIRMED_LABEL = 'NOT CONFIRMED: a test copy of your site was built and logged the reported error, but your site had no failing page to compare with, so the copy does not confirm this report. What this report says comes from reading your log and the code.';
+const MATCHED_LINE = 'A test copy of your site, built from your database, showed the same problem as your site: the same page, the same kind of failure and the same error.';
+const NO_PAGE_REASON = 'no failing page and no error message from your site to compare';
+// fd: issue/fidelity.js clean() or null; rp: sandbox.json `replica` ({ requested, database_file, docker }) plus copy_built, or null (older runs)
+function copyLevel(fd, rp, facts = {}) {
+    const r = rp || {};
+    const two = keys => ({ n: 2, heading: LEVEL_HEADING[2], missing: [...new Set(keys)].map(k => MISSING_TEXT[k]), lines: [NOT_TESTED_LABEL] });
+    // a database file given for a LIVE site was dropped (sandbox.json replica.db_dropped_live): it is not "missing", it is never used for live
+    const inputsMissing = () => [...(r.db_dropped_live ? ['live'] : r.database_file ? [] : ['database']), ...(r.docker === false ? ['docker'] : []), ...(facts.hasCode === false ? ['code'] : [])];
+    if (fd && fd.counts) return fd.real_page === false ? { ...two(['page']), lines: [NOT_CONFIRMED_LABEL] } : { n: 1, heading: LEVEL_HEADING[1], missing: [], lines: fd.level === 'matched' ? [MATCHED_LINE] : [] };
+    if (fd && fd.level === 'did-not-match') return { n: 3, heading: LEVEL_HEADING[3], missing: [], lines: [] };
+    if (fd && fd.level === 'could-not-test') return r.docker === false ? two(['docker', ...inputsMissing()]) : { n: 3, heading: LEVEL_HEADING[3], missing: [], lines: [] };
+    if (fd && fd.level === 'not-tested') {
+        if (facts.hasCode === false || (fd.reasons || []).includes('the test copy was not built')) return two(['code']);
+        if ((fd.reasons || []).some(x => x === NO_PAGE_REASON)) return two(['page']);
+        return { n: 3, heading: LEVEL_HEADING[3], missing: [], lines: [] };
+    }
+    return two(inputsMissing());
+}
+
+// ---- 6d-3: "How close the copy is" (TEST-COPY-SPEC 7; owner title and sub-lines). Built only from data that exists; unknown is "Not known". ----
+const CLOSE_TITLE = 'How close the copy is';
+const NO_PAGE_MATCH = 'The copy logs the reported error, but your site had no failing page to compare with, so the match is not confirmed.';
+const CLOSE_GROUPS = [['matched', 'Matched'], ['did_not_match', 'Did not match'], ['not_known', 'Not known'], ['not_covered', 'Not covered in this version']];
+const NOT_COVERED = ['Calls to outside services (outbound traffic from the test copy is blocked)', 'The web server layer (Apache or Nginx rules, CDN, caching)', 'File permissions', 'PHP extensions of the real server', 'Cron jobs', 'The uploads folder, unless it was included'];
+const V_GROUP = { matched: 'matched', nearest: 'did_not_match', 'not matched': 'did_not_match', assumed: 'not_known', unknown: 'not_known' };
+function closeness({ versions, activePlugins, fidelity } = {}) {
+    const out = { title: CLOSE_TITLE, matched: [], did_not_match: [], not_known: [], not_covered: NOT_COVERED.slice() };
+    const v = versions && versions.schema === 1 ? versions : null;
+    for (const [k, word] of [['php', 'PHP'], ['db', 'Database'], ['wordpress', 'WordPress']]) {
+        const x = v && v[k];
+        if (x && V_GROUP[x.status] && typeof x.text === 'string') out[V_GROUP[x.status]].push(`${word}: ${x.text.slice(0, 300)}`);
+        else out.not_known.push(`${word} version: not known`);
+    }
+    const a = activePlugins || null;
+    if (!a || a.source === 'unknown' || !Number.isInteger(a.active_count)) out.not_known.push('Active plugins: not known (no list from your database or from Site Health)');
+    else {
+        const miss = (a.missing_files || []).length;
+        if (miss) out.did_not_match.push(`Active plugins: ${a.active_count} (${a.source}), ${miss} of them with no files in the copy`);
+        else out.matched.push(`Active plugins: ${a.active_count} (${a.source}), all of them in the copy`);
+    }
+    const fd = fidelity, rf = fd && fd.real_fatal, cf = fd && fd.copy_fatal;
+    const name = f => `${f.kind} ${f.name}${f.file ? ` in ${f.file}` : ''}`;
+    // your site had no failing page to compare (level 2): the copy logging the reported error is NOT a confirmed match
+    if (fd && fd.counts && fd.real_page === false) out.not_known.push(NO_PAGE_MATCH);
+    else if (fd && fd.level === 'matched' && rf) out.matched.push(`The same error as on your site: ${name(rf)}`);
+    else if (fd && fd.level === 'did-not-match' && rf) out.did_not_match.push(`The same error: your site shows ${name(rf)}; ${cf ? `the test copy shows it in ${cf.file || 'another file'}` : 'the test copy did not show it'}`);
+    else if (fd && fd.level === 'did-not-match') out.did_not_match.push(`The same problem: ${(fd.reasons || [])[0] || 'the test copy did not show it'}`);
+    else out.not_known.push(rf ? 'The same error: not known (the test copy could not be compared)' : 'The same error: not known (no error message from your site to compare)');
+    return out;
 }
 
 // 6d-2: the fidelity check of the test copy in the reader's words (issue/fidelity.js readerText): { line, reasons }, only when there is something to say
@@ -264,6 +333,14 @@ function versionLines(v) {
     return L;
 }
 
+// the "How close the copy is" box as plain lines: the title, then each sub-line that has something, in the fixed order
+function closeLines(close) {
+    if (!close) return [];
+    const L = [close.title];
+    for (const [k, word] of CLOSE_GROUPS) if ((close[k] || []).length) { L.push(`${word}:`); for (const x of close[k]) L.push(`  - ${x}`); }
+    return L;
+}
+
 // ---- renderers. esc: the caller's text escaper (Markdown). ----
 function markdown(cf, esc) {
     const L = [], e = esc || (t => String(t));
@@ -271,8 +348,22 @@ function markdown(cf, esc) {
     if (cf.status.php) L.push(e(cf.status.php), '');
     if (cf.status.note) L.push(e(cf.status.note), '');
     if (cf.status.sandbox_note) L.push(e(cf.status.sandbox_note), '');
-    if (cf.status.fidelity) { L.push(e(cf.status.fidelity.line), ''); if (cf.status.fidelity.reasons.length) L.push('Likely reasons:', '', ...cf.status.fidelity.reasons.map(r => `- ${e(r)}`), ''); }
+    for (const c of cf.status.cautions || []) L.push(e(c), '');
+    if (!cf.level && cf.status.fidelity) { L.push(e(cf.status.fidelity.line), ''); if (cf.status.fidelity.reasons.length) L.push('Likely reasons:', '', ...cf.status.fidelity.reasons.map(r => `- ${e(r)}`), ''); }
     if (cf.status.log_help) cf.status.log_help.forEach((t, i) => L.push(i ? e(t) : `**${e(t)}**`, ''));
+    for (const t of cf.status.copy_log || []) L.push(e(t), '');
+    // 6d-3: the level heading, the fidelity sentence under it, what is missing, and the "How close the copy is" box
+    if (cf.level) {
+        L.push(`## ${cf.level.heading}`, '');
+        if (cf.status.fidelity) { L.push(e(cf.status.fidelity.line), ''); if (cf.status.fidelity.reasons.length) L.push('Likely reasons:', '', ...cf.status.fidelity.reasons.map(r => `- ${e(r)}`), ''); }
+        if (cf.level.missing.length) L.push(MISSING_INTRO, '', ...cf.level.missing.map(m => `- ${e(m)}`), '');
+        for (const t of cf.level.lines) L.push(t === NOT_TESTED_LABEL || t === NOT_CONFIRMED_LABEL ? `**${e(t)}**` : e(t), '');
+        if (cf.close) {
+            L.push(`### ${cf.close.title}`, '');
+            for (const [k, word] of CLOSE_GROUPS) if ((cf.close[k] || []).length) { L.push(`- ${word}:`); for (const x of cf.close[k]) L.push(`    - ${e(x)}`); }
+            L.push('');
+        }
+    }
     L.push('## What you see', '', ...cf.see.map(s => `- ${e(s)}`), '');
     if (cf.no_cause_note) L.push(`**${e(cf.no_cause_note)}**`, '');
     for (const c of cf.cases) {
@@ -291,7 +382,10 @@ function markdownDeveloper(cf, esc) {
     return L;
 }
 function cli(cf) {
-    const L = [cf.title, '', `STATUS  ${cf.status.line}`, `        ${cf.status.looked}`, ...(cf.status.php ? [`        ${cf.status.php}`] : []), ...(cf.status.note ? [`        ${cf.status.note}`] : []), ...(cf.status.sandbox_note ? [`        ${cf.status.sandbox_note}`] : []), ...(cf.status.fidelity ? [`        ${cf.status.fidelity.line}`, ...(cf.status.fidelity.reasons.length ? ['        Likely reasons:', ...cf.status.fidelity.reasons.map(r => `          - ${r}`)] : [])] : []), ...(cf.status.log_help ? cf.status.log_help.map(t => `        ${t}`) : []), '', 'WHAT YOU SEE', ...cf.see.map(s => `  ${s}`)];
+    const fid = cf.status.fidelity ? [`        ${cf.status.fidelity.line}`, ...(cf.status.fidelity.reasons.length ? ['        Likely reasons:', ...cf.status.fidelity.reasons.map(r => `          - ${r}`)] : [])] : [];
+    // 6d-3: the level heading with the fidelity sentence, what is missing and the box (without a level, as before)
+    const lev = cf.level ? ['', cf.level.heading.toUpperCase(), ...fid, ...(cf.level.missing.length ? [`        ${MISSING_INTRO}`, ...cf.level.missing.map(m => `          - ${m}`)] : []), ...cf.level.lines.map(t => `        ${t}`), ...closeLines(cf.close).map(t => `        ${t}`)] : [];
+    const L = [cf.title, '', `STATUS  ${cf.status.line}`, `        ${cf.status.looked}`, ...(cf.status.php ? [`        ${cf.status.php}`] : []), ...(cf.status.note ? [`        ${cf.status.note}`] : []), ...(cf.status.sandbox_note ? [`        ${cf.status.sandbox_note}`] : []), ...(cf.status.cautions || []).map(t => `        ${t}`), ...(cf.level ? [] : fid), ...(cf.status.log_help ? cf.status.log_help.map(t => `        ${t}`) : []), ...(cf.status.copy_log || []).map(t => `        ${t}`), ...lev, '', 'WHAT YOU SEE', ...cf.see.map(s => `  ${s}`)];
     if (cf.no_cause_note) L.push('', cf.no_cause_note);
     for (const c of cf.cases) {
         L.push('', c.n ? `CASE ${c.n}  ${c.heading.toUpperCase()}` : c.heading.toUpperCase());
@@ -305,4 +399,4 @@ function cli(cf) {
     return L.join('\n');
 }
 
-module.exports = { countedChecks, countedSentence, fidelityPart, MISSING_SHOWN, userDataLines, activePluginLines, versionLines, build, markdown, markdownDeveloper, cli, statusLine, lookedAt, skippedText, confirmedSentence, LIKELY, CHECK, CHECK_NO_CRASH, CONFIRMED, SIGNS, EMPTY_STATUS, NOT_CONFIRMED_SENTENCE, NO_CAUSE_NOTE, NOT_LIVE_SENTENCE, PHP_NOT_STATED, MODIFIED_NOTE, MODIFIED_ADVICE, NO_LOG_HELP };
+module.exports = { NOT_CONFIRMED_LABEL, NO_PAGE_MATCH, copyLevel, closeness, closeLines, LEVEL_HEADING, MISSING_TEXT, MISSING_INTRO, NOT_TESTED_LABEL, MATCHED_LINE, CLOSE_TITLE, CLOSE_GROUPS, NOT_COVERED, countedChecks, countedSentence, fidelityPart, MISSING_SHOWN, userDataLines, activePluginLines, versionLines, build, markdown, markdownDeveloper, cli, statusLine, lookedAt, skippedText, confirmedSentence, LIKELY, CHECK, CHECK_NO_CRASH, CONFIRMED, SIGNS, EMPTY_STATUS, NOT_CONFIRMED_SENTENCE, NO_CAUSE_NOTE, NOT_LIVE_SENTENCE, PHP_NOT_STATED, MODIFIED_NOTE, MODIFIED_ADVICE, NO_LOG_HELP };

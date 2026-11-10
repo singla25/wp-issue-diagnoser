@@ -23,6 +23,9 @@ const pathOf = u => { try { const x = new URL(u); return x.pathname + x.search; 
 async function runMany(ids, { root, options = {}, env = process.env, sandboxOptions = {}, components = [], top = [], observe = probe.observeSandbox } = {}) {
     const out = { steps: [], sandbox: null, per: {}, shared: { page_loads: 0, cache_hits: 0, sets: 0, issues: ids.length }, unavailable: null };
     const issues = ids.map(id => store.load(id));
+    // a LIVE site is never copied with its database (sandbox-phase.js LIVE_NO_DB): with any live issue the database file is not used
+    const liveDb = issues.some(i => i.environment === 'live') && !!(options.dump || options.exportDb);
+    if (liveDb) { options = { ...options, dump: undefined, exportDb: false }; out.steps.push(phase.liveDbStep()); }
     // TEST-COPY-SPEC 6d-2: with a database file every issue gets the fidelity check (issue/fidelity.js); the same producer rule as sandbox-phase.js:
     // unless the copy matched (or showed the same kind of failure), reproduced_in_sandbox stays null and the issue is not bisected
     const fid = require('./fidelity'), dbIntent = !!(options.dump || options.exportDb);
@@ -68,22 +71,30 @@ async function runMany(ids, { root, options = {}, env = process.env, sandboxOpti
         const pages = probe.absPages(pageSet, base, MAX_UNION_PAGES);
         const vpAll = new Map(); for (const i of issues) for (const v of probe.viewportsFor(i.oracle, options)) vpAll.set(v.name, v);
         const vp = [...vpAll.values()].sort((a, b) => (a.name < b.name ? -1 : 1));
-        const cache = new Map();
+        const cache = new Map(), logAbs = path.join(handle.dir, 'logs', 'debug.log');
         const hashOf = s => crypto.createHash('sha256').update(JSON.stringify([s.plugins, s.theme, s.mu])).digest('hex').slice(0, 12);
         async function observed(set) {
             const h = hashOf(set);
             if (cache.has(h)) { out.shared.cache_hits++; return cache.get(h); }
             let r;
             if (apply(set) === 'unresolved') r = { ok: false, unresolved: true, reason: 'no default theme in the sandbox' };
-            else { out.shared.page_loads++; r = await observe({ base, pages, vp, stateDir: path.join(handle.dir, 'probe'), tag: `s${out.shared.page_loads}`, env, options: {} }); }
+            else {
+                // 'Same fatal required': the new fatals in the copy's log while THIS set loaded, kept with the cached observation (shared by every issue)
+                let size = 0; try { size = fs.statSync(logAbs).size; } catch { /* no log yet */ }
+                out.shared.page_loads++; r = await observe({ base, pages, vp, stateDir: path.join(handle.dir, 'probe'), tag: `s${out.shared.page_loads}`, env, options: {} });
+                let grown = ''; try { const st = fs.statSync(logAbs), len = Math.max(0, Math.min(st.size - size, 256 * 1024)), b = Buffer.alloc(len), fd = fs.openSync(logAbs, 'r'); try { fs.readSync(fd, b, 0, len, size); } finally { fs.closeSync(fd); } grown = b.toString('utf8'); } catch { /* no log */ }
+                if (r && typeof r === 'object') r.pg_fatals = phase.fatalsOfText(grown);
+            }
             cache.set(h, r); out.shared.sets = cache.size;
             return r;
         }
         const wantedPages = i => new Set((i.pages.length ? i.pages : ['/']).map(p => (/^https?:/.test(p) ? pathOf(p) : p)));
         function testFor(issue, last) {
             const want = wantedPages(issue), vps = new Set(probe.viewportsFor(issue.oracle, options).map(v => v.name));
+            last.history = [];
             return async set => {
                 const o = await observed(set);
+                last.history.push({ fatals: (o && o.pg_fatals) || [], five: !!(o && o.ok && (o.pagesFull || []).some(p => want.has(pathOf(p.url)) && vps.has(vpName(p)) && Number(p.reused_status || p.status) >= 500)) });
                 if (!o.ok) { last.v = null; last.obs = null; last.err = o.unresolved ? 'the test copy could not be set up for the test' : `the pages of the test copy could not be loaded${o.reason ? `: ${o.reason}` : ''}`; return 'unresolved'; }
                 const sub = o.pagesFull.filter(p => want.has(pathOf(p.url)) && vps.has(vpName(p)));
                 last.obs = sub; last.err = null;   // 6d-2: the observed pages (status, text) for the fidelity check of the baseline
@@ -123,11 +134,14 @@ async function runMany(ids, { root, options = {}, env = process.env, sandboxOpti
                 if (res.fidelity) steps.push(phase.fidelityStep(res.fidelity));
                 if (base0 === 'fail' && !use) steps.push(step('bisect', 'Bisection', 'NOT_RUN', 'the test copy did not show the same problem as your site, so it is not bisected and nothing from it is used'));
                 else if (base0 === 'fail' && !options.noBisect) {
-                    const b = await bisect.run({ plugins: active, requires, mu: muAll, top, test, caps: { maxLoads: Number(options.maxLoads) || undefined, maxMs: capMs }, logFile: path.join(dir, 'work', 'bisect.log'), label: { oracle: issue.oracle.type } });
+                    const k0 = last.history.length;
+                    const b = await bisect.run({ plugins: active, requires, mu: muAll, top, test, caps: { maxLoads: Number(options.maxLoads) || undefined, maxMs: capMs }, logFile: path.join(dir, 'work', 'bisect.log'), label: { oracle: issue.oracle.type },
+                        bareCheck: phase.bareCheckFor(last.history, { oracleType: issue.oracle.type, cause: phase.realSide(dir, issue).cause_fatal }) });
+                    phase.annotateBisect(b, { steps: last.history.slice(k0) });
                     fs.writeFileSync(path.join(dir, 'work', 'bisect.json'), JSON.stringify({ ...b, log: undefined }, null, 2) + '\n', { mode: 0o600 });
                     res.bisect = b;
                     steps.push(step('bisect', 'Bisection (delta debugging in the sandbox)', b.status === 'not-reproduced-at-start' ? 'NOT_RUN' : 'PASSED',
-                        `${b.symptom_without_plugins ? 'NOT A PLUGIN CONFLICT: the symptom is present with every plugin switched off. ' : ''}${b.status}: ${b.causes.length ? b.causes.map(c => `[${c.plugins.join(', ')}]`).join(' and ') : b.theme && b.theme.involved ? 'the theme' : 'no plugin set'}; ${b.loads} tests, ${b.cache_hits} from this issue's cache${b.capped ? `; STOPPED by the ${b.capped} cap, so the result is not proven minimal` : ''}; log in work/bisect.log`));
+                        `${phase.bisectBanner(b)}${b.status}: ${phase.bisectCause(b)}; ${b.loads} tests, ${b.cache_hits} from this issue's cache${b.capped ? `; STOPPED by the ${b.capped} cap, so the result is not proven minimal` : ''}; log in work/bisect.log`));
                 } else steps.push(step('bisect', 'Bisection', 'NOT_RUN', options.noBisect ? 'switched off' : base0 === 'pass' ? 'the symptom is not present in the sandbox, so there is nothing to bisect' : 'the symptom could not be evaluated in the sandbox'));
                 }
             } catch (e) {

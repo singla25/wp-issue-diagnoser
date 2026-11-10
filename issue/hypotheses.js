@@ -212,7 +212,8 @@ function build(ctx) {
 
     // ---- the sandbox bisection: the strongest evidence this tool can produce, because the symptom was switched on and off by changing the components ----
     const bis = ctx.bisect;
-    if (bis && bis.causes && bis.causes.length) {
+    // an 'inconclusive' bisection (the no-plugin step failed with a different or unknown error) names no cause: no hypothesis comes from it
+    if (bis && bis.status !== 'inconclusive' && bis.causes && bis.causes.length) {
         for (const cause of bis.causes) {
             const set = cause.plugins.map(toRef);
             const sup = { kind: 'bisect', ref: `bisect:${cause.plugins.join('+')}`, text: `sandbox bisection (${bis.loads} page loads): the symptom is present when [${cause.plugins.join(', ')}] are active together and absent when any of them is switched off${bis.minimal === false ? ' (the search was stopped by a cap, so this set is not proven minimal)' : ''}` };
@@ -220,7 +221,7 @@ function build(ctx) {
             add('bisect-minimal-set', set, cause.plugins.join('+'), [sup], { family: 'bisect', mechanism: `In a throwaway copy of the site the symptom appears exactly when ${cause.plugins.join(' + ')} ${cause.plugins.length > 1 ? 'are' : 'is'} active, and disappears when any of ${cause.plugins.length > 1 ? 'them is' : 'it is'} switched off${Object.keys(cause.required_by || {}).length ? ` (${Object.entries(cause.required_by).map(([p, by]) => `${p} is only included because ${by.join(', ')} requires it`).join('; ')})` : ''}. This shows WHICH components are involved; why they conflict is what the other evidence on this list explains.`, bisect: cause });
         }
     }
-    if (bis && bis.theme && bis.theme.involved === true && !(bis.causes || []).length) add('bisect-minimal-set', [], 'theme', [{ kind: 'bisect', ref: 'bisect:theme', text: 'sandbox bisection: with no plugin changed, a default theme makes the symptom disappear' }], { family: 'bisect', mechanism: 'In the sandbox the symptom disappears when the site\'s theme is replaced by a default theme: the theme (or a child/parent combination) is involved.' });
+    if (bis && bis.status !== 'inconclusive' && bis.theme && bis.theme.involved === true && !(bis.causes || []).length) add('bisect-minimal-set', [], 'theme', [{ kind: 'bisect', ref: 'bisect:theme', text: 'sandbox bisection: with no plugin changed, a default theme makes the symptom disappear' }], { family: 'bisect', mechanism: 'In the sandbox the symptom disappears when the site\'s theme is replaced by a default theme: the theme (or a child/parent combination) is involved.' });
 
     // ---- knowledge base: a hit that comes from an observation or collision strengthens THAT hypothesis; the others stand on their own ----
     for (const h of kb) {

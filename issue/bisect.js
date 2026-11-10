@@ -16,7 +16,15 @@ const fs = require('fs');
 class CapReached extends Error { constructor(kind) { super(kind); this.kind = kind; } }
 const DEFAULT_CAPS = { maxLoads: 40, maxMs: 15 * 60 * 1000, maxCauses: 3 };
 
-async function run({ plugins, requires = {}, mu = [], test, caps = {}, logFile = null, clock = () => Date.now(), top = [], label = {} }) {
+// 'Same fatal required' (owner-approved): the no-plugin step failed, but not with the fatal the report names as the cause. The bisection then
+// stops with the status 'inconclusive' and names NO cause (no plugin, theme, must-use plugin, core, database or server conclusion).
+const BARE_DIFFERENT = 'With every plugin off the page still failed, but with a different error, so this does not show that plugins are not involved.';
+const BARE_UNKNOWN = 'With every plugin off the page still failed, but with an unknown error, so this does not show that plugins are not involved.';
+const bareSentence = v => (v === true ? BARE_DIFFERENT : v === 'unknown' ? BARE_UNKNOWN : null);
+
+// bareCheck (optional, from the producer): called right after a FAILING no-plugin step; -> null (the same failure as reported, or the rule does not
+// apply) | true (a different fatal) | 'unknown' (no fatal could be read, or no cause to compare with)
+async function run({ plugins, requires = {}, mu = [], test, caps = {}, logFile = null, clock = () => Date.now(), top = [], label = {}, bareCheck = null }) {
     const C = { ...DEFAULT_CAPS, ...caps };
     const order = new Map(plugins.map((p, i) => [p, i]));
     const byOrder = a => [...new Set(a)].sort((x, y) => order.get(x) - order.get(y));
@@ -86,6 +94,12 @@ async function run({ plugins, requires = {}, mu = [], test, caps = {}, logFile =
         L('== nothing on: is it the plugins at all?');
         const bare = await T({ plugins: [], theme: null, mu: null }, 'no plugin active');
         let causePlugins = [];
+        const bv = bare === 'fail' && typeof bareCheck === 'function' ? bareCheck() : null, differs = bareSentence(bv) ? bv : null;
+        if (differs) {
+            out.symptom_without_plugins = false; out.bare_different_failure = differs;
+            L(`   ${bareSentence(differs)}`);
+            return finish('inconclusive');
+        }
         out.symptom_without_plugins = bare === 'fail';   // said in plain words in every report: it is NOT a plugin conflict
         if (bare === 'fail') L('   the symptom is there with NO plugin active: not plugin-related');
         else {
@@ -154,4 +168,4 @@ async function run({ plugins, requires = {}, mu = [], test, caps = {}, logFile =
     }
 }
 
-module.exports = { run, DEFAULT_CAPS, CapReached };
+module.exports = { run, DEFAULT_CAPS, CapReached, BARE_DIFFERENT, BARE_UNKNOWN, bareSentence };
