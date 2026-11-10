@@ -101,7 +101,9 @@
     "selftest:6c2": "node scripts/selftest-6c2.js",
     "selftest:6c2-docker": "node scripts/selftest-6c2-docker.js",
     "selftest:6d1": "node scripts/selftest-6d1.js",
-    "selftest:6d1-docker": "node scripts/selftest-6d1-docker.js"
+    "selftest:6d1-docker": "node scripts/selftest-6d1-docker.js",
+    "selftest:6d2": "node scripts/selftest-6d2.js",
+    "selftest:6d2-docker": "node scripts/selftest-6d2-docker.js"
   },
   "license": "ISC",
   "dependencies": {

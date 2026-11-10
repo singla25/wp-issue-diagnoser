@@ -199,7 +199,7 @@ function site(name) {
         ok(cl.last_fatals[1].file === 'themes/acme/functions.php' && cl.last_fatals[2].file === null && /in wp-includes\/plugin\.php on line 205/.test(cl.last_fatals[2].message), 'a theme file is relative to wp-content; a core file has no file field (it is outside wp-content) and its message keeps wp-includes/...');
         const raw = fs.readFileSync(path.join(p.dir, 'work', 'copy-log.json'), 'utf8');
         ok(!raw.includes('SuperSecretValue123') && raw.includes('api_key=[REDACTED]') && !raw.includes('/var/www/html'), 'redacted like other logs (lib/redact.js) and no absolute container path');
-        ok(!JSON.stringify(p.sb).includes('Acme') && p.sb.reproduced_in_sandbox === 'no', 'the sandbox phase result (steps, reproduced_in_sandbox) does not carry the copy log');
+        ok(!JSON.stringify(p.sb).includes('Acme') && p.sb.reproduced_in_sandbox === null, 'the sandbox phase result (steps, reproduced_in_sandbox) does not carry the copy log');
         const A = p.build();
         const sm = A.f.sandbox && A.f.sandbox.summary;
         ok(sm && sm.active_plugins && sm.active_plugins.source === 'from the database' && JSON.stringify(sm.active_plugins.missing_files) === '["gone/gone.php"]' && sm.active_plugins.active_count === 2 && sm.active_plugins.not_active_present === 1, `findings.json sandbox.summary.active_plugins: ${JSON.stringify(sm && sm.active_plugins)}`);

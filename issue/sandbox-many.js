@@ -23,11 +23,16 @@ const pathOf = u => { try { const x = new URL(u); return x.pathname + x.search; 
 async function runMany(ids, { root, options = {}, env = process.env, sandboxOptions = {}, components = [], top = [], observe = probe.observeSandbox } = {}) {
     const out = { steps: [], sandbox: null, per: {}, shared: { page_loads: 0, cache_hits: 0, sets: 0, issues: ids.length }, unavailable: null };
     const issues = ids.map(id => store.load(id));
-    const none = reason => { out.unavailable = reason; for (const id of ids) out.per[id] = { reproduced_in_sandbox: null, bisect: null, baseline: null, steps: [step('sandbox', 'Sandbox (throwaway copy in Docker)', 'NOT_RUN', reason)] }; return out; };
+    // TEST-COPY-SPEC 6d-2: with a database file every issue gets the fidelity check (issue/fidelity.js); the same producer rule as sandbox-phase.js:
+    // unless the copy matched (or showed the same kind of failure), reproduced_in_sandbox stays null and the issue is not bisected
+    const fid = require('./fidelity'), dbIntent = !!(options.dump || options.exportDb);
+    if (dbIntent) for (const id of ids) phase.removeFidelity(store.dirOf(id));
+    const fidelityFor = (id, copy) => { const issue = issues.find(i => i.id === id), dir = store.dirOf(id), fd = fid.compare({ real: phase.realSide(dir, issue), copy }); phase.writeFidelity(dir, fd); return fd; };
+    const none = (reason, copy = { error: reason }) => { out.unavailable = reason; for (const id of ids) { out.per[id] = { reproduced_in_sandbox: null, bisect: null, baseline: null, steps: [step('sandbox', 'Sandbox (throwaway copy in Docker)', 'NOT_RUN', reason)] }; if (dbIntent) { const fd = fidelityFor(id, copy); out.per[id].fidelity = fd; out.per[id].steps.push(phase.fidelityStep(fd)); } } return out; };
     if (!ids.length) return none('there is no issue to test');
-    if (!root) return none('a local copy of the site (--root) is needed');
+    if (!root) return none('a local copy of the site (--root) is needed', { built: false });
     const pf = sandbox.preflight(sandboxOptions);
-    if (!pf.ok) return none(`${pf.reason} Static-only mode: not reproduced, sandbox unavailable.`);
+    if (!pf.ok) return none(`${pf.reason} Static-only mode: not reproduced, sandbox unavailable.`, { error: pf.reason });
 
     let handle; const t0 = Date.now();
     try {
@@ -79,8 +84,9 @@ async function runMany(ids, { root, options = {}, env = process.env, sandboxOpti
             const want = wantedPages(issue), vps = new Set(probe.viewportsFor(issue.oracle, options).map(v => v.name));
             return async set => {
                 const o = await observed(set);
-                if (!o.ok) { last.v = null; return 'unresolved'; }
+                if (!o.ok) { last.v = null; last.obs = null; last.err = o.unresolved ? 'the test copy could not be set up for the test' : `the pages of the test copy could not be loaded${o.reason ? `: ${o.reason}` : ''}`; return 'unresolved'; }
                 const sub = o.pagesFull.filter(p => want.has(pathOf(p.url)) && vps.has(vpName(p)));
+                last.obs = sub; last.err = null;   // 6d-2: the observed pages (status, text) for the fidelity check of the baseline
                 const res = oracleMod.evaluate(issue.oracle, { pages: sub, planned: want.size * vps.size, protection: o.protection, sandbox: true, logged_in: false }, { needsLogin: false, symptom: issue.symptom });
                 last.v = { result: res.result, matches: res.matches || [], pages: sub.map(p => ({ url: p.url, viewport: vpName(p), loaded: !!p.loaded })) };
                 if (res.result === 'yes') return 'fail';
@@ -93,6 +99,8 @@ async function runMany(ids, { root, options = {}, env = process.env, sandboxOpti
         // ---- each issue: does the sandbox show the symptom, and if so which plugins cause it ----
         // a FIXED cap per issue (so bisect.json is reproducible), and one limit for the whole run
         const capMs = options.maxMinutes ? Number(options.maxMinutes) * 60000 : 15 * 60000, totalMs = capMs * 3;
+        const dbBuild = phase.isDbBuild(handle);
+        let copyLog = null;   // the copy's own log, read ONCE right after the first baseline load (before any bisection switched plugins off)
         for (const issue of issues) {
             const id = issue.id, dir = store.dirOf(id), steps = [], last = {};
             const test = testFor(issue, last);
@@ -105,10 +113,16 @@ async function runMany(ids, { root, options = {}, env = process.env, sandboxOpti
                     steps.push(step('bisect', 'Bisection', 'NOT_RUN', 'the sandbox could not activate the plugins, so there is nothing to bisect'));
                 } else {
                 const base0 = await test({ plugins: active, theme: null, mu: null });
-                res.reproduced_in_sandbox = base0 === 'fail' ? 'yes' : base0 === 'pass' ? 'no' : 'could-not-test';
+                const raw = base0 === 'fail' ? 'yes' : base0 === 'pass' ? 'no' : 'could-not-test';
+                if (dbBuild && !copyLog) copyLog = phase.readCopyLog(path.join(handle.dir, 'logs', 'debug.log'), { secrets: handle.test_login ? [handle.test_login.password] : [] });
+                if (dbBuild) res.fidelity = fidelityFor(id, fid.copyFrom({ pages: last.obs, copyLog, error: last.obs ? null : last.err || 'the pages of the test copy could not be loaded' }));
+                const use = !res.fidelity || res.fidelity.counts;
+                res.reproduced_in_sandbox = use ? raw : null;
                 res.baseline = last.v ? { ...last.v, active_plugins: [...active] } : null;
-                steps.push(step('sandbox-oracle', 'Oracle in the sandbox: is the symptom present?', base0 === 'unresolved' ? 'NOT_RUN' : 'PASSED', `symptom reproduced in the sandbox: ${res.reproduced_in_sandbox}${base0 === 'pass' ? '. NOT reproduced: every hypothesis stays PROBABLE_NEEDS_REVIEW or below, nothing can be REPRODUCIBLE.' : ''}`));
-                if (base0 === 'fail' && !options.noBisect) {
+                steps.push(step('sandbox-oracle', 'Oracle in the sandbox: is the symptom present?', base0 === 'unresolved' ? 'NOT_RUN' : 'PASSED', `symptom reproduced in the sandbox: ${raw}${use && base0 === 'pass' ? '. NOT reproduced: every hypothesis stays PROBABLE_NEEDS_REVIEW or below, nothing can be REPRODUCIBLE.' : ''}${use ? '' : '. Not used as evidence: the test copy did not show the same problem as your site (see the fidelity step)'}`));
+                if (res.fidelity) steps.push(phase.fidelityStep(res.fidelity));
+                if (base0 === 'fail' && !use) steps.push(step('bisect', 'Bisection', 'NOT_RUN', 'the test copy did not show the same problem as your site, so it is not bisected and nothing from it is used'));
+                else if (base0 === 'fail' && !options.noBisect) {
                     const b = await bisect.run({ plugins: active, requires, mu: muAll, top, test, caps: { maxLoads: Number(options.maxLoads) || undefined, maxMs: capMs }, logFile: path.join(dir, 'work', 'bisect.log'), label: { oracle: issue.oracle.type } });
                     fs.writeFileSync(path.join(dir, 'work', 'bisect.json'), JSON.stringify({ ...b, log: undefined }, null, 2) + '\n', { mode: 0o600 });
                     res.bisect = b;
@@ -116,14 +130,17 @@ async function runMany(ids, { root, options = {}, env = process.env, sandboxOpti
                         `${b.symptom_without_plugins ? 'NOT A PLUGIN CONFLICT: the symptom is present with every plugin switched off. ' : ''}${b.status}: ${b.causes.length ? b.causes.map(c => `[${c.plugins.join(', ')}]`).join(' and ') : b.theme && b.theme.involved ? 'the theme' : 'no plugin set'}; ${b.loads} tests, ${b.cache_hits} from this issue's cache${b.capped ? `; STOPPED by the ${b.capped} cap, so the result is not proven minimal` : ''}; log in work/bisect.log`));
                 } else steps.push(step('bisect', 'Bisection', 'NOT_RUN', options.noBisect ? 'switched off' : base0 === 'pass' ? 'the symptom is not present in the sandbox, so there is nothing to bisect' : 'the symptom could not be evaluated in the sandbox'));
                 }
-            } catch (e) { steps.push(step('sandbox', 'Sandbox test', 'FAILED', String(e.message).split('\n')[0].slice(0, 300))); }
+            } catch (e) {
+                steps.push(step('sandbox', 'Sandbox test', 'FAILED', String(e.message).split('\n')[0].slice(0, 300)));
+                if (dbIntent && !res.fidelity) { res.reproduced_in_sandbox = null; res.fidelity = fidelityFor(id, { error: e.message }); steps.push(phase.fidelityStep(res.fidelity)); }
+            }
             res.steps = steps;
-            fs.writeFileSync(path.join(dir, 'work', 'sandbox.json'), JSON.stringify({ steps: [...out.steps, ...steps], sandbox: out.sandbox, could_not_run: res.could_not_run || undefined, reproduced_in_sandbox: res.reproduced_in_sandbox, baseline: res.baseline, shared: out.shared }, null, 2) + '\n', { mode: 0o600 });
+            fs.writeFileSync(path.join(dir, 'work', 'sandbox.json'), JSON.stringify({ steps: [...out.steps, ...steps], sandbox: out.sandbox, could_not_run: res.could_not_run || undefined, reproduced_in_sandbox: res.reproduced_in_sandbox, baseline: res.baseline, shared: out.shared, fidelity: res.fidelity || undefined }, null, 2) + '\n', { mode: 0o600 });
             out.per[id] = res;
         }
     } catch (e) {
         out.steps.push(step('sandbox', 'Sandbox (throwaway copy in Docker)', e.name === 'SandboxRefusal' || e.name === 'SandboxUnavailable' ? 'BLOCKED' : 'FAILED', String(e.message).replace(/\s*\n\s*/g, ' ').slice(0, 600)));
-        for (const id of ids) if (!out.per[id]) out.per[id] = { reproduced_in_sandbox: null, bisect: null, baseline: null, steps: [step('sandbox', 'Sandbox (throwaway copy in Docker)', 'NOT_RUN', 'the sandbox did not start or failed')] };
+        for (const id of ids) if (!out.per[id]) { out.per[id] = { reproduced_in_sandbox: null, bisect: null, baseline: null, steps: [step('sandbox', 'Sandbox (throwaway copy in Docker)', 'NOT_RUN', 'the sandbox did not start or failed')] }; if (dbIntent) { const fd = fidelityFor(id, { error: e.message }); out.per[id].fidelity = fd; out.per[id].steps.push(phase.fidelityStep(fd)); } }
     } finally {
         if (handle) {
             const rep = handle.destroy();
@@ -131,7 +148,7 @@ async function runMany(ids, { root, options = {}, env = process.env, sandboxOpti
         }
     }
     // every issue's sandbox.json is written last, so it holds the shared steps including the teardown
-    for (const id of ids) { const r = out.per[id]; try { fs.writeFileSync(path.join(store.dirOf(id), 'work', 'sandbox.json'), JSON.stringify({ steps: [...out.steps, ...((r && r.steps) || [])], sandbox: out.sandbox, reproduced_in_sandbox: r ? r.reproduced_in_sandbox : null, baseline: r ? r.baseline : null, shared: out.shared }, null, 2) + '\n', { mode: 0o600 }); } catch { /* work folder missing */ } }
+    for (const id of ids) { const r = out.per[id]; try { fs.writeFileSync(path.join(store.dirOf(id), 'work', 'sandbox.json'), JSON.stringify({ steps: [...out.steps, ...((r && r.steps) || [])], sandbox: out.sandbox, reproduced_in_sandbox: r ? r.reproduced_in_sandbox : null, baseline: r ? r.baseline : null, shared: out.shared, fidelity: (r && r.fidelity) || undefined }, null, 2) + '\n', { mode: 0o600 }); } catch { /* work folder missing */ } }
     return out;
 }
 module.exports = { runMany };

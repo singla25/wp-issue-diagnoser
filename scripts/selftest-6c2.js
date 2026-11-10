@@ -277,11 +277,27 @@ const sub = (l, s, svc) => l.args[0] === 'compose' && l.args[5] === s && (!svc |
         const ids = fs.existsSync(out) ? fs.readdirSync(out).filter(x => store.ISSUE_RE.test(x)) : [];
         return { F, text: text + logged, errs, error, code, dir: ids.length ? path.join(out, ids[0]) : null, out };
     }
+    // failure path only: when a wizard case yields no password, print what the wizard did (no assertion depends on this)
+    function wizDiag(name, r) {
+        const P = t => console.log(`DIAG[${name}] ${t}`);
+        try {
+            P(`exit code: ${r.code}; thrown: ${r.error ? (r.error.stack || r.error.message) : 'none'}`);
+            P(`stdout: ${JSON.stringify(String(r.text).slice(-3000))}`);
+            P(`stderr: ${JSON.stringify(String(r.errs).slice(-3000))}`);
+            let steps = 'no findings.json';
+            if (r.dir && fs.existsSync(path.join(r.dir, 'result', 'findings.json'))) steps = JSON.stringify((JSON.parse(fs.readFileSync(path.join(r.dir, 'result', 'findings.json'), 'utf8')).timeline || []).map(s => [s.id, s.status, s.note || s.reason || '']));
+            P(`sandbox steps: ${steps}`);
+            P(`fake docker calls: ${JSON.stringify(r.F.log().map(l => [l.args && l.args[0], (l.args || []).slice(1, 3).join(' ')]).slice(0, 40))}`);
+            const d = require('child_process').spawnSync('docker', ['ps', '-a'], { encoding: 'utf8', timeout: 20000 });
+            P(`docker ps -a: ${JSON.stringify(((d.stdout || '') + (d.stderr || '')).slice(0, 2000))} (status ${d.status})`);
+        } catch (e) { P(`diagnostic itself failed: ${e.message}`); }
+    }
     const Qtext = wizard.USERS_QUESTION.join('\n');
     ok(Qtext === 'Your database file contains user accounts. How should the test copy handle them?\n  1) Use dummy users only. Your real users are not copied.\n  0) Skip the test copy\nKeeping real or named accounts is not available in this version. The database stays on this computer, is deleted afterwards and is never sent anywhere.', 'the question text is exactly the agreed text (no option 2 or 3)');
     {
         const r = await wiz('one', ['', '', '1'], { sandbox: true, 'db-dump': SQL, 'keep-sandbox': true });
         const wp1 = r.F.password();
+        if (!wp1) wizDiag('one', r);
         ok(!r.error && r.text.includes(Qtext) && occurrences(r.text, 'Your database file contains user accounts') === 1, `asked once with a terminal and a database file${r.error ? ` (error: ${r.error.message})` : ''}`);
         ok(wp1 && occurrences(r.text, `Test login for the copy: pgadmin / ${wp1}  (shown only here, never saved)`) === 1 && occurrences(r.text, wp1) === 1 && !r.errs.includes(wp1), 'answer 1: the copy is built and the one terminal line shows the password, exactly once; it is nowhere else in stdout or stderr');
         ok(occurrences(r.text, '2 tables could not be checked and are copied as they are.') === 1 && occurrences(r.text, cli.OTHER_TABLES_NOTE) === 1 && /FOR A DEVELOPER[\s\S]*2 tables could not be checked/.test(r.text), 'the unchecked-tables line and the other-tables note are printed once, in the summary after the build (FOR A DEVELOPER)');
@@ -307,6 +323,7 @@ const sub = (l, s, svc) => l.args[0] === 'compose' && l.args[5] === s && (!svc |
     for (const [name, flags, tty] of [['yes', { yes: true }, true], ['noq', { 'no-questions': true }, true], ['noprompt', { 'no-prompt': true }, true], ['notty', {}, false], ['users-flag', { users: 'dummy' }, true]]) {
         const r = await wiz(name, name === 'users-flag' ? ['', ''] : [], { sandbox: true, 'db-dump': SQL, ...flags }, { tty });
         const pwx = r.F.password();
+        if (!pwx) wizDiag(name, r);
         ok(!r.error && !r.text.includes('Your database file contains user accounts') && pwx && r.F.log().some(l => /pg_admins/.test(l.stdin || '')), `${name}: not asked, the answer is 1 (the copy is built with dummy users)${r.error ? ` (error: ${r.error.message})` : ''}`);
         ok(tty ? occurrences(r.text, pwx) === 1 : !r.text.includes(pwx) && !r.errs.includes(pwx) && !/Test login for the copy/.test(r.text), tty ? `${name}: with a terminal the password line is printed once` : `${name}: without a terminal the password is never printed`);
         ok(r.dir && filesWith(r.out, pwx).length === 0, `${name}: no file under the reports folder contains the password`);

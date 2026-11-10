@@ -22,10 +22,24 @@ const NOT_LIVE_SENTENCE = 'Not checked on the live site.';
 const PHP_NOT_STATED = 'PHP: not stated.';
 const NUM_WORD = ['zero', 'one', 'two', 'three', 'four', 'five', 'six'];
 // "How sure" of a confirmed case: only what the data shows (n = validated independent checks; sandbox = 'yes' | 'no' | null)
-function confirmedSentence(n, sandbox) {
+// 6d-2: a test copy from a database file that did not count (fidelity did-not-match / could-not-test / not-tested): no copy sentence at all, because
+// the fidelity sentence of the report already says what happened (never "Not yet tested on a copy" next to it). Without a test copy: unchanged.
+function confirmedSentence(n, sandbox, fidelity = null) {
+    if (fidelity && fidelity.level && !fidelity.counts) return `Confirmed by ${NUM_WORD[n] || n} independent checks.`;
     const copy = sandbox === 'yes' ? 'Reproduced on a test copy of your site.' : sandbox === 'no' ? 'A test on a copy of your site did not reproduce it.' : 'Not yet tested on a copy of your site.';
     return `Confirmed by ${NUM_WORD[n] || n} independent checks. ${copy}`;
 }
+// 6d-2: the checks that ACTUALLY counted, named. Only the deterministic kinds the validator kept (independent_kinds); the test copy is named only
+// when its fidelity check passed (matched or status-only) AND the bisection on it counted for this hypothesis (the 'bisect' kind). Otherwise null.
+const KIND_WORDS = { log: 'your log', probe: 'the live page', observation: 'the code', collision: 'the code', bisect: 'a test on a copy of your site' };
+function countedChecks(kinds, fidelity) {
+    const k = Array.isArray(kinds) ? kinds : [];
+    if (!fidelity || !fidelity.counts || !k.includes('bisect')) return null;
+    const list = [...new Set(['log', 'probe', 'observation', 'collision', 'bisect'].filter(x => k.includes(x)).map(x => KIND_WORDS[x]))];
+    return list.length >= 2 ? list : null;
+}
+const listWords = l => (l.length <= 1 ? l.join('') : `${l.slice(0, -1).join(', ')}, and ${l[l.length - 1]}`);
+const countedSentence = list => `Confirmed by ${NUM_WORD[list.length] || list.length} independent checks: ${listWords(list)}.`;
 // "How sure" of a cause that is not confirmed
 const notConfirmedSentence = sandbox => (sandbox === 'yes' ? 'Reproduced on a test copy of your site, but not confirmed by the re-check of the code.' : NOT_CONFIRMED_SENTENCE);
 // Case 3 (owner wording, REPORT-SPEC Part 3): what the signs mean, and the advice only as a condition (the tool cannot know where the copy came from)
@@ -97,6 +111,8 @@ function build(f, ctx) {
     const facts = ctx.facts || {}, sbx = facts.sandboxReproduced === 'yes' || facts.sandboxReproduced === true ? 'yes' : facts.sandboxReproduced === 'no' || facts.sandboxReproduced === false ? 'no' : null;
     // validated independent checks of a hypothesis: its independent kinds, or the two supports of a fatal re-check rule (validate.js counts those as the two)
     const checksOf = id => { const h = (f.hypotheses || []).find(x => x.id === id) || {}; const fr = h.fatal_recheck; return Math.max((h.independent_kinds || []).length, fr && fr.rule && (fr.supports || []).length === 2 ? 2 : 0); };
+    // the confirmed sentence: the named list when the test copy counted (6d-2), else the sentence as before
+    const sureOf = id => { const counted = countedChecks(((f.hypotheses || []).find(x => x.id === id) || {}).independent_kinds, ctx.fidelity || null); return counted ? countedSentence(counted) : confirmedSentence(checksOf(id), sbx, ctx.fidelity || null); };
 
     // a confirmed case: the evidence lines, the log entry's date on its own line, and whether the live site was looked at (no page loaded: "Not checked on the live site.")
     const confirmedSure = () => {
@@ -112,7 +128,7 @@ function build(f, ctx) {
         rows.push(['Where', [`${bc.where.who}: ${bc.where.file}, line ${bc.where.line}`]]);
         rows.push(['Why', bc.why]);
         if (likely) rows.push(['How sure', [...bc.sure, ...(sureLive ? [sureLive] : []), notConfirmedSentence(sbx)]]);
-        else if (nChecks >= 2) rows.push(['How sure', [confirmedSentence(nChecks, sbx), ...confirmedSure()]]);
+        else if (nChecks >= 2) rows.push(['How sure', [sureOf(boxId), ...confirmedSure()]]);
         else rows.push(['How sure', [...confirmedSure(), 'Marked as confirmed; the details for a developer show what it rests on.']]);
         if (box.note) rows.push(['Note', [box.note]]);
         rows.push(['What to do', bc.todo]);
@@ -126,7 +142,7 @@ function build(f, ctx) {
         if (wh.length) rows.push(['Where', wh]);
         rows.push(['Why', [sent(x.cause) + (x.type_text ? `. Kind of problem: ${x.type_text}.` : '.')]]);
         const sure = [];
-        if (kind === 'confirmed' && checksOf(x.id) >= 2) sure.push(confirmedSentence(checksOf(x.id), sbx));
+        if (kind === 'confirmed' && checksOf(x.id) >= 2) sure.push(sureOf(x.id));
         if (x.status) sure.push(`${plain.statusWord(x.status)}.`);
         if (x.shown_because) sure.push(`Shown because: ${x.shown_because}.`);
         for (const b of x.breaking_because || []) sure.push(`Seen: ${b.reason}`);
@@ -202,11 +218,14 @@ function build(f, ctx) {
     dev.push(...activePluginLines(ctx.activePlugins));
     return {
         title: f.issue_title_short || f.issue.title,
-        status: { ...n, line: statusLine(n), looked: looked.line, php: looked.php, note: f.log_note || null, sandbox_note: ctx.sandboxNote || null, ...(ctx.logHelp && ctx.logHelp.length ? { log_help: ctx.logHelp.slice() } : {}), empty: !n.likely && !n.confirmed && !n.check && !n.signs },
+        status: { ...n, line: statusLine(n), looked: looked.line, php: looked.php, note: f.log_note || null, sandbox_note: ctx.sandboxNote || null, ...(ctx.logHelp && ctx.logHelp.length ? { log_help: ctx.logHelp.slice() } : {}), ...fidelityPart(ctx.fidelity), empty: !n.likely && !n.confirmed && !n.check && !n.signs },
         see, no_cause_note: noCause ? NO_CAUSE_NOTE : null, cases, checked, developer: dev,
         excerpt: box && cd && cd.excerpt && cd.excerpt.available ? { title: `${cd.excerpt.file}, lines ${cd.excerpt.from} to ${cd.excerpt.to} (line ${cd.excerpt.cited} is marked with >)`, lines: causeDetail.excerptLines(cd.excerpt) } : null
     };
 }
+
+// 6d-2: the fidelity check of the test copy in the reader's words (issue/fidelity.js readerText): { line, reasons }, only when there is something to say
+function fidelityPart(fd) { const t = fd ? require('./fidelity').readerText(fd) : null; return t ? { fidelity: { line: t.line, reasons: t.reasons.slice() } } : {}; }
 
 // the cleaned user-data object (issue/result.js cleanUserData) -> the lines of the developer block. Numbers and fixed words only.
 const OTHER_TABLES_NOTE = 'Email addresses and IP addresses in other tables (form entries, order notes, plugin settings) are not hidden in this version.';
@@ -252,6 +271,7 @@ function markdown(cf, esc) {
     if (cf.status.php) L.push(e(cf.status.php), '');
     if (cf.status.note) L.push(e(cf.status.note), '');
     if (cf.status.sandbox_note) L.push(e(cf.status.sandbox_note), '');
+    if (cf.status.fidelity) { L.push(e(cf.status.fidelity.line), ''); if (cf.status.fidelity.reasons.length) L.push('Likely reasons:', '', ...cf.status.fidelity.reasons.map(r => `- ${e(r)}`), ''); }
     if (cf.status.log_help) cf.status.log_help.forEach((t, i) => L.push(i ? e(t) : `**${e(t)}**`, ''));
     L.push('## What you see', '', ...cf.see.map(s => `- ${e(s)}`), '');
     if (cf.no_cause_note) L.push(`**${e(cf.no_cause_note)}**`, '');
@@ -271,7 +291,7 @@ function markdownDeveloper(cf, esc) {
     return L;
 }
 function cli(cf) {
-    const L = [cf.title, '', `STATUS  ${cf.status.line}`, `        ${cf.status.looked}`, ...(cf.status.php ? [`        ${cf.status.php}`] : []), ...(cf.status.note ? [`        ${cf.status.note}`] : []), ...(cf.status.sandbox_note ? [`        ${cf.status.sandbox_note}`] : []), ...(cf.status.log_help ? cf.status.log_help.map(t => `        ${t}`) : []), '', 'WHAT YOU SEE', ...cf.see.map(s => `  ${s}`)];
+    const L = [cf.title, '', `STATUS  ${cf.status.line}`, `        ${cf.status.looked}`, ...(cf.status.php ? [`        ${cf.status.php}`] : []), ...(cf.status.note ? [`        ${cf.status.note}`] : []), ...(cf.status.sandbox_note ? [`        ${cf.status.sandbox_note}`] : []), ...(cf.status.fidelity ? [`        ${cf.status.fidelity.line}`, ...(cf.status.fidelity.reasons.length ? ['        Likely reasons:', ...cf.status.fidelity.reasons.map(r => `          - ${r}`)] : [])] : []), ...(cf.status.log_help ? cf.status.log_help.map(t => `        ${t}`) : []), '', 'WHAT YOU SEE', ...cf.see.map(s => `  ${s}`)];
     if (cf.no_cause_note) L.push('', cf.no_cause_note);
     for (const c of cf.cases) {
         L.push('', c.n ? `CASE ${c.n}  ${c.heading.toUpperCase()}` : c.heading.toUpperCase());
@@ -285,4 +305,4 @@ function cli(cf) {
     return L.join('\n');
 }
 
-module.exports = { MISSING_SHOWN, userDataLines, activePluginLines, versionLines, build, markdown, markdownDeveloper, cli, statusLine, lookedAt, skippedText, confirmedSentence, LIKELY, CHECK, CHECK_NO_CRASH, CONFIRMED, SIGNS, EMPTY_STATUS, NOT_CONFIRMED_SENTENCE, NO_CAUSE_NOTE, NOT_LIVE_SENTENCE, PHP_NOT_STATED, MODIFIED_NOTE, MODIFIED_ADVICE, NO_LOG_HELP };
+module.exports = { countedChecks, countedSentence, fidelityPart, MISSING_SHOWN, userDataLines, activePluginLines, versionLines, build, markdown, markdownDeveloper, cli, statusLine, lookedAt, skippedText, confirmedSentence, LIKELY, CHECK, CHECK_NO_CRASH, CONFIRMED, SIGNS, EMPTY_STATUS, NOT_CONFIRMED_SENTENCE, NO_CAUSE_NOTE, NOT_LIVE_SENTENCE, PHP_NOT_STATED, MODIFIED_NOTE, MODIFIED_ADVICE, NO_LOG_HELP };

@@ -55,12 +55,14 @@ function makeTester({ handle, issueId, env, plugins, requires, defaultTheme, sit
     const logFile = path.join(handle.dir, 'logs', 'debug.log');
     let n = 0;
     return async function test(set) {
-        if (apply(set) === 'unresolved') return 'unresolved';
+        test.lastObs = null; test.lastError = null;   // 6d-2: the observed pages of THIS call (status and text flags), for the fidelity check of the baseline
+        if (apply(set) === 'unresolved') { test.lastError = 'the test copy could not be set up for the test'; return 'unresolved'; }
         // ---- run the oracle ----
         let size = 0; try { size = fs.statSync(logFile).size; } catch { /* no log yet */ }
         n++;
         const r = await probe.runSandbox(issueId, { url: handle.url, stateDir: path.join(handle.dir, 'probe'), tag: `t${n}`, env, login, options: { ...options } });
-        if (!r.ok) { log(`probe failed: ${r.reason}`); return 'unresolved'; }
+        if (!r.ok) { log(`probe failed: ${r.reason}`); test.lastError = `the pages of the test copy could not be loaded: ${String(r.reason || 'the probe failed')}`; return 'unresolved'; }
+        test.lastObs = (r.pages || []).map(p => ({ url: p.url, loaded: !!p.loaded, status: p.status, reused_status: p.reused_status, text_flags: p.text_flags, text_chars: p.text_chars }));
         let growth = null; try { const st = fs.statSync(logFile); const fd = fs.openSync(logFile, 'r'); const len = Math.min(st.size - size, 256 * 1024), b = Buffer.alloc(Math.max(0, len)); fs.readSync(fd, b, 0, b.length, size); fs.closeSync(fd); growth = { available: true, new_text: b.toString('utf8') }; } catch { growth = { available: false, reason: 'no debug.log in the sandbox yet' }; }
         const issue = store.load(issueId);
         const res = issue.oracle.type === 'debug-log' || issue.oracle.type === 'generic' ? require('./oracle').evaluate(issue.oracle, { pages: r.pages.map(p => ({ ...p, console_errors: p.console_errors || [], page_errors: p.page_errors || [], error_responses: p.error_responses || [] })), planned: r.pages.length, sandbox: true, logged_in: !!(r.login && r.login.ok), debug_log: growth }, { needsLogin: issue.needs_login, symptom: issue.symptom }) : r.oracle;
@@ -126,15 +128,33 @@ const copyLogFile = dir => path.join(dir, 'work', 'copy-log.json');
 function writeCopyLog(dir, data) { try { if (!fs.lstatSync(path.join(dir, 'work')).isDirectory()) return; fs.writeFileSync(copyLogFile(dir), JSON.stringify(data, null, 2) + '\n', { mode: 0o600 }); } catch { /* no work folder */ } }
 function removeCopyLog(dir) { try { if (fs.lstatSync(copyLogFile(dir)).isFile()) fs.rmSync(copyLogFile(dir)); } catch { /* none */ } }
 
+// ---- TEST-COPY-SPEC 6d-2: the fidelity check (issue/fidelity.js) of a copy built from a database file ----
+// Its result is DATA in work/fidelity.json and in sandbox.json `fidelity`. The producer rule: unless the level is 'matched' or 'status-only',
+// reproduced_in_sandbox is written as null ('no evidence', exactly what a run without a test copy writes), never 'no', and the copy is not bisected.
+const fidelityFile = dir => path.join(dir, 'work', 'fidelity.json');
+function writeFidelity(dir, fd) { try { if (!fs.lstatSync(path.join(dir, 'work')).isDirectory()) return; fs.writeFileSync(fidelityFile(dir), JSON.stringify(fd, null, 2) + '\n', { mode: 0o600 }); } catch { /* no work folder */ } }
+function removeFidelity(dir) { try { if (fs.lstatSync(fidelityFile(dir)).isFile()) fs.rmSync(fidelityFile(dir)); } catch { /* none */ } }
+// a retest (issue/retest.js) copies sandbox.json to sandbox.initial.json first and keeps the first evidence: the first fidelity result stays too
+const keepsFirstEvidence = dir => { try { return fs.lstatSync(path.join(dir, 'work', 'sandbox.initial.json')).isFile(); } catch { return false; } };
+const readWork = (dir, f) => { try { return JSON.parse(fs.readFileSync(path.join(dir, 'work', f), 'utf8')); } catch { return null; } };
+// the real side, read-only: the live probe's failing pages and the fatal the report calls the cause (hypotheses.json + evidence.json)
+const realSide = (dir, issue) => require('./fidelity').realFrom({ probe: readWork(dir, 'probe.json'), hypotheses: readWork(dir, 'hypotheses.json'), evidence: readWork(dir, 'evidence.json'), issue });
+const FIDELITY_WORD = { matched: 'the same problem as your site', 'status-only': 'the same kind of failure only (weaker)', 'did-not-match': 'did not show the same problem, so nothing from it is used', 'could-not-test': 'could not be tested', 'not-tested': 'not compared, nothing from it is used' };
+const fidelityStep = fd => step('sandbox-fidelity', 'Test copy: does it show the same problem as your site?', fd.level === 'matched' || fd.level === 'status-only' || fd.level === 'did-not-match' ? 'PASSED' : 'NOT_RUN', `${FIDELITY_WORD[fd.level]}${fd.reasons.length ? `: ${fd.reasons.join('; ')}` : ''}`, { level: fd.level });
+
 async function run(id, o) {
     const issue = store.load(id), dir = store.dirOf(id), opt = o.options || {}, steps = [];
     if (!o.noWrite) removeCopyLog(dir);   // a copy log of an earlier build never describes this one
+    const keepFirst = keepsFirstEvidence(dir);
+    if (!o.noWrite && !keepFirst) removeFidelity(dir);   // nor does a fidelity result
     const out = { steps, bisect: null, sandbox: null, reproduced_in_sandbox: null };
-    const done = () => { if (o.noWrite) return out; try { fs.writeFileSync(path.join(dir, 'work', 'sandbox.json'), JSON.stringify({ steps, sandbox: out.sandbox, could_not_run: out.could_not_run || undefined, reproduced_in_sandbox: out.reproduced_in_sandbox, baseline: out.baseline || null, redirect_observed: !!out.redirect_observed }, null, 2) + '\n', { mode: 0o600 }); } catch { /* work folder missing */ } return out; };
+    const dbIntent = !!opt.sandbox && !!(opt.dump || opt.exportDb);   // a test copy from a database file was asked for: the fidelity check applies
+    const setFidelity = fd => { out.fidelity = fd; if (!o.noWrite && !keepFirst) writeFidelity(dir, fd); steps.push(fidelityStep(fd)); };
+    const done = () => { if (o.noWrite) return out; try { fs.writeFileSync(path.join(dir, 'work', 'sandbox.json'), JSON.stringify({ steps, sandbox: out.sandbox, could_not_run: out.could_not_run || undefined, reproduced_in_sandbox: out.reproduced_in_sandbox, baseline: out.baseline || null, redirect_observed: !!out.redirect_observed, fidelity: out.fidelity || undefined }, null, 2) + '\n', { mode: 0o600 }); } catch { /* work folder missing */ } return out; };
     if (!opt.sandbox) { steps.push(step('sandbox', 'Sandbox (throwaway copy in Docker)', 'NOT_RUN', 'not requested: add --sandbox (needs Docker and a local copy of the site)')); return done(); }
-    if (!o.root) { steps.push(step('sandbox', 'Sandbox (throwaway copy in Docker)', 'NOT_RUN', 'a local copy of the site (--root) is needed')); return done(); }
+    if (!o.root) { steps.push(step('sandbox', 'Sandbox (throwaway copy in Docker)', 'NOT_RUN', 'a local copy of the site (--root) is needed')); if (dbIntent) setFidelity(require('./fidelity').compare({ real: realSide(dir, issue), copy: { built: false } })); return done(); }
     const pf = sandbox.preflight(o.sandboxOptions || {});
-    if (!pf.ok) { steps.push(step('sandbox', 'Sandbox (throwaway copy in Docker)', 'NOT_RUN', `${pf.reason} Static-only mode: not reproduced, sandbox unavailable; every hypothesis stays UNVERIFIED or PROBABLE_NEEDS_REVIEW.`), step('bisect', 'Bisection', 'NOT_RUN', 'needs the sandbox')); return done(); }
+    if (!pf.ok) { steps.push(step('sandbox', 'Sandbox (throwaway copy in Docker)', 'NOT_RUN', `${pf.reason} Static-only mode: not reproduced, sandbox unavailable; every hypothesis stays UNVERIFIED or PROBABLE_NEEDS_REVIEW.`), step('bisect', 'Bisection', 'NOT_RUN', 'needs the sandbox')); if (dbIntent) setFidelity(require('./fidelity').compare({ real: realSide(dir, issue), copy: { error: pf.reason } })); return done(); }
 
     let handle;
     try {
@@ -186,15 +206,26 @@ async function run(id, o) {
         const base = await tester({ plugins: active, theme: null, mu: null });
         out.baseline = tester.last ? { ...tester.last, active_plugins: [...active] } : null;
         out.redirect_observed = !!tester.redirectSeen;   // only the baseline run has happened here: the sandbox as it is
-        out.reproduced_in_sandbox = base === 'fail' ? 'yes' : base === 'pass' ? 'no' : 'could-not-test';
-        steps.push(step('sandbox-oracle', 'Oracle in the sandbox: is the symptom present?', base === 'unresolved' ? 'NOT_RUN' : 'PASSED', `symptom reproduced in the sandbox: ${out.reproduced_in_sandbox}${base === 'pass' ? '. NOT reproduced: every hypothesis stays PROBABLE_NEEDS_REVIEW or below, nothing can be REPRODUCIBLE.' : ''}${base === 'unresolved' ? ' (the page failed in a different way, or the oracle could not be evaluated)' : ''}`, { reproduced: out.reproduced_in_sandbox }));
-        // 6d-1: the copy's OWN debug log after the front page and the baseline pages, kept as UNVERIFIED data (work/copy-log.json). It changes no
-        // status, no verdict and not reproduced_in_sandbox: it may count only after the fidelity check (6d-2).
-        if (dbBuild && !o.noWrite) writeCopyLog(dir, readCopyLog(path.join(handle.dir, 'logs', 'debug.log'), { secrets: handle.test_login ? [handle.test_login.password] : [] }));
+        const raw = base === 'fail' ? 'yes' : base === 'pass' ? 'no' : 'could-not-test';
+        // 6d-1: the copy's OWN debug log after the front page and the baseline pages (work/copy-log.json). 6d-2: it is compared with the fatal the
+        // report calls the cause (issue/fidelity.js); it is labelled 'verified' only when the copy matched the real site, else it stays 'unverified'.
+        let fd = null;
+        if (dbBuild) {
+            const fid = require('./fidelity');
+            const cl = readCopyLog(path.join(handle.dir, 'logs', 'debug.log'), { secrets: handle.test_login ? [handle.test_login.password] : [] });
+            fd = fid.compare({ real: realSide(dir, issue), copy: fid.copyFrom({ pages: tester.lastObs, copyLog: cl, error: tester.lastObs ? null : tester.lastError || 'the pages of the test copy could not be loaded' }) });
+            if (fd.level === 'matched') cl.label = 'verified';
+            if (!o.noWrite) writeCopyLog(dir, cl);
+        }
+        const use = !fd || fd.counts;   // the producer rule: a copy that did not show the same problem gives NO evidence, never 'no'
+        out.reproduced_in_sandbox = use ? raw : null;
+        steps.push(step('sandbox-oracle', 'Oracle in the sandbox: is the symptom present?', base === 'unresolved' ? 'NOT_RUN' : 'PASSED', `symptom reproduced in the sandbox: ${raw}${use && base === 'pass' ? '. NOT reproduced: every hypothesis stays PROBABLE_NEEDS_REVIEW or below, nothing can be REPRODUCIBLE.' : ''}${base === 'unresolved' ? ' (the page failed in a different way, or the oracle could not be evaluated)' : ''}${use ? '' : '. Not used as evidence: the test copy did not show the same problem as your site (see the fidelity step)'}`, { reproduced: out.reproduced_in_sandbox }));
+        if (fd) setFidelity(fd);
 
         // a caller (verify-fixes.js) may use this running sandbox, with the symptom present, to test candidate fixes before the teardown
-        if (o.verify && base === 'fail') out.verification = await o.verify({ handle, tester, baseline: out.baseline, issue, steps });
-        if (base === 'fail' && !opt.noBisect) {
+        if (o.verify && base === 'fail' && use) out.verification = await o.verify({ handle, tester, baseline: out.baseline, issue, steps });
+        if (base === 'fail' && !use) steps.push(step('bisect', 'Bisection', 'NOT_RUN', 'the test copy did not show the same problem as your site, so it is not bisected and nothing from it is used'));
+        else if (base === 'fail' && !opt.noBisect) {
             const top = (o.analysis && o.analysis.top) || [];
             const res = await bisect.run({ plugins: active, requires, mu: muAll, top, test: tester, caps: { maxLoads: Number(opt.maxLoads) || undefined, maxMs: opt.maxMinutes ? Number(opt.maxMinutes) * 60000 : undefined }, logFile: path.join(dir, 'work', 'bisect.log'), label: { oracle: issue.oracle.type } });
             fs.writeFileSync(path.join(dir, 'work', 'bisect.json'), JSON.stringify({ ...res, log: undefined, executed: res.executed }, null, 2) + '\n', { mode: 0o600 });
@@ -207,6 +238,8 @@ async function run(id, o) {
         if (e.pgSkip) { /* already reported above: no sandbox evidence */ } else {
         steps.push(step('sandbox', 'Sandbox (throwaway copy in Docker)', e.name === 'SandboxRefusal' || e.name === 'SandboxUnavailable' ? 'BLOCKED' : 'FAILED', e.message.replace(/\s*\n\s*/g, ' ').slice(0, 600)));
         if (!steps.some(s => s.id === 'bisect')) steps.push(step('bisect', 'Bisection', 'NOT_RUN', 'the sandbox did not start'));
+        // 6d-2: a copy from a database file that failed before its comparison was made: 'could not test', never 'not reproduced'
+        if (dbIntent && !out.fidelity) { out.reproduced_in_sandbox = null; setFidelity(require('./fidelity').compare({ real: realSide(dir, issue), copy: { error: e.message } })); }
         }
     } finally {
         if (handle && !opt.keepSandbox) {
@@ -217,4 +250,4 @@ async function run(id, o) {
     return done();
 }
 
-module.exports = { run, missingFromCopy, makeTester, makeApplier, pluginFolders, names, step, isDbBuild, baselineSet, readCopyLog, writeCopyLog, removeCopyLog, COPY_LOG_MAX };
+module.exports = { run, missingFromCopy, makeTester, makeApplier, pluginFolders, names, step, isDbBuild, baselineSet, readCopyLog, writeCopyLog, removeCopyLog, COPY_LOG_MAX, writeFidelity, removeFidelity, keepsFirstEvidence, realSide, fidelityStep };
