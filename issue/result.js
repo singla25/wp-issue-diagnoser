@@ -75,7 +75,7 @@ function replicaOf(sbx) {
     if (!sbx) return { requested: false, database_file: false, docker: null, copy_built: false };
     const r = sbx.replica && typeof sbx.replica === 'object' ? sbx.replica : {};
     return { requested: typeof r.requested === 'boolean' ? r.requested : !!sbx.sandbox, database_file: typeof r.database_file === 'boolean' ? r.database_file : !!(sbx.fidelity || (sbx.sandbox && sbx.sandbox.anonymised)),
-        docker: typeof r.docker === 'boolean' ? r.docker : null, copy_built: !!sbx.sandbox, db_dropped_live: r.db_dropped_live === true };
+        docker: typeof r.docker === 'boolean' ? r.docker : null, copy_built: !!sbx.sandbox, db_dropped_live: r.db_dropped_live === true, ...(r.skipped === true ? { skipped: true, ...(r.live === true ? { live: true } : {}) } : {}) };
 }
 const COPY_LOG_INTRO = 'No error log was found on this site. A test copy of your site showed the same problem and wrote its own log; the errors below are from a test copy of your site.';
 // your site had no failing page to compare: the copy is not said to show "the same problem" (level 2)

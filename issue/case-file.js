@@ -153,7 +153,8 @@ function build(f, ctx) {
     const checkHeading = noCrash ? CHECK_NO_CRASH : CHECK;
     const sureLive = bc && bc.live ? bc.live : null;
     // the live line(s) of the box: one sentence, or several (a 5xx and a 4xx are both said)
-    const liveRows = l => (Array.isArray(l) ? l.filter(x => typeof x === 'string') : l ? [l] : []);
+    // the address sentence ("Your address answered HTTP <code> ...") is said in STATUS and "What you see" only, never in a case's "How sure" list (owner)
+    const liveRows = l => (Array.isArray(l) ? l.filter(x => typeof x === 'string') : l ? [l] : []).filter(x => !x.startsWith('Your address answered HTTP '));
     const facts = ctx.facts || {}, sbx = facts.sandboxReproduced === 'yes' || facts.sandboxReproduced === true ? 'yes' : facts.sandboxReproduced === 'no' || facts.sandboxReproduced === false ? 'no' : null;
     // validated independent checks of a hypothesis: its independent kinds, or the two supports of a fatal re-check rule (validate.js counts those as the two)
     const checksOf = id => { const h = (f.hypotheses || []).find(x => x.id === id) || {}; const fr = h.fatal_recheck; return Math.max((h.independent_kinds || []).length, fr && fr.rule && (fr.supports || []).length === 2 ? 2 : 0); };
@@ -291,11 +292,16 @@ const NOT_TESTED_LABEL = 'NOT TESTED: what this report says comes from reading y
 const NOT_CONFIRMED_LABEL = 'NOT CONFIRMED: a test copy of your site was built and logged the reported error, but your site had no failing page to compare with, so the copy does not confirm this report. What this report says comes from reading your log and the code.';
 const MATCHED_LINE = 'A test copy of your site, built from your database, showed the same problem as your site: the same page, the same kind of failure and the same error.';
 const NO_PAGE_REASON = 'no failing page and no error message from your site to compare';
+// the person chose not to build a test copy (the wizard's "0) Skip the test copy", or --no-replica): nothing is listed as missing (owner)
+const CHOSE_NO_COPY = 'You chose not to build a test copy.';
 // fd: issue/fidelity.js clean() or null; rp: sandbox.json `replica` ({ requested, database_file, docker }) plus copy_built, or null (older runs)
 function copyLevel(fd, rp, facts = {}) {
     const r = rp || {};
     const two = keys => ({ n: 2, heading: LEVEL_HEADING[2], missing: [...new Set(keys)].map(k => MISSING_TEXT[k]), lines: [NOT_TESTED_LABEL] });
     // a database file given for a LIVE site was dropped (sandbox.json replica.db_dropped_live): it is not "missing", it is never used for live
+    // an explicit choice not to build a copy beats the other gaps (no file, no Docker, no code): the sentence, nothing listed. It never beats the
+    // live-site reason (owner): on a live site (replica.live or db_dropped_live) the "never made for a live site" item is shown instead
+    if (r.skipped === true && !r.copy_built && !(fd && fd.counts)) return r.live === true || r.db_dropped_live ? two(['live']) : { n: 2, heading: LEVEL_HEADING[2], missing: [], lines: [CHOSE_NO_COPY, NOT_TESTED_LABEL] };
     const inputsMissing = () => [...(r.db_dropped_live ? ['live'] : r.database_file ? [] : ['database']), ...(r.docker === false ? ['docker'] : []), ...(facts.hasCode === false ? ['code'] : [])];
     if (fd && fd.counts) return fd.real_page === false ? { ...two(['page']), lines: [NOT_CONFIRMED_LABEL] } : { n: 1, heading: LEVEL_HEADING[1], missing: [], lines: fd.level === 'matched' ? [MATCHED_LINE] : [] };
     if (fd && fd.level === 'did-not-match') return { n: 3, heading: LEVEL_HEADING[3], missing: [], lines: [] };
@@ -455,4 +461,4 @@ function cli(cf) {
     return L.join('\n');
 }
 
-module.exports = { addressSentence, STATUS_WORDS, PROTECT_CODES, addressPageOf, liveAnswers, pageSentence, NOT_CONFIRMED_LABEL, NO_PAGE_MATCH, copyLevel, closeness, closeLines, LEVEL_HEADING, MISSING_TEXT, MISSING_INTRO, NOT_TESTED_LABEL, MATCHED_LINE, CLOSE_TITLE, CLOSE_GROUPS, NOT_COVERED, countedChecks, countedSentence, fidelityPart, MISSING_SHOWN, userDataLines, activePluginLines, versionLines, build, markdown, markdownDeveloper, cli, statusLine, lookedAt, skippedText, confirmedSentence, LIKELY, CHECK, CHECK_NO_CRASH, CONFIRMED, SIGNS, EMPTY_STATUS, NOT_CONFIRMED_SENTENCE, NO_CAUSE_NOTE, NOT_LIVE_SENTENCE, PHP_NOT_STATED, MODIFIED_NOTE, MODIFIED_ADVICE, NO_LOG_HELP };
+module.exports = { addressSentence, STATUS_WORDS, PROTECT_CODES, addressPageOf, liveAnswers, pageSentence, NOT_CONFIRMED_LABEL, NO_PAGE_MATCH, copyLevel, closeness, closeLines, LEVEL_HEADING, MISSING_TEXT, MISSING_INTRO, NOT_TESTED_LABEL, CHOSE_NO_COPY, MATCHED_LINE, CLOSE_TITLE, CLOSE_GROUPS, NOT_COVERED, countedChecks, countedSentence, fidelityPart, MISSING_SHOWN, userDataLines, activePluginLines, versionLines, build, markdown, markdownDeveloper, cli, statusLine, lookedAt, skippedText, confirmedSentence, LIKELY, CHECK, CHECK_NO_CRASH, CONFIRMED, SIGNS, EMPTY_STATUS, NOT_CONFIRMED_SENTENCE, NO_CAUSE_NOTE, NOT_LIVE_SENTENCE, PHP_NOT_STATED, MODIFIED_NOTE, MODIFIED_ADVICE, NO_LOG_HELP };

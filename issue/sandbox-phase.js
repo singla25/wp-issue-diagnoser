@@ -208,7 +208,7 @@ async function run(id, o) {
     const setFidelity = fd => { out.fidelity = fd; if (!o.noWrite && !keepFirst) writeFidelity(dir, fd); steps.push(fidelityStep(fd)); };
     const done = () => { if (o.noWrite) return out; try { fs.writeFileSync(path.join(dir, 'work', 'sandbox.json'), JSON.stringify({ steps, sandbox: out.sandbox, could_not_run: out.could_not_run || undefined, reproduced_in_sandbox: out.reproduced_in_sandbox, baseline: out.baseline || null, redirect_observed: !!out.redirect_observed, fidelity: out.fidelity || undefined, replica: out.replica }, null, 2) + '\n', { mode: 0o600 }); } catch { /* work folder missing */ } return out; };
     // 6d-3: what the report's level needs to say what is missing: was a test copy asked for, with a database file, and did Docker work (null: not checked)
-    out.replica = { requested: !!opt.sandbox, database_file: !!(opt.dump || opt.exportDb), docker: null, ...(liveDb ? { db_dropped_live: true } : {}) };
+    out.replica = { requested: !!opt.sandbox, database_file: !!(opt.dump || opt.exportDb), docker: null, ...(liveDb ? { db_dropped_live: true } : {}), ...(opt.skipped === true ? { skipped: true, ...(issue.environment === 'live' ? { live: true } : {}) } : {}) };
     if (!opt.sandbox) { steps.push(step('sandbox', 'Sandbox (throwaway copy in Docker)', 'NOT_RUN', 'not requested: add --sandbox (needs Docker and a local copy of the site)')); return done(); }
     if (!o.root) { steps.push(step('sandbox', 'Sandbox (throwaway copy in Docker)', 'NOT_RUN', 'a local copy of the site (--root) is needed')); if (dbIntent) setFidelity(require('./fidelity').compare({ real: realSide(dir, issue), copy: { built: false } })); return done(); }
     const pf = sandbox.preflight(o.sandboxOptions || {});

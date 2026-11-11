@@ -97,7 +97,7 @@ const THEME_FILE = 'wp-content/themes/unicamp/elementor/widgets/original/heading
         ok(box2.case.live === 'The page /shop answered HTTP 404 (page not found).' && !box2.lines.some(l => l.includes(FINE) || /Check the address/.test(l)), 'whats-wrong.js: a subpage 404 is named without advice, never "did not answer with an error"');
         const cfBox = caseFile.build({ ...mkF(), what_is_wrong: box, likely: [{ id: 'h1', box }] }, { comps: [], facts, issueUrl: U, probePages: mix });
         const sure = (cfBox.cases[0].rows.find(r => r[0] === 'How sure') || [])[1] || [];
-        ok(sure.includes('The live page answered HTTP 500.') && sure.includes(ADDR404), 'Case 1 "How sure" carries both lines');
+        ok(sure.includes('The live page answered HTTP 500.') && !sure.includes(ADDR404), 'Case 1 "How sure" has the 500 line, not the address sentence');
         const cf5 = caseFile.build(mkF(), { comps: [], facts, fidelity: { ...fd, status_class: '5xx' } });
         ok(JSON.stringify(cf5.status.fidelity.reasons) === JSON.stringify(GENERIC), 'a 5xx comparison page: the generic list stays');
     }
@@ -279,6 +279,91 @@ const THEME_FILE = 'wp-content/themes/unicamp/elementor/widgets/original/heading
         ok(rQ.times_preserved === false && rQ.times_failed >= N, 'a silent no-op is a failure too (the copy is checked after setting)');
         const wz = fs.readFileSync(path.join(__dirname, '..', 'lib', 'wizard.js'), 'utf8');
         ok(/times_preserved: false, times_failed: copied\.times_failed/.test(wz), 'the wizard writes the record into work/intake.json');
+    }
+
+    // ================================================================ 6d-3 fix step 2 (HANDOFF row 59): "0) Skip the test copy" / --no-replica
+    // Rule: an explicit choice not to build a copy (the wizard's answer 0, or --no-replica) says "You chose not to build a test copy." and lists NOTHING
+    // as missing, whatever else was missing (no file, no Docker, no code, live). Without that choice the missing list is as before.
+    group('4. the person chose not to build a test copy: the sentence, nothing listed as missing');
+    {
+        const CHOSE = 'You chose not to build a test copy.';
+        ok(caseFile.CHOSE_NO_COPY === CHOSE, `the exact sentence ("${caseFile.CHOSE_NO_COPY}")`);
+        const RP = (x = {}) => ({ requested: false, database_file: false, docker: null, copy_built: false, ...x });
+        const sk = caseFile.copyLevel(null, RP({ skipped: true }), { hasCode: true });
+        ok(sk.n === 2 && sk.heading === 'Not tested on a copy' && sk.missing.length === 0 && sk.lines[0] === CHOSE && sk.lines.includes(caseFile.NOT_TESTED_LABEL), 'skipped: level 2, the sentence first, no missing item (not "a database export file")');
+        const skAll = caseFile.copyLevel(null, RP({ skipped: true, docker: false, database_file: true }), { hasCode: false });
+        ok(skAll.missing.length === 0 && skAll.lines[0] === CHOSE, 'skipped AND no Docker, no code: the explicit choice wins, nothing listed');
+        // owner: the live-site reason always wins over the skip sentence
+        for (const [rp, what] of [[RP({ skipped: true, live: true }), 'replica.live'], [RP({ skipped: true, db_dropped_live: true, docker: false }), 'db_dropped_live']]) {
+            const l = caseFile.copyLevel(null, rp, { hasCode: true });
+            ok(JSON.stringify(l.missing) === JSON.stringify([caseFile.MISSING_TEXT.live]) && !l.lines.includes(CHOSE), `skipped on a LIVE site (${what}): the live item, not the skip sentence`);
+        }
+        const plainLv = caseFile.copyLevel(null, RP(), { hasCode: true });
+        ok(JSON.stringify(plainLv.missing) === JSON.stringify([caseFile.MISSING_TEXT.database]) && !plainLv.lines.includes(CHOSE), 'not skipped, no file: the database file is still listed, no choice sentence');
+        ok(JSON.stringify(caseFile.copyLevel(null, RP({ docker: false, database_file: true }), { hasCode: true }).missing) === JSON.stringify([caseFile.MISSING_TEXT.docker]), 'not skipped, a file but no Docker: Docker is listed as before');
+        const mkF = () => ({ issue: { title: 'The site is white', id: 'iss-x' }, issue_title_short: 'The site is white', hypotheses: [], findings: [], likely: [], advisories: [], reported: { images: [] }, checkpoints: null });
+        const cfS = caseFile.build(mkF(), { comps: [], facts: { hasLog: true, hasCode: true, probeRan: false }, replica: RP({ skipped: true }) });
+        const mdS = caseFile.markdown(cfS, t => String(t)).join('\n'), clS = caseFile.cli({ ...cfS, checked: null });
+        ok(mdS.includes(CHOSE) && !mdS.includes(caseFile.MISSING_INTRO) && !mdS.includes(caseFile.MISSING_TEXT.database), 'Markdown: the sentence, no "was missing" list, no database file');
+        ok(/NOT TESTED ON A COPY/.test(clS) && clS.includes(CHOSE) && !clS.includes(caseFile.MISSING_INTRO) && !clS.includes(caseFile.MISSING_TEXT.database), 'command line: "NOT TESTED ON A COPY" with the sentence and nothing listed');
+        // the wizard, end to end: a database file given, then "0) Skip the test copy" (no Docker is used: nothing is built)
+        const { PassThrough } = require('stream');
+        const wizard = require('../lib/wizard'), trees = require('./fixtures/issue/trees');
+        const WS = path.join(tmp, 'skip-site', 'wp'); trees.duplicateFunction(WS); write(WS, 'wp-content/themes/acme/style.css', '/* Theme Name: Acme */');
+        const vf = require('../issue/verify-fixes'), realVf = vf.run; vf.run = async () => ({ steps: [], results: 0 });
+        async function wizRun(name, answers, flags) {
+            const input = new PassThrough(), output = new PassThrough(); let text = ''; output.on('data', d => { text += d; });
+            input.end(answers.join('\n') + (answers.length ? '\n' : ''));
+            const saved = process.env.PLUGIN_GUARD_ISSUES, log = console.log; console.log = (...a) => { text += a.join(' ') + '\n'; };
+            const out = path.join(tmp, 'skip-out-' + name); let error = null;
+            try { await wizard.run({ _: [], description: 'The shop page is white since the update', root: WS, 'no-probe': true, out, ...flags }, { input, output, tty: true, cwd: tmp, env: { HOME: tmp }, preflight: () => ({ ok: true }), siteRoots: [] }); }
+            catch (e) { error = e; } finally { console.log = log; if (saved === undefined) delete process.env.PLUGIN_GUARD_ISSUES; else process.env.PLUGIN_GUARD_ISSUES = saved; }
+            const ids = fs.existsSync(out) ? fs.readdirSync(out).filter(x => store.ISSUE_RE.test(x)) : [];
+            const idir = ids.length ? path.join(out, ids[0]) : null;
+            const rd = rel => (idir && fs.existsSync(path.join(idir, rel)) ? JSON.parse(fs.readFileSync(path.join(idir, rel), 'utf8')) : null);
+            return { text, error, f: rd('result/findings.json'), sj: rd('work/sandbox.json') };
+        }
+        try {
+            const r0 = await wizRun('zero', ['', '', '0'], { sandbox: true, 'db-dump': SQL });
+            const lv0 = r0.f && r0.f.case_file && r0.f.case_file.level;
+            ok(!r0.error && r0.text.includes('0) Skip the test copy') && r0.sj && r0.sj.replica && r0.sj.replica.skipped === true, `answer 0: sandbox.json records replica.skipped${r0.error ? ` (${r0.error.message})` : ''}`);
+            ok(lv0 && lv0.n === 2 && lv0.missing.length === 0 && lv0.lines[0] === CHOSE && !JSON.stringify(r0.f.case_file).includes(caseFile.MISSING_TEXT.database), `answer 0 with a database file: "${CHOSE}" and nothing listed as missing (${lv0 ? JSON.stringify(lv0.missing) : 'no level'})`);
+            const rN = await wizRun('norep', [], { 'db-dump': SQL, 'no-replica': true, yes: true });
+            const lvN = rN.f && rN.f.case_file && rN.f.case_file.level;
+            ok(!rN.error && lvN && lvN.missing.length === 0 && lvN.lines[0] === CHOSE, `--no-replica (the same meaning): the sentence, nothing listed${rN.error ? ` (${rN.error.message})` : ''}`);
+            // a LIVE site with --no-replica (the wizard), and with the skip choice (cli.investigate with the wizard's 'copy-skipped'): the live item wins
+            const rL = await wizRun('live-norep', [], { 'db-dump': SQL, 'no-replica': true, yes: true, url: 'https://shop.example.net/', env: 'live', authorized: true });
+            const lvL = rL.f && rL.f.case_file && rL.f.case_file.level;
+            ok(!rL.error && lvL && JSON.stringify(lvL.missing) === JSON.stringify([caseFile.MISSING_TEXT.live]) && !lvL.lines.includes(CHOSE) && rL.sj.replica.skipped === true && rL.sj.replica.live === true, `live + --no-replica: the "never made for a live site" item, not the skip sentence (${lvL ? JSON.stringify(lvL.missing) : 'no level'})${rL.error ? ` (${rL.error.message})` : ''}`);
+            const issL = store.create({ title: 'Live skip', description: 'The shop page is white', symptom: 'white-screen', environment: 'live', url: 'https://shop.example.net/', authorized: true, root: WS, pages: ['/'] });
+            const logL = console.log; console.log = () => {}; let eL = null;
+            try { await cli.investigate(issL.id, { _: [], 'copy-skipped': true, 'db-dump': SQL, sandbox: true, 'no-probe': true, 'no-questions': true, yes: true, gate: true }, 'investigate', { interactive: false, loginOut: { tty: false, write: () => {} } }); } catch (e) { eL = e; } finally { console.log = logL; }
+            const fLs = fs.existsSync(path.join(store.dirOf(issL.id), 'result', 'findings.json')) ? JSON.parse(fs.readFileSync(path.join(store.dirOf(issL.id), 'result', 'findings.json'), 'utf8')) : null;
+            const lvLs = fLs && fLs.case_file && fLs.case_file.level;
+            ok(!eL && lvLs && JSON.stringify(lvLs.missing) === JSON.stringify([caseFile.MISSING_TEXT.live]) && !lvLs.lines.includes(CHOSE), `live + the skip choice: the live item, not the skip sentence (${lvLs ? JSON.stringify(lvLs.missing) : 'no level'})${eL ? ` (${eL.message})` : ''}`);
+            const rE = await wizRun('enter', ['', '', ''], {});
+            const lvE = rE.f && rE.f.case_file && rE.f.case_file.level;
+            ok(!rE.error && lvE && lvE.missing.includes(caseFile.MISSING_TEXT.database) && !lvE.lines.includes(CHOSE) && !(rE.sj && rE.sj.replica && 'skipped' in rE.sj.replica), 'Enter (no file, no choice to skip): the database file is still listed, no sentence, no skipped field');
+        } finally { vf.run = realVf; }
+    }
+
+    group('5. the address sentence is never in a case\'s "How sure" list (owner); STATUS and "What you see" keep it');
+    {
+        const U = 'http://127.0.0.1:9/';
+        const mkF = () => ({ issue: { title: 'The site is white', id: 'iss-x' }, issue_title_short: 'The site is white', hypotheses: [], findings: [], likely: [], advisories: [], reported: { images: [] }, checkpoints: null });
+        const facts = { hasLog: true, hasCode: true, probeRan: true };
+        const ww = require('../issue/whats-wrong');
+        const fr = { class: CLASS, kind: 'class', file: 'wp-content/themes/unicamp/x.php', line: 3, file_kind: 'theme', provider: {}, scan: {} };
+        const howSure = cf => cf.cases.flatMap(c => c.rows.filter(r => r[0] === 'How sure').flatMap(r => r[1]));
+        for (const [code, sentence] of [[404, ADDR404], [403, PROT403], [429, PROT429]]) {
+            for (const tier of ['likely', 'confirmed']) {
+                const pages = [{ url: U, status: code, loaded: true }];
+                const box = ww.build(fr, { components: [], issue: { url: U, title: 't' }, probePages: pages, advisories: [], templateTotal: 0, ran: { probe: true }, fileComponent: '' }, tier);
+                const f = tier === 'likely' ? { ...mkF(), what_is_wrong: box, likely: [{ id: 'h1', box }] } : { ...mkF(), what_is_wrong: box, findings: [{ id: 'h1', box }] };
+                const cf = caseFile.build(f, { comps: [], facts, issueUrl: U, probePages: pages });
+                ok(cf.cases.length > 0 && !howSure(cf).some(x => x.startsWith('Your address answered HTTP ')) && cf.status.cautions[0] === sentence && cf.see.includes(sentence), `${code}, ${tier} case: not in "How sure"; in STATUS and "What you see"`);
+            }
+        }
     }
 
     fs.rmSync(tmp, { recursive: true, force: true });
