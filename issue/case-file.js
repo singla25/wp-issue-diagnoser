@@ -20,6 +20,47 @@ const NOT_CONFIRMED_SENTENCE = 'Not reproduced on a test copy of your site.';
 const NO_CAUSE_NOTE = 'No likely cause was found for the crash.';
 const NOT_LIVE_SENTENCE = 'Not checked on the live site.';
 const PHP_NOT_STATED = 'PHP: not stated.';
+// a probed live page answered 4xx: the address the user typed may be wrong (owner wording). The real status code in the sentence, a short plain description for common codes.
+const STATUS_WORDS = { 400: 'bad request', 401: 'login required', 403: 'access refused', 404: 'page not found', 405: 'method not allowed', 408: 'request timed out', 410: 'page removed', 429: 'too many requests', 451: 'blocked for legal reasons' };
+const PROTECT_CODES = new Set([401, 403, 429]);
+function addressSentence(status) {
+    const st = Number(status);
+    const code = Number.isInteger(st) && st >= 400 && st < 500 ? String(st) : '4xx';
+    // 401, 403, 429 (owner): the site may be protecting itself, so the address could be right; no "check the address" claim.
+    // 429: the probe stops at the FIRST 429 (probe/config.js stopAfter429 is fixed at 1; probe/safety.js trips the breaker, no retry), so "stopped at once" is a fact.
+    if (st === 429) return 'Your address answered HTTP 429 (too many requests). The site may be protecting itself, so the address could be right. Wait a while, then run again; the check stopped at once and nothing else was requested.';
+    if (PROTECT_CODES.has(st)) return `Your address answered HTTP ${code} (${STATUS_WORDS[st]}). The site may be protecting itself, so the address could be right. Wait a while, then run again; the check only looked at a few public pages.`;
+    return `Your address answered HTTP ${code} (${STATUS_WORDS[st] || 'an error'}), so it may not be the address of your site. Check the address and run again.`;
+}
+const is4 = p => !!p && Number(p.status) >= 400 && Number(p.status) < 500;
+const is5 = p => !!p && Number(p.status) >= 500 && Number(p.status) < 600;
+// a page address -> origin + path without trailing slashes + query (no fragment); null when it is not a usable address
+const addrKey = u => { try { const x = new URL(String(u)); return `${x.origin}${x.pathname.replace(/\/+$/, '')}${x.search}`; } catch { return null; } };
+// THE ADDRESS PAGE (owner): the probed page for the address the reporter gave. With the issue's address known: the first probed page whose address
+// (origin, path without trailing slash, query) is that address; none probed -> null. Without it (older callers): the first probed page, which
+// issue/probe.js plans from the address itself when no other page was named.
+function addressPageOf(pages, issueUrl) {
+    const list = (pages || []).filter(p => p && p.url);
+    if (!issueUrl) return list[0] || null;
+    const k = addrKey(issueUrl);
+    return k ? list.find(p => addrKey(p.url) === k) || null : null;
+}
+const pathText = u => { try { return (new URL(String(u)).pathname.replace(/\/+$/, '') || '/').slice(0, 300); } catch { return '/'; } };
+const pageSentence = p => `The page ${pathText(p.url)} answered HTTP ${Number(p.status)} (${STATUS_WORDS[Number(p.status)] || 'an error'}).`;
+// What the probed pages answered, in sentences: { five, address (the address page answered 4xx), others (other 4xx pages, at most 5, no advice), lines, any }
+function liveAnswers(pages, issueUrl) {
+    const five = (pages || []).find(is5) || null;
+    const ap = addressPageOf(pages, issueUrl);
+    const address = is4(ap) ? addressSentence(ap.status) : null;
+    const seen = new Set(), others = [];
+    for (const p of pages || []) {
+        if (!is4(p) || (address && p === ap) || (address && ap && addrKey(p.url) === addrKey(ap.url))) continue;
+        const t = pageSentence(p);
+        if (!seen.has(t) && others.length < 5) { seen.add(t); others.push(t); }
+    }
+    const lines = [...(five ? [`The live page answered HTTP ${five.status}.`] : []), ...(address ? [address] : []), ...others];
+    return { five, address, addressPage: ap, others, lines, any: lines.length > 0 };
+}
 const NUM_WORD = ['zero', 'one', 'two', 'three', 'four', 'five', 'six'];
 // "How sure" of a confirmed case: only what the data shows (n = validated independent checks; sandbox = 'yes' | 'no' | null)
 // 6d-2: a test copy from a database file that did not count (fidelity did-not-match / could-not-test / not-tested): no copy sentence at all, because
@@ -74,12 +115,13 @@ function skippedText(d) {
     return `${d.total} PHP ${d.total === 1 ? 'file was' : 'files were'} not read: ${parts.join(', ')}`;
 }
 // what truly ran / did not run -> "Looked at: ... Not looked at: ..."
-function lookedAt(facts, { box = false } = {}) {
+// copyBuilt: a test copy WAS built (sandbox.json replica.copy_built): it is never "Not looked at", even when its result is not used
+function lookedAt(facts, { box = false, copyBuilt = false } = {}) {
     const yes = [], no = [];
     (facts.hasLog ? yes : no).push('your log');
     (facts.probeRan ? yes : no).push('the live page');
     if (facts.hasCode) yes.push(facts.phpSkipped ? `the code (${skippedText(facts.phpSkippedDetail)})` : 'the code'); else no.push('the code');
-    if (facts.sandboxRan) yes.push('a throwaway test copy'); else no.push(facts.sandboxFailed ? 'a throwaway test copy (it could not run)' : 'a throwaway test copy');
+    if (facts.sandboxRan) yes.push('a throwaway test copy'); else if (copyBuilt) yes.push('a throwaway test copy (it was built)'); else no.push(facts.sandboxFailed ? 'a throwaway test copy (it could not run)' : 'a throwaway test copy');
     // the PHP version only as the reporter stated it; the host's PHP (or the sandbox image's) is never claimed as the site's
     if (facts.php) yes.push(`PHP ${facts.php} (${facts.phpSource === 'you confirmed' ? 'you confirmed' : 'you told us'})`);
     // 6d-3: where the "How close the copy is" box is shown, an empty "Not looked at" is left out (never "Not looked at: nothing")
@@ -110,6 +152,8 @@ function build(f, ctx) {
     const noCrash = (ctx.facts || {}).crash === false;
     const checkHeading = noCrash ? CHECK_NO_CRASH : CHECK;
     const sureLive = bc && bc.live ? bc.live : null;
+    // the live line(s) of the box: one sentence, or several (a 5xx and a 4xx are both said)
+    const liveRows = l => (Array.isArray(l) ? l.filter(x => typeof x === 'string') : l ? [l] : []);
     const facts = ctx.facts || {}, sbx = facts.sandboxReproduced === 'yes' || facts.sandboxReproduced === true ? 'yes' : facts.sandboxReproduced === 'no' || facts.sandboxReproduced === false ? 'no' : null;
     // validated independent checks of a hypothesis: its independent kinds, or the two supports of a fatal re-check rule (validate.js counts those as the two)
     const checksOf = id => { const h = (f.hypotheses || []).find(x => x.id === id) || {}; const fr = h.fatal_recheck; return Math.max((h.independent_kinds || []).length, fr && fr.rule && (fr.supports || []).length === 2 ? 2 : 0); };
@@ -119,7 +163,7 @@ function build(f, ctx) {
     // a confirmed case: the evidence lines, the log entry's date on its own line, and whether the live site was looked at (no page loaded: "Not checked on the live site.")
     const confirmedSure = () => {
         const sure = bc.last_seen ? bc.sure.map(l => l.replace(`, last seen ${bc.last_seen}`, '')) : bc.sure;
-        return [...sure, ...(sureLive ? [sureLive] : []), ...(bc.last_seen ? [`Last seen in your log on ${bc.last_seen}.`] : []), ...(facts.probeRan ? [] : [NOT_LIVE_SENTENCE])];
+        return [...sure, ...liveRows(sureLive), ...(bc.last_seen ? [`Last seen in your log on ${bc.last_seen}.`] : []), ...(facts.probeRan ? [] : [NOT_LIVE_SENTENCE])];
     };
     const addBox = () => {
         const likely = box.tier === 'likely';
@@ -129,7 +173,7 @@ function build(f, ctx) {
         if (comps.length) rows.push(['Components', [comps.join(' and ')]]);
         rows.push(['Where', [`${bc.where.who}: ${bc.where.file}, line ${bc.where.line}`]]);
         rows.push(['Why', bc.why]);
-        if (likely) rows.push(['How sure', [...bc.sure, ...(sureLive ? [sureLive] : []), notConfirmedSentence(sbx)]]);
+        if (likely) rows.push(['How sure', [...bc.sure, ...liveRows(sureLive), notConfirmedSentence(sbx)]]);
         else if (nChecks >= 2) rows.push(['How sure', [sureOf(boxId), ...confirmedSure()]]);
         else rows.push(['How sure', [...confirmedSure(), 'Marked as confirmed; the details for a developer show what it rests on.']]);
         if (box.note) rows.push(['Note', [box.note]]);
@@ -195,13 +239,16 @@ function build(f, ctx) {
     const fdc = ctx.fidelity ? require('./fidelity').clean(ctx.fidelity) : null;
     const level = copyLevel(fdc, ctx.replica || null, facts);
     const close = ctx.replica && ctx.replica.copy_built && fdc ? closeness({ versions: ctx.versions, activePlugins: ctx.activePlugins, fidelity: fdc }) : null;
-    const looked = lookedAt(facts, { box: !!close });
+    const looked = lookedAt(facts, { box: !!close, copyBuilt: !!(ctx.replica && ctx.replica.copy_built) });
+    // a probed live page answered 4xx: said plainly in the STATUS area and under "What you see"; never "did not answer with an error"
+    const answers = liveAnswers(ctx.probePages, ctx.issueUrl || null);
+    const address = answers.address;
     // what the reader sees: only what is known
     const see = [];
     const images = (f.reported && f.reported.images) || [];
     if (images.length) see.push(`${images.length} ${plural(images.length, 'screenshot', 'screenshots')} from you: ${images.map(i => i.name).join(', ')}.`);
-    const five = (ctx.probePages || []).find(p => p && p.status >= 500 && p.status < 600);
-    if (five) see.push(`The live page answered HTTP ${five.status}.`);
+    // every error answer is said (5xx, the address page's 4xx with its advice, other 4xx pages without advice); never "did not answer with an error" then
+    if (answers.any) see.push(...answers.lines);
     else if (ctx.facts && ctx.facts.probeRan) see.push('The live pages that were loaded did not answer with an error.');
     else see.push('No live check was run, so nothing was seen on the live page.');
     const cp = f.checkpoints ? f.checkpoints.counts : null;
@@ -224,7 +271,7 @@ function build(f, ctx) {
     dev.push(...activePluginLines(ctx.activePlugins));
     return {
         title: f.issue_title_short || f.issue.title,
-        status: { ...n, line: statusLine(n), looked: looked.line, php: looked.php, note: f.log_note || null, sandbox_note: ctx.sandboxNote || null, ...(ctx.logHelp && ctx.logHelp.length ? { log_help: ctx.logHelp.slice() } : {}), ...(ctx.copyLogLines && ctx.copyLogLines.length ? { copy_log: ctx.copyLogLines.slice() } : {}), ...((ctx.cautions || []).length ? { cautions: ctx.cautions.slice() } : {}), ...fidelityPart(ctx.fidelity), empty: !n.likely && !n.confirmed && !n.check && !n.signs },
+        status: { ...n, line: statusLine(n), looked: looked.line, php: looked.php, note: f.log_note || null, sandbox_note: ctx.sandboxNote || null, ...(ctx.logHelp && ctx.logHelp.length ? { log_help: ctx.logHelp.slice() } : {}), ...(ctx.copyLogLines && ctx.copyLogLines.length ? { copy_log: ctx.copyLogLines.slice() } : {}), ...((ctx.cautions || []).length || address ? { cautions: [...(address ? [address] : []), ...(ctx.cautions || [])] } : {}), ...fidelityPart(ctx.fidelity, answers), empty: !n.likely && !n.confirmed && !n.check && !n.signs },
         level, ...(close ? { close } : {}),
         see, no_cause_note: noCause ? NO_CAUSE_NOTE : null, cases, checked, developer: dev,
         excerpt: box && cd && cd.excerpt && cd.excerpt.available ? { title: `${cd.excerpt.file}, lines ${cd.excerpt.from} to ${cd.excerpt.to} (line ${cd.excerpt.cited} is marked with >)`, lines: causeDetail.excerptLines(cd.excerpt) } : null
@@ -294,7 +341,16 @@ function closeness({ versions, activePlugins, fidelity } = {}) {
 }
 
 // 6d-2: the fidelity check of the test copy in the reader's words (issue/fidelity.js readerText): { line, reasons }, only when there is something to say
-function fidelityPart(fd) { const t = fd ? require('./fidelity').readerText(fd) : null; return t ? { fidelity: { line: t.line, reasons: t.reasons.slice() } } : {}; }
+// The page used for the comparison is THE ADDRESS PAGE and it answered 4xx: its sentence (wrong address, or protection) is the one likely reason and the
+// generic list is dropped. A 4xx on any other page does not change the list. answers: liveAnswers() of the case file.
+function fidelityPart(fd, answers = null) {
+    const fid = fd ? require('./fidelity') : null;
+    const t = fd ? fid.readerText(fd) : null;
+    if (!t) return {};
+    const c = fid.clean(fd);
+    if (c && c.status_class === '4xx' && answers && answers.address && c.page && fid.pathOf(answers.addressPage.url) === c.page) return { fidelity: { line: t.line, reasons: [answers.address] } };
+    return { fidelity: { line: t.line, reasons: t.reasons.slice() } };
+}
 
 // the cleaned user-data object (issue/result.js cleanUserData) -> the lines of the developer block. Numbers and fixed words only.
 const OTHER_TABLES_NOTE = 'Email addresses and IP addresses in other tables (form entries, order notes, plugin settings) are not hidden in this version.';
@@ -399,4 +455,4 @@ function cli(cf) {
     return L.join('\n');
 }
 
-module.exports = { NOT_CONFIRMED_LABEL, NO_PAGE_MATCH, copyLevel, closeness, closeLines, LEVEL_HEADING, MISSING_TEXT, MISSING_INTRO, NOT_TESTED_LABEL, MATCHED_LINE, CLOSE_TITLE, CLOSE_GROUPS, NOT_COVERED, countedChecks, countedSentence, fidelityPart, MISSING_SHOWN, userDataLines, activePluginLines, versionLines, build, markdown, markdownDeveloper, cli, statusLine, lookedAt, skippedText, confirmedSentence, LIKELY, CHECK, CHECK_NO_CRASH, CONFIRMED, SIGNS, EMPTY_STATUS, NOT_CONFIRMED_SENTENCE, NO_CAUSE_NOTE, NOT_LIVE_SENTENCE, PHP_NOT_STATED, MODIFIED_NOTE, MODIFIED_ADVICE, NO_LOG_HELP };
+module.exports = { addressSentence, STATUS_WORDS, PROTECT_CODES, addressPageOf, liveAnswers, pageSentence, NOT_CONFIRMED_LABEL, NO_PAGE_MATCH, copyLevel, closeness, closeLines, LEVEL_HEADING, MISSING_TEXT, MISSING_INTRO, NOT_TESTED_LABEL, MATCHED_LINE, CLOSE_TITLE, CLOSE_GROUPS, NOT_COVERED, countedChecks, countedSentence, fidelityPart, MISSING_SHOWN, userDataLines, activePluginLines, versionLines, build, markdown, markdownDeveloper, cli, statusLine, lookedAt, skippedText, confirmedSentence, LIKELY, CHECK, CHECK_NO_CRASH, CONFIRMED, SIGNS, EMPTY_STATUS, NOT_CONFIRMED_SENTENCE, NO_CAUSE_NOTE, NOT_LIVE_SENTENCE, PHP_NOT_STATED, MODIFIED_NOTE, MODIFIED_ADVICE, NO_LOG_HELP };

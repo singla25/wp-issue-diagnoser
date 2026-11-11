@@ -82,8 +82,15 @@ function build(fr, ctx, tier) {
     if (tpl) L.push(`A second thing to check: ${tplAll > tplShown ? `outdated template overrides (${tplAll} templates in all, ${tplShown} of them are` : `an outdated template override${tpl.merged > 1 ? ` (${tpl.merged} templates)` : ''} is`} listed under Advisories${tplAll > tplShown ? ')' : ''}${tpl.components && tpl.components.length ? ` (${tpl.components.map(c => (byRef(c) ? compName(byRef(c)) : c)).join(' + ')})` : ''}.`);
     // live check
     const five = (ctx.probePages || []).find(p => p && p.status >= 500 && p.status < 600);
-    cs.live = five ? `The live page answered HTTP ${five.status}.` : ctx.ran && ctx.ran.probe ? 'The live pages that were loaded did not answer with an error.' : null;
-    L.push(five ? `Live check: a live page answered HTTP ${five.status}${five.url ? ` (${five.url})` : ''}.` : ctx.ran && ctx.ran.probe ? 'Live check: the live pages that were loaded did not answer with an error.' : 'Live check: none was run, so nothing here was seen failing on your website.');
+    // what the probed pages answered (issue/case-file.js liveAnswers, the same rule as "What you see"): the 5xx, the address page's 4xx with its advice, other 4xx
+    // pages without advice; one sentence stays a string, several are a list (a 5xx and a 4xx are both said); never "did not answer with an error" then
+    const ans = require('./case-file').liveAnswers(ctx.probePages || [], (ctx.issue && ctx.issue.url) || null);
+    const rest = [...(ans.address ? [ans.address] : []), ...ans.others];
+    const liveList = [...(five ? [`The live page answered HTTP ${five.status}.`] : []), ...rest];
+    cs.live = liveList.length > 1 ? liveList : liveList.length ? liveList[0] : ctx.ran && ctx.ran.probe ? 'The live pages that were loaded did not answer with an error.' : null;
+    if (five) L.push(`Live check: a live page answered HTTP ${five.status}${five.url ? ` (${five.url})` : ''}.`);
+    for (const t of rest) L.push(`Live check: ${t}`);
+    if (!five && !rest.length) L.push(ctx.ran && ctx.ran.probe ? 'Live check: the live pages that were loaded did not answer with an error.' : 'Live check: none was run, so nothing here was seen failing on your website.');
     // what to try
     const who = fileComp ? `${kind} ${compName(fileComp)}` : `the ${kind}`;
     const prName = fr.provider && fr.provider.name;

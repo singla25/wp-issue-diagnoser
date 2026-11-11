@@ -67,7 +67,7 @@ function scan(root, { withUploads = false, ...limits } = {}) {
             if (bad) { skip(r, bad[1]); if (/\.php$/i.test(e.name) && !/^wp-config.*\.php$/i.test(e.name)) phpSkipped.push(r); continue; }
             if (st.size > L.maxFileBytes) { skip(r, `file larger than ${Math.round(L.maxFileBytes / 1048576)} MB`); if (/\.php$/i.test(e.name)) phpSkipped.push(r); continue; }
             files++; bytes += st.size; top.set(partName, (top.get(partName) || 0) + st.size);
-            entries.push({ src: a, rel: r, dir: false, size: st.size });
+            entries.push({ src: a, rel: r, dir: false, size: st.size, atimeMs: st.atimeMs, mtimeMs: st.mtimeMs });
         }
     };
     for (const part of PARTS) {
@@ -89,14 +89,24 @@ function scan(root, { withUploads = false, ...limits } = {}) {
             const a = path.join(wc, e.name), r = `wp-content/${e.name}`, st = fs.lstatSync(a);
             if (st.isSymbolicLink()) { symlinks++; skip(r, 'symbolic link (never followed)'); continue; }
             if (DROPIN_SKIP.has(e.name)) { skip(r, 'drop-in for a service the sandbox does not have (Redis, another database, multisite)'); phpSkipped.push(r); continue; }
-            dropins.push(e.name); files++; bytes += st.size; entries.push({ src: a, rel: r, dir: false, size: st.size });
+            dropins.push(e.name); files++; bytes += st.size; entries.push({ src: a, rel: r, dir: false, size: st.size, atimeMs: st.atimeMs, mtimeMs: st.mtimeMs });
         }
     } catch { /* no wp-content */ }
     return { entries, skipped, symlinks, bytes, files, dropins, phpSkipped, biggest: [...top].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([part, size]) => ({ part, mb: Math.round(size / 104857.6) / 10 })), limits: L };
 }
 
+// The copy keeps the ORIGINAL's file times (read with lstat in scan(), so a link is never followed): "its files last changed on ..." in the
+// first question must be the site's date, not the day of the copy. Set only on the file just written inside the copy, with lutimes (a link
+// in its place is never followed). A file system that refuses it leaves the copy's own time: keepTimes() says so with false, and copySite()
+// records it (times_preserved: false, times_failed: n) so that no date of the copy is ever shown as the site's. setTimes: injectable for tests.
+function keepTimes(to, e, setTimes = fs.lutimesSync) {
+    if (!Number.isFinite(e.mtimeMs)) return false;
+    // checked afterwards (lstat of the copy, never the original): a file system that ignores the call silently also counts as a failure (2 s for coarse clocks)
+    try { setTimes(to, new Date(Number.isFinite(e.atimeMs) ? e.atimeMs : e.mtimeMs), new Date(e.mtimeMs)); return Math.abs(fs.lstatSync(to).mtimeMs - e.mtimeMs) < 2000; } catch { return false; }
+}
+
 // Copies into destSite (…/sandboxes/<id>/site). Refuses, before writing anything, above the size / file caps.
-function copySite(root, destSite, { sandboxDir, withUploads = false, ...limits } = {}) {
+function copySite(root, destSite, { sandboxDir, withUploads = false, setTimes = fs.lutimesSync, ...limits } = {}) {
     if (!sandboxDir) throw err('copySite needs the sandbox folder to check destinations against');
     const sb = path.resolve(sandboxDir), dest = path.resolve(destSite);
     if (!inside(sb, dest) || dest === sb) throw err(`the destination ${dest} is not inside the sandbox folder ${sb}`);
@@ -106,7 +116,7 @@ function copySite(root, destSite, { sandboxDir, withUploads = false, ...limits }
     const L = s.limits;
     if (s.bytes > L.maxBytes) throw err(`The parts of the site to copy are ${Math.round(s.bytes / 1048576)} MB, above the ${Math.round(L.maxBytes / 1048576)} MB cap (--max-size-mb). Largest parts: ${s.biggest.map(b => `${b.part} ${b.mb} MB`).join(', ')}. Nothing was copied.`);
     if (s.files > L.maxFiles) throw err(`${s.files} files, above the cap of ${L.maxFiles}. Nothing was copied.`);
-    let copied = 0;
+    let copied = 0, timesFailed = 0;
     for (const e of s.entries) {
         const to = path.join(dest, e.rel);
         if (!inside(dest, path.resolve(to))) throw err(`refusing to write outside the sandbox: ${to}`);
@@ -114,11 +124,14 @@ function copySite(root, destSite, { sandboxDir, withUploads = false, ...limits }
         fs.mkdirSync(path.dirname(to), { recursive: true, mode: 0o755 });
         fs.copyFileSync(e.src, to);
         fs.chmodSync(to, 0o644);
+        if (!keepTimes(to, e, setTimes)) timesFailed++;
         copied++;
     }
     for (const d of ['wp-content/mu-plugins', 'wp-content/plugins', 'wp-content/themes', 'wp-content/uploads']) fs.mkdirSync(path.join(dest, d), { recursive: true, mode: 0o755 });
     fs.chmodSync(path.join(dest, 'wp-content/uploads'), 0o777); // written by www-data in the container; the sandbox folder itself is 0700
     return { php_skipped: s.phpSkipped.length, php_skipped_examples: s.phpSkipped.slice(0, 10), files: copied, bytes: s.bytes, symlinks_skipped: s.symlinks, dropins_copied: s.dropins, uploads_copied: !!withUploads,
+        // only when a time could not be set (the result is unchanged otherwise)
+        ...(timesFailed ? { times_preserved: false, times_failed: timesFailed } : {}),
         skipped: s.skipped.slice(0, 60), skipped_total: s.skipped.length, skipped_by_reason: Object.fromEntries([...new Set(s.skipped.map(x => x.reason))].sort().map(r => [r, s.skipped.filter(x => x.reason === r).length])) };
 }
 

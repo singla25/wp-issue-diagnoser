@@ -323,7 +323,7 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
             copyLogLines, cautions: (f.verdict && f.verdict.cautions) || [],
             // 6d-3: the report level and the "How close the copy is" box: what was asked for, whether Docker worked, whether a copy was built
             replica: replicaOf(sbx),
-            comps, probePages, templates: (cc.observations || []).filter(o => o.type === 'template-override-outdated'), causeDetail: cd, logHelp,
+            comps, probePages, issueUrl: issue.url || null, templates: (cc.observations || []).filter(o => o.type === 'template-override-outdated'), causeDetail: cd, logHelp,
             modified: ms && ms.count ? { lines: ms.lines, count: ms.count, files: ms.files } : null,
             // Part 6b: the versions of the test copy, only when a test copy was actually built this time (sandbox.json names it) and versions.json exists
             versions: sbx && sbx.sandbox ? W('versions.json') : null,
