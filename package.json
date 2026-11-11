@@ -105,7 +105,8 @@
     "selftest:6d2": "node scripts/selftest-6d2.js",
     "selftest:6d2-docker": "node scripts/selftest-6d2-docker.js",
     "selftest:6d3": "node scripts/selftest-6d3.js",
-    "selftest:6d3-fixes": "node scripts/selftest-6d3-fixes.js"
+    "selftest:6d3-fixes": "node scripts/selftest-6d3-fixes.js",
+    "selftest:isolated-copy": "node scripts/selftest-isolated-copy.js"
   },
   "license": "ISC",
   "dependencies": {
