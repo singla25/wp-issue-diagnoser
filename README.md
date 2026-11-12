@@ -1,4 +1,15 @@
-# Plugin Guard
+# wp-issue-diagnoser
+
+Command name: plugin-guard
+
+To get it:
+
+```bash
+git clone https://github.com/singla25/wp-issue-diagnoser.git
+cd wp-issue-diagnoser
+npm ci
+npm run plugin-guard
+```
 
 The first three sections are for anyone. They describe the `plugin-guard` command. The technical guide starts after them.
 
@@ -22,7 +33,7 @@ To start it, open a terminal in this repository's folder and type `npm run plugi
 - A live site is never copied with its database. A test copy from a database file is built only for a local or staging site.
 - It never applies a fix to your site. Suggested changes are written into files and a plan, and a person makes them, on a copy first. A fix may be tried inside a test copy, to see whether it helps.
 - It never asks an AI. No AI service is called, and the same input gives the same report.
-- It sends nothing to other services on its own. Checking plugin versions at wordpress.org or WPScan happens only when you switch it on for a project (`outsideLookups`, for the older scan commands below). Apart from loading your own website's pages, only these commands use the internet: the one-time setup commands (`npm run setup:guard`, `npm run guard:setup-ocr`, `npm run guard:setup-sandbox`) and `npm run guard:verify-knowledge`.
+- It sends nothing to other services on its own. Checking plugin versions at wordpress.org or WPScan happens only when you switch it on for a project (`outsideLookups`, for the older scan commands below). Apart from loading your own website's pages, only these commands use the internet: the one-time setup commands (`npm ci`, `npm run setup-ocr`, `npm run setup-sandbox`) and `npm run verify-knowledge`.
 - Your real user accounts are never put into a test copy. Every account becomes a dummy account. One dummy administrator gets a password that is shown once on the screen and never saved.
 
 The test copy has limits on its network, but it is not cut off from it. Built from a database file, the WordPress in the copy has no route to the internet. Built without one (`--sandbox`), it can still open a direct connection to an internet address written as numbers (an IP address); only WordPress's own web requests and its e-mail are blocked. So build test copies only of sites you own, with plugins you trust. The full rules are in [the safety rules](./docs/SAFETY.md).
@@ -40,6 +51,14 @@ The test copy has limits on its network, but it is not cut off from it. Built fr
 - "What was checked" counts the checks: pass, fail, not checked, and also noticed (something was found, but nothing ties it to this problem).
 - Nothing in the report is done for you. Each case has a "What to do" line, and the plan file (FIX-PLAN.md) lists the steps, each with how to undo it.
 
+## Status
+
+Plugin Guard is in active development. Things may change, and it has not been proven on a wide range of real sites. Its reports say how far each result was checked, and the "Limits" sections below list what it does not do.
+
+## How it was built
+
+It was designed and directed by the author, working with Claude Code and sub-agents. It is checked by an automated test suite, run with the `npm run selftest` commands listed under "Tests" below. Passing tests show that the checks do what the tests describe; they do not show that every WordPress site will be analysed correctly.
+
 ---
 
 Checks how the plugins, themes and settings of a WordPress project depend on each other, conflict with each other, and what they leave open to attackers. **Read-only: it never changes a site.** It produces a PDF report for the admin and, after the admin decides, a Markdown task file for a Claude agent to do the fixing.
@@ -54,17 +73,17 @@ copy
 ## Quick start
 
 ```bash
-npm run guard:selftest                                                  # offline check, no real site touched
-npm run guard:init -- acme --url https://acme.example/                  # creates projects/acme/project.json
-npm run guard:scan -- acme                                              # URL-only scan: what a visitor can see
-npm run guard:set -- acme --path ~/sites/acme                           # add the local copy later (other settings are kept)
-npm run guard:scan -- acme                                              # full scan
-# open reports/plugin-guard/acme/PLUGIN-GUARD-REPORT.pdf, then edit src/plugin-guard/projects/acme/decisions.txt
-npm run guard:fixfile -- acme                                           # → reports/plugin-guard/acme/FIXES-FOR-CLAUDE.md
-npm run guard:retest -- acme                                            # after Claude fixed things: Fixed / Still open / New
+npm run selftest                                                  # offline check, no real site touched
+npm run guard -- init acme --url https://acme.example/                  # creates projects/acme/project.json
+npm run guard -- scan acme                                              # URL-only scan: what a visitor can see
+npm run guard -- set acme --path ~/sites/acme                           # add the local copy later (other settings are kept)
+npm run guard -- scan acme                                              # full scan
+# open plugin-guard-reports/plugin-guard/acme/PLUGIN-GUARD-REPORT.pdf, then edit projects/acme/decisions.txt
+npm run guard -- fixfile acme                                           # → plugin-guard-reports/plugin-guard/acme/FIXES-FOR-CLAUDE.md
+npm run guard -- retest acme                                            # after Claude fixed things: Fixed / Still open / New
 ```
 
-The PDF needs Chromium: run `npm run setup:guard` once (Plugin Guard's own Playwright). Without it you still get the HTML copy.
+The PDF needs Chromium: run `npm ci` once (it installs Plugin Guard's own Playwright); if Chromium is missing, `npx playwright install chromium`. Without it you still get the HTML copy.
 
 ## The two modes
 
@@ -111,7 +130,7 @@ URL-only mode finishes what it can and lists every check it **could not** run, w
 }
 ```
 
-- **`schedule`** is the admin's approval: `none` (default) / `daily` / `weekly` / `monthly`. `guard:due` lists projects whose scan is due, `guard:run-due` scans them. **Nothing starts by itself**; to automate, put `guard:run-due` in your own cron.
+- **`schedule`** is the admin's approval: `none` (default) / `daily` / `weekly` / `monthly`. `npm run guard -- due` lists projects whose scan is due, `npm run guard -- run-due` scans them. **Nothing starts by itself**; to automate, put `run-due` in your own cron.
 - **`outsideLookups`** is off by default. `wordpressOrg` lets the tool send plugin/theme names and versions (and the WordPress version) to api.wordpress.org / downloads.wordpress.org for abandoned/closed/outdated checks and official checksums. `vulnerabilityDb` sends plugin names to wpscan.com and needs `WPSCAN_API_TOKEN` in the environment (never stored in project.json). The report lists every host contacted and how many requests. When a lookup is not allowed, the check shows as **Not run** with that reason.
 - **`phpVersion`:** the PHP on this computer is not your server's. Set the server's version, or let a live `X-Powered-By` header supply it.
 - **`precedence` / `prefer`:** how conflicts are resolved (see below).
@@ -126,12 +145,12 @@ decision: fix          <- fix | ignore | accept | pending
 reason:                <- required for ignore and accept
 ```
 
-`fix` items go into `FIXES-FOR-CLAUDE.md` (with exact paths, the fix, commands, the code to add, and a "done when"). `ignore` and `accept` stay out, are listed under "do not change", and are remembered on later scans, even if the finding disappears and comes back. `guard:fixfile` refuses to run until every `ignore`/`accept` has a reason.
+`fix` items go into `FIXES-FOR-CLAUDE.md` (with exact paths, the fix, commands, the code to add, and a "done when"). `ignore` and `accept` stay out, are listed under "do not change", and are remembered on later scans, even if the finding disappears and comes back. `fixfile` refuses to run until every `ignore`/`accept` has a reason.
 
-**Deciding a whole rule at once.** `guard:bulk -- <project>` lists the rules in the last scan with counts. Then, for example:
+**Deciding a whole rule at once.** `npm run guard -- bulk <project>` lists the rules in the last scan with counts. Then, for example:
 
 ```bash
-npm run guard:bulk -- acme --rule code-no-abspath,redeclare-class --as ignore --reason "Vendor libraries, not reachable directly"
+npm run guard -- bulk acme --rule code-no-abspath,redeclare-class --as ignore --reason "Vendor libraries, not reachable directly"
 ```
 
 Only `pending` findings change; earlier decisions stay unless you add `--overwrite`. `ignore`/`accept` need `--reason`.
@@ -153,34 +172,24 @@ Every scan stores a snapshot (`projects/<name>/history/`, git-ignored). The next
 
 ## Three-agent QA workflow (browser + source + validation)
 
-Reports go to `reports/runs/<run-id>/` (git-ignored). The older `scan <project>` flow above is unchanged.
+Reports go to `plugin-guard-reports/runs/<run-id>/` (git-ignored). The older `scan <project>` flow above is unchanged.
 
 ```
-Agent 1  user / frontend    browser tests of a URL (provided by src/combined, not by this folder)  ──►  01-user-test-report.md, evidence/frontend/
+Agent 1  user / frontend    browser tests of a URL. NOT part of this repository (see below)
 Agent 2  code / security    inspects a local WordPress root (php -l, WP patterns, conflicts) ─►  02-code-test-report.md
-Agent 3  validation         re-checks both, correlates, decides statuses, applies the ownership gate
+Agent 3  validation         re-checks what ran, correlates, decides statuses, applies the ownership gate
                             ──►  03-final-validation-report.md · findings.json · claude-tasks.md · report.html
 ```
 
-### Workflow A: URL first
+Agent 1 (the browser tests of a live URL) lived in a separate module that is not in this repository. Here, `qa-code` (Agent 2) and `qa-validate` (Agent 3) work on a local WordPress root, and a report without Agent 1 says it is PARTIAL. `qa-url` and `auto` only print a message that they belong to that other module.
 
-```bash
-node src/combined/scripts/combined.js qa-url --url https://staging.example.com/ --env staging     # Agent 1 (mode: --mode smoke|responsive|visual|seo|prelaunch)
-node src/plugin-guard/scripts/guard.js qa-validate --run latest                                    # PARTIAL report (no source code yet), says so
-# when you have the code:
-node src/plugin-guard/scripts/guard.js qa-code --root /path/to/wordpress --run <run-id>            # Agent 2 into the same run
-node src/plugin-guard/scripts/guard.js qa-validate --run <run-id>                                  # full report
-```
-
-`--env` is required (`staging`, `local` or `live`). A `live` site additionally needs `--authorized` (the owner's permission); without it nothing is sent and the result is recorded as `NEEDS_AUTHORIZATION`. Results older than `maxAgeHours` (24) or for a different site are refused unless `--allow-stale`.
-
-### Workflow B: local first
+### Local first
 
 Open a terminal in the WordPress root (the folder with `wp-content`):
 
 ```bash
-node /path/to/wordpress-dev-agent/src/plugin-guard/scripts/guard.js scan --root . [--url https://staging.example.com/ --env staging]
-# or, from this repository:  npm run guard:scan -- --root /absolute/path/to/wordpress
+node /path/to/plugin-guard/scripts/guard.js scan --root .
+# or, from this repository:  npm run guard -- scan --root /absolute/path/to/wordpress
 ```
 
 It checks prerequisites, loads the allowlist, runs Agent 2, runs Agent 1 only if a URL is given (a source checkout is not a running website), then Agent 3. Without a URL the report is labelled PARTIAL.
@@ -216,58 +225,32 @@ Exit codes of `qa-*` and `scan --root`: `0` done, nothing at/above `--fail-on` (
 | `php -l`, WordPress pattern checks, conflicts, dependencies, integrity patterns | yes | | | |
 | Database / user checks | yes | | WP-CLI + imported DB | |
 | wordpress.org checksums / lifecycle, vulnerability DB | | yes (opt-in per project) | | `WPSCAN_API_TOKEN` for WPScan |
-| Agent 1 browser tests | | live target (staging preferred) | | none used |
 | PHPCS / PHPStan / Semgrep / composer+npm audit | | | | **not run yet** (detected by `doctor`) |
 
 ### Tests
 
 ```bash
-npm run guard:selftest          # original offline suite (incl. PDF)
-npm run guard:selftest:agents   # ownership, config, regressions, Agents 2-3, reports, workflows, exit codes (offline)
-npm run guard:selftest:html     # report.html in Chromium from file://: search, filters, XSS, offline, mobile
-npm run guard:selftest:agent1   # Agent 1 through the real frontend agent against a fixture site on 127.0.0.1 (~30 s)
-npm run guard:test              # every Plugin Guard suite in order (repository root only; isolated-copy is the last)
+npm run selftest          # original offline suite (incl. PDF)
+npm run selftest:agents   # ownership, config, regressions, Agents 2-3, reports, workflows, exit codes (offline)
+npm run selftest:html     # report.html in Chromium from file://: search, filters, XSS, offline, mobile
 ```
 
 The audit of the original module is in [`docs/plugin-guard-audit.md`](./docs/plugin-guard-audit.md). It was written during the first repair; some limits listed there have since been resolved (for example, `FIXED_VERIFIED` is now set by `issue/retest.js` only).
-
-## One command: `guard:auto`
-
-```bash
-npm run guard:auto -- --url https://staging.example/ --root /path/to/wordpress --env staging
-#   --env local|staging|live   (required: the tool never guesses)       --authorized   (required for live, as for qa-url)
-#   --max-issues 5             cap on auto-issues                        --sandbox-max-issues 3   how many get the sandbox bisection
-#   --no-sandbox               static-only: no Docker at all             --db-dump f.sql          import a dump into the sandbox (anonymised by default)
-#   --fail-on HIGH             as qa-validate
-```
-
-No question is asked. It composes the pieces described elsewhere in this README and does not rebuild any of them:
-
-1. **Preflight.** The doctor checks run. If the sandbox is wanted (`--env local|staging`, not `--no-sandbox`) and the Docker daemon is not running, it tries **`systemctl --user start docker.service`** once (never `sudo`, never the system service, only if that user service exists) and waits up to 30 s. Otherwise it continues in **static-only mode** and says why.
-2. **Agent 1**: the frontend QA in `visual` mode on `--url`, with the existing page caps, request governor, cooldown and authorization rules. **3. Agent 2**: the code and conflict scan of `--root`, with the custom-code allowlist from `plugin-guard.config.json`.
-4. **Auto-issues.** Each distinct, reproducible failure Agent 1 observed becomes an issue with one *generic* oracle: a console/page error (its text, digits as `\d+`), a failed asset (its path), an HTTP 5xx page, or horizontal overflow (at the width it was seen). Duplicates are grouped by a fingerprint of (oracle, value), ranked by severity then class then how often, capped (`--max-issues`, default 5). They are marked `auto_generated`, have an empty description, and a title made only of the finding's own text. Third-party failures, protection/rate-limit answers and every other kind of finding (typography, SEO ...) are not turned into issues; the report lists them with the reason.
-5. **One sandbox** (never for `--env live`): a single throwaway copy of `--root`, every existing safeguard unchanged. A plugin set is applied once and the *union* of all issues' pages is loaded once; the observation is cached by plugin-set hash and each issue's own oracle is evaluated on it, so issue 2 reuses the page loads of issue 1's bisection. The bisection runs once per issue (fixed order, fixed per-issue caps, so `bisect.json` is reproducible).
-6. **Validation.** Agent 3 for the run; Phase H (`issue/validate.js`) for each auto-issue. Only validators assign statuses. Patches and shims are written but labelled "not verified in the sandbox" (verify one with `issue investigate <id> --sandbox`). Nothing is `FIXED_VERIFIED` by this command; only `issue retest` can do that.
-7. **One report** in `reports/runs/<run-id>/`: `report.html` (offline; summary, frontend findings, code and conflict findings, auto-issues with causes and fixes, "not a plugin conflict" cases, what did not run and why), `report.pdf` (printed from it), `findings.json` (with an `auto` block), `auto.json`, `03-final-validation-report.md`, `claude-tasks.md`, and one full `issues/<id>/result/` per auto-issue.
-
-**Safety.** Read-only on the original: the tree under `--root` is fingerprinted (path, size, modification time; logs and cache folders excluded) before and after and the report says whether it changed. The sandbox is built only from the local copy; the site at `--url` receives only what Agent 1 sends (GET page loads through the governor); the auto-issue analysis makes **no** further request to it. **Exit codes** as `qa-*`: `0` done, nothing at/above `--fail-on` · `1` findings at/above it · `2` bad usage or configuration · `3` a prerequisite was blocked (Agent 1 did not run, authorization missing, the original changed during the run).
-
-**Limits.** Auto-issues only exist for what the frontend agent reports; its `visual` mode reports console errors and overflow, and failed assets and 5xx pages only where the frontend flags them (in one fixture its visual mode did not flag a 404 script). With no sandbox (live, `--no-sandbox`, no Docker) no issue can be "reproduced" or bisected. Only the first `--sandbox-max-issues` issues get the sandbox. A symptom that is present with every plugin off is reported as **NOT A PLUGIN CONFLICT**, not bisected into a plugin.
 
 ## Issue mode: investigate ONE reported problem
 
 Give it a problem a person reported ("the cart button does nothing since last week", with screenshots) and it works out, **deterministically and offline** (no AI model, no network unless you run the setup commands), which component is the likely cause, how sure it is, and what to change. It never edits your site.
 
 ```bash
-npm run setup:guard                  # once: npm ci in src/plugin-guard (issue mode needs it; the classic scan does not)
-npm run guard:setup-ocr              # once, optional: the OCR language file for screenshots (SHA-256 pinned; the only download besides the next one)
-npm run guard:setup-sandbox          # once, optional: pulls the three Docker images BY DIGEST (needs Docker, ideally rootless)
-npm run guard:demo                   # the worked example on a fixture, offline, a few seconds   (--sandbox: with Docker, several minutes; --keep: keep the files)
+npm ci                               # once: install the dependencies (issue mode needs them; the classic scan does not)
+npm run setup-ocr              # once, optional: the OCR language file for screenshots (SHA-256 pinned; the only download besides the next one)
+npm run setup-sandbox          # once, optional: pulls the three Docker images BY DIGEST (needs Docker, ideally rootless)
+npm run demo                   # the worked example on a fixture, offline, a few seconds   (--sandbox: with Docker, several minutes; --keep: keep the files)
 
-node src/plugin-guard/scripts/guard.js issue new                      # title, description, pages, symptom, oracle, screenshots (asks one question at a time; every answer is also a flag)
-node src/plugin-guard/scripts/guard.js issue investigate <id> --root <wp-copy> [--config <file with customPaths>] [--url ...] [--sandbox [--db-dump f.sql]] [--no-replica]
-node src/plugin-guard/scripts/guard.js issue retest <id> --root <fixed-copy> --sandbox
-node src/plugin-guard/scripts/guard.js issue show|list|open|index|cleanup [id]
+node scripts/guard.js issue new                      # title, description, pages, symptom, oracle, screenshots (asks one question at a time; every answer is also a flag)
+node scripts/guard.js issue investigate <id> --root <wp-copy> [--config <file with customPaths>] [--url ...] [--sandbox [--db-dump f.sql]] [--no-replica]
+node scripts/guard.js issue retest <id> --root <fixed-copy> --sandbox
+node scripts/guard.js issue show|list|open|index|cleanup [id]
 ```
 
 ### What an investigation does
@@ -303,7 +286,7 @@ A throwaway copy in three Docker containers (WordPress, WP-CLI, MariaDB), images
 
 ### Worked example
 
-`npm run guard:demo` builds a tiny fake site where Plugin A (third party) and Plugin B (yours) both declare `my_helper()`, files the report "white screen after activating Plugin B", investigates it and prints what it found:
+`npm run demo` builds a tiny fake site where Plugin A (third party) and Plugin B (yours) both declare `my_helper()`, files the report "white screen after activating Plugin B", investigates it and prints what it found:
 
 ```
 verdict:  Probable cause (confidence medium-high); symptom reproduced: could-not-test
@@ -312,25 +295,23 @@ fix:      Wrap function my_helper() in a function_exists() guard  => not verifie
           (a patch for plugin-b only; plugin-a is not on the allowlist, so it is "needs a human")
 ```
 
-`npm run guard:demo -- --sandbox` runs a second example on real containers: two plugins hook `the_content` at the same priority and one empties the post. It reproduces the symptom, bisects it to the pair, tests both orderings of a shim (one is **VERIFIED IN SANDBOX**, the other "did not help"), applies the winner to a copy and ends with `FIXED_VERIFIED`.
+`npm run demo -- --sandbox` runs a second example on real containers: two plugins hook `the_content` at the same priority and one empties the post. It reproduces the symptom, bisects it to the pair, tests both orderings of a shim (one is **VERIFIED IN SANDBOX**, the other "did not help"), applies the winner to a copy and ends with `FIXED_VERIFIED`.
 
 ### Tests for issue mode
 
 ```bash
-npm run guard:selftest:issue            # CLI, store, safe folders         ·  :issue-evidence (OCR, clues, logs)  ·  :issue-code (PHP syntax tree, ownership)
-npm run guard:selftest:issue-graph      # graph, collisions, knowledge base, hypotheses  ·  :issue-seeded (bugs seeded into real code, if a real site is configured)
-npm run guard:selftest:issue-probe      # live probe and oracle against a fixture site on 127.0.0.1
-npm run guard:selftest:issue-sandbox    # container safeguards, copy rules, SandboxWpCli refusals, bisection algorithm (offline)
-npm run guard:selftest:issue-sandbox-lifecycle  # create/teardown/sweep against a fake docker
-npm run guard:selftest:issue-validate | issue-resolve | issue-cleanup | doctor
-npm run guard:selftest:auto | auto-sandbox | auto-preflight | auto-pipeline | auto-agent1   # guard:auto (offline; fake docker; the real frontend agent on a fixture site)
-npm run guard:selftest:auto-docker      # guard:auto on REAL containers
-npm run guard:selftest:issue-sandbox-docker | issue-resolve-docker | issue-verify-docker   # REAL containers; they skip, loudly, when Docker is not usable
-npm run guard:selftest:docs             # this README and docs/*.md: the commands, paths, links and plugin-guard flags they name exist
-npm run guard:selftest:isolated-copy    # LAST suite of guard:test: this folder copied alone to a temp folder, npm ci, doctor, issue + wizard, then its non-Docker suites
+npm run selftest:issue            # CLI, store, safe folders         ·  :issue-evidence (OCR, clues, logs)  ·  :issue-code (PHP syntax tree, ownership)
+npm run selftest:issue-graph      # graph, collisions, knowledge base, hypotheses  ·  :issue-seeded (bugs seeded into real code, if a real site is configured)
+npm run selftest:issue-probe      # live probe and oracle against a fixture site on 127.0.0.1
+npm run selftest:issue-sandbox    # container safeguards, copy rules, SandboxWpCli refusals, bisection algorithm (offline)
+npm run selftest:issue-sandbox-lifecycle  # create/teardown/sweep against a fake docker
+npm run selftest:issue-validate | issue-resolve | issue-cleanup | doctor
+npm run selftest:issue-sandbox-docker | issue-resolve-docker | issue-verify-docker   # REAL containers; they skip, loudly, when Docker is not usable
+npm run selftest:docs             # this README and docs/*.md: the commands, paths, links and plugin-guard flags they name exist
+npm run selftest:isolated-copy    # this folder copied alone to a temp folder, npm ci, doctor, issue + wizard, then its non-Docker suites
 ```
 
-The safety rules are also in [`docs/SAFETY.md`](./docs/SAFETY.md) inside this folder (a byte-for-byte copy of the repository's `docs/SAFETY.md`, checked by the repository's `scripts/selftest-repo.js`), so they travel with the package.
+The safety rules are in [`docs/SAFETY.md`](./docs/SAFETY.md).
 
 ## Safety
 
@@ -364,4 +345,4 @@ These are things the tool cannot do or does not claim. They are repeated in ever
 
 ## The `plugin-guard` command
 
-`npm run plugin-guard` (from the repo root), `npm exec --prefix src/plugin-guard -- plugin-guard`, or after `npm pack` + `npm install ./wordpress-dev-agent-plugin-guard-*.tgz`: `npm exec -- plugin-guard`. It asks only plain questions: what is wrong, screenshots (optional), the website address (optional), and which WordPress folder. The folders found on this computer (here and above, and the usual web folders such as /var/www, ~/public_html, ~/Local Sites, XAMPP and MAMP; looked at read-only, three levels deep, never through symlinks) are shown as a numbered list; you type a number or a path. The site's own log (wp-content/debug.log, error_log, or the WP_DEBUG_LOG path in wp-config.php, always inside your site) is found by itself and a line says which one was used; logs outside the site such as /var/log are never read. There is no PHP question up front (use `--php`); when the site folder itself hints a PHP version, one `[Y/n]` line confirms it. With a website address the tool guesses local, staging or live from the name and asks you to confirm in one line (`--env` skips it). It then makes a redacted COPY of the site inside the report folder, and runs the issue pipeline with the gate and the follow-up questions. Nothing is written into your site folder. A live site is visited only after you type its domain (or pass `--authorized`). When Docker works and the site is not live, ONE optional question follows: a database export file of the site (.sql or .sql.gz; Enter = none). With a file (asked, or given with `--db-dump`) a test copy of the site is built without asking whether to build it (the wizard still asks the one user-accounts question: 1 dummy users, 0 skip the test copy), after one line: "Building a test copy of your site with your database, about N minutes." (N = max(2, 1 + ceil(MB / 50)) of the unpacked size, `lib/dump-intake.js` `estimateMinutes`). The size cap stays (`--max-size-mb`, default 1024 MB). `--no-replica` switches the test copy off (also for `issue investigate` and `issue retest`); a live site never gets one from a database file. The report then says at the top which of three levels it is: "Tested on a copy of your site", "Not tested on a copy" (with what was missing: a database file, Docker, the code, or a failing page on your site to compare) or "The test copy could not confirm this", and, when a copy was built, a "How close the copy is" box (Matched / Did not match / Not known / Not covered in this version). `plugin-guard --help` lists the flags (each one answers a question: `--description`, `--root`, `--url`, `--env`, `--authorized`, `--php`, `--images`, `--log`, `--sandbox`, `--db-dump`, `--max-size-mb`, `--no-replica`, `--out`, `--yes`); with `--yes` nothing is asked.
+`npm run plugin-guard` (from the repo root), or after `npm pack` + `npm install ./wordpress-dev-agent-plugin-guard-*.tgz`: `npm exec -- plugin-guard`. It asks only plain questions: what is wrong, screenshots (optional), the website address (optional), and which WordPress folder. The folders found on this computer (here and above, and the usual web folders such as /var/www, ~/public_html, ~/Local Sites, XAMPP and MAMP; looked at read-only, three levels deep, never through symlinks) are shown as a numbered list; you type a number or a path. The site's own log (wp-content/debug.log, error_log, or the WP_DEBUG_LOG path in wp-config.php, always inside your site) is found by itself and a line says which one was used; logs outside the site such as /var/log are never read. There is no PHP question up front (use `--php`); when the site folder itself hints a PHP version, one `[Y/n]` line confirms it. With a website address the tool guesses local, staging or live from the name and asks you to confirm in one line (`--env` skips it). It then makes a redacted COPY of the site inside the report folder, and runs the issue pipeline with the gate and the follow-up questions. Nothing is written into your site folder. A live site is visited only after you type its domain (or pass `--authorized`). When Docker works and the site is not live, ONE optional question follows: a database export file of the site (.sql or .sql.gz; Enter = none). With a file (asked, or given with `--db-dump`) a test copy of the site is built without asking whether to build it (the wizard still asks the one user-accounts question: 1 dummy users, 0 skip the test copy), after one line: "Building a test copy of your site with your database, about N minutes." (N = max(2, 1 + ceil(MB / 50)) of the unpacked size, `lib/dump-intake.js` `estimateMinutes`). The size cap stays (`--max-size-mb`, default 1024 MB). `--no-replica` switches the test copy off (also for `issue investigate` and `issue retest`); a live site never gets one from a database file. The report then says at the top which of three levels it is: "Tested on a copy of your site", "Not tested on a copy" (with what was missing: a database file, Docker, the code, or a failing page on your site to compare) or "The test copy could not confirm this", and, when a copy was built, a "How close the copy is" box (Matched / Did not match / Not known / Not covered in this version). `plugin-guard --help` lists the flags (each one answers a question: `--description`, `--root`, `--url`, `--env`, `--authorized`, `--php`, `--images`, `--log`, `--sandbox`, `--db-dump`, `--max-size-mb`, `--no-replica`, `--out`, `--yes`); with `--yes` nothing is asked.

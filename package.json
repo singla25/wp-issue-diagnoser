@@ -110,7 +110,7 @@
     "selftest:docs": "node scripts/selftest-docs.js",
     "selftest:isolated-copy": "node scripts/selftest-isolated-copy.js"
   },
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@playwright/test": "1.64.1",
     "acorn": "8.19.0",

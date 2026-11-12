@@ -27,47 +27,13 @@ const textOf = rel => { try { return fs.readFileSync(path.join(PG, rel), 'utf8')
 
 // ---------------------------------------------------------------- the explicit lists
 // repository-root scripts named in the README (it says to run them from the repository root): name -> the script of THIS package they run
-const ROOT_FORWARDERS = {
-    'guard:selftest': ['selftest', 'root forwarder: npm --prefix src/plugin-guard run selftest'],
-    'guard:selftest:agents': ['selftest:agents', 'root forwarder to selftest:agents'],
-    'guard:selftest:html': ['selftest:html', 'root forwarder to selftest:html'],
-    'guard:selftest:issue': ['selftest:issue', 'root forwarder to selftest:issue'],
-    'guard:selftest:issue-graph': ['selftest:issue-graph', 'root forwarder to selftest:issue-graph'],
-    'guard:selftest:issue-probe': ['selftest:issue-probe', 'root forwarder to selftest:issue-probe'],
-    'guard:selftest:issue-sandbox': ['selftest:issue-sandbox', 'root forwarder to selftest:issue-sandbox'],
-    'guard:selftest:issue-sandbox-lifecycle': ['selftest:issue-sandbox-lifecycle', 'root forwarder to selftest:issue-sandbox-lifecycle'],
-    'guard:selftest:issue-sandbox-docker': ['selftest:issue-sandbox-docker', 'root forwarder to selftest:issue-sandbox-docker'],
-    'guard:selftest:issue-validate': ['selftest:issue-validate', 'root forwarder to selftest:issue-validate'],
-    'guard:selftest:docs': ['selftest:docs', 'root forwarder to selftest:docs (this suite)'],
-    'guard:selftest:isolated-copy': ['selftest:isolated-copy', 'root forwarder to selftest:isolated-copy'],
-    'guard:init': ['guard', 'root forwarder: npm --prefix src/plugin-guard run guard -- init'],
-    'guard:scan': ['guard', 'root forwarder: run guard -- scan'],
-    'guard:set': ['guard', 'root forwarder: run guard -- set'],
-    'guard:bulk': ['guard', 'root forwarder: run guard -- bulk'],
-    'guard:fixfile': ['guard', 'root forwarder: run guard -- fixfile'],
-    'guard:retest': ['guard', 'root forwarder: run guard -- retest'],
-    'guard:demo': ['demo', 'root forwarder to demo'],
-    'guard:setup-ocr': ['setup-ocr', 'root forwarder to setup-ocr'],
-    'guard:setup-sandbox': ['setup-sandbox', 'root forwarder to setup-sandbox'],
-    'guard:verify-knowledge': ['verify-knowledge', 'root forwarder to verify-knowledge'],
-};
+const ROOT_FORWARDERS = {};   // standalone repository: the package is the repository root, so nothing is forwarded or outside
 // repository-root scripts named in the docs that run something OUTSIDE this package (the docs say so where they name them)
-const NOT_IN_PACKAGE = {
-    'guard:test': 'the whole guard:test list of the repository (it also runs src/combined suites and the repository check)',
-    'setup:guard': 'repository root: npm ci in src/plugin-guard plus the Chromium install (in this folder: npm ci)',
-    'setup:frontend': 'the setup of the Frontend QA module (another module of the repository), named in docs/SAFETY.md',
-    'qa:frontend:e2e': 'a Frontend QA suite (another module of the repository), named in the audit text',
-    'guard:auto': 'src/combined (guard:auto needs the Frontend QA module; the README says it is not part of this folder)',
-    'guard:selftest:auto': 'src/combined suite',
-    'guard:selftest:auto-docker': 'src/combined suite',
-    'guard:selftest:agent1': 'src/combined suite (Agent 1 drives the frontend agent)',
-};
+const NOT_IN_PACKAGE = {};   // standalone repository: the package is the repository root, so nothing is forwarded or outside
 // `npm <word>` in code that is an npm command, not a script
 const NPM_COMMANDS = { ci: 'npm ci', exec: 'npm exec', install: 'npm install', pack: 'npm pack', run: 'npm run', audit: 'npm audit (a tool the doctor looks for)' };
 // `node .../scripts/*.js` paths outside this package
-const NODE_OUTSIDE = {
-    'src/combined/scripts/combined.js': 'src/combined (Agent 1 / qa-url); the README says it is not part of this folder',
-};
+const NODE_OUTSIDE = {};   // standalone repository: the package is the repository root, so nothing is forwarded or outside
 // --flags that are not options of guard.js / plugin-guard.js: each with the file that owns it (checked to contain the flag) or a check
 const has = (rel, s) => textOf(rel).includes(s);
 const RETIRED = ['keep', 'real', 'data'].join('-');
@@ -110,7 +76,8 @@ function scan(docs) {
             const out = Object.keys(NODE_OUTSIDE).find(k => p === k || p.endsWith('/' + k));
             if (out) { r.seen.node.add(out); continue; }
             const i = p.lastIndexOf('src/plugin-guard/');
-            const rel = i >= 0 ? p.slice(i + 'src/plugin-guard/'.length) : p.replace(/^\.\//, '');
+            const ph = p.lastIndexOf('/plugin-guard/scripts/');   // placeholder install path such as /path/to/plugin-guard/scripts/guard.js
+            const rel = i >= 0 ? p.slice(i + 'src/plugin-guard/'.length) : ph >= 0 ? p.slice(ph + '/plugin-guard/'.length) : p.replace(/^\.\//, '');
             const abs = path.join(PG, rel);
             if (!inside(PG, abs) || !fs.existsSync(abs)) r.node.push(`${d}: node ${p}`); else r.seen.node.add(rel);
         }

@@ -1,6 +1,6 @@
 # Plugin Guard audit
 
-Audit of `src/plugin-guard/` and its integration with `src/frontend/`. Written during the repair; the code and tests it cites are in the repository. (This file is the one exception to the git-ignored `reports/` folder because it holds no client data.)
+Audit of this package and its integration with a separate Frontend QA module (`src/frontend/` in the repository it came from; that module is not in this repository). Written during the repair; the code and tests it cites are in the repository. (This file is the one exception to the git-ignored `reports/` folder because it holds no client data.)
 
 ## 1. Architecture found
 
@@ -12,7 +12,7 @@ Audit of `src/plugin-guard/` and its integration with `src/frontend/`. Written d
 | `lib/report-pdf.js`, `lib/fixfile.js` | PDF/HTML report, `FIXES-FOR-CLAUDE.md` |
 | `src/frontend/` | Separate Playwright QA agent (governor, pacing, WAF stop). Plugin Guard only borrowed its Chromium for the PDF |
 
-What worked: the original self-test (`npm run guard:selftest`) passed in full before any change (it did, including PDF rendering), the WP-CLI allow-list, the pacing/stop-on-block behaviour of the live probe and of `src/frontend`.
+What worked: the original self-test (`npm run selftest`) passed in full before any change (it did, including PDF rendering), the WP-CLI allow-list, the pacing/stop-on-block behaviour of the live probe and of `src/frontend`.
 
 ## 2. Why it "behaved incorrectly": reproduced defects
 
@@ -75,7 +75,7 @@ Nothing was installed globally.
 - Live-URL security probes (user enumeration, `xmlrpc`, `debug.log`) remain in the classic `scan <project>` command; the 3-agent flow does not call them.
 - `npm --prefix <agent> run ...` from a different directory reports the agent's folder as the user's directory (npm behaviour), so `--root .` cannot work that way; use the direct `node .../guard.js scan --root .` form or an absolute `--root`.
 - The dashboard was tested in Chromium via Playwright; not in Firefox/Safari, no screen-reader test. Contrast was designed, not measured.
-- `npm run qa:frontend:e2e` (12 min) was not run; the other four frontend self-tests were.
+- The 12-minute end-to-end suite of the separate Frontend QA module was not run; the other four frontend self-tests were.
 
 ## 7. Preserved
 

@@ -1,0 +1,13 @@
+node_modules/
+issues/
+sandboxes/
+reports/
+projects/*
+!projects/.gitkeep
+state/
+plugin-guard-reports/
+.env
+*.log
+# real database dumps (the test fixtures are *.sql.txt and stay tracked)
+*.sql
+*.sql.gz

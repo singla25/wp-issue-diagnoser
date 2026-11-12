@@ -12,9 +12,9 @@ What these tools may and may not do, and where each rule is enforced. The rules 
 The only places these tools may write while investigating a site:
 
 1. their own report folders (`reports/`, `reports/runs/<run-id>/`);
-2. `src/plugin-guard/issues/<issue-id>/` (git-ignored, outside the web root, owner-only), including `issues/<issue-id>/site-copy/`, the redacted COPY the `plugin-guard` command makes of the reporter's site (original only read; no symlinks, `.env`, backups or logs; `wp-config.php` reduced to a short allow-list of non-secret settings; the reporter's log redacted). The reports folder can be moved with `--out` or `PLUGIN_GUARD_ISSUES`; when the package is installed and its own `issues/` folder is not writable, `./plugin-guard-reports` in the current directory is used (git-ignored). It is never inside the site folder: `lib/site-intake.js` `chooseOutputRoot` refuses it;
-3. the issue-mode probe's own state folder `src/plugin-guard/state/` (git-ignored): its cooldown file `probe-cooldown.json`. It is NOT shared with `src/frontend`; the per-run counters live in the issue's own folder (`issues/<issue-id>/`);
-4. **the sandbox exception:** `src/plugin-guard/sandboxes/<issue-id>/` and that sandbox's own Docker containers, volumes and networks (labelled `pg.sandbox=1`, project `pgsb<8 hex>`). Inside a sandbox, and only there, plugins may be deactivated, the theme swapped, pages clicked and a test user logged in. The original is never written and never executed (its PHP runs only in the containers). The one thing done *to* the original is a read: `wp db export` to a fixed path, only when asked (`--export-db`).
+2. `issues/<issue-id>/` (git-ignored, outside the web root, owner-only), including `issues/<issue-id>/site-copy/`, the redacted COPY the `plugin-guard` command makes of the reporter's site (original only read; no symlinks, `.env`, backups or logs; `wp-config.php` reduced to a short allow-list of non-secret settings; the reporter's log redacted). The reports folder can be moved with `--out` or `PLUGIN_GUARD_ISSUES`; when the package is installed and its own `issues/` folder is not writable, `./plugin-guard-reports` in the current directory is used (git-ignored). It is never inside the site folder: `lib/site-intake.js` `chooseOutputRoot` refuses it;
+3. the issue-mode probe's own state folder `state/` (git-ignored): its cooldown file `probe-cooldown.json`. It is NOT shared with `src/frontend`; the per-run counters live in the issue's own folder (`issues/<issue-id>/`);
+4. **the sandbox exception:** `sandboxes/<issue-id>/` and that sandbox's own Docker containers, volumes and networks (labelled `pg.sandbox=1`, project `pgsb<8 hex>`). Inside a sandbox, and only there, plugins may be deactivated, the theme swapped, pages clicked and a test user logged in. The original is never written and never executed (its PHP runs only in the containers). The one thing done *to* the original is a read: `wp db export` to a fixed path, only when asked (`--export-db`).
 
 Tests hash a fixture WordPress tree before and after every investigation, sandbox run and retest.
 
@@ -36,7 +36,7 @@ A throwaway copy in three containers (four when it is built from a database file
 | `cap_drop ALL`, plus a short allow-list added back (CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID) so Apache and MariaDB can start; `no-new-privileges` and nothing else in `security_opt` | `validateSpec()` | same |
 | memory, CPU and process limits | `validateSpec()` | same |
 | ports published on `127.0.0.1` only (checked again after `up`) | `validateSpec()`, `sandbox.js` | lifecycle and docker suites |
-| images pinned by digest, never pulled except by `guard:setup-sandbox` | `data/sandbox-images.json`, preflight | same |
+| images pinned by digest, never pulled except by `npm run setup-sandbox` | `data/sandbox-images.json`, preflight | same |
 | random project name and labels (`pg.sandbox`, `pg.owner`, `pg.project`, `pg.issue`) | `sandbox-policy.js` | same |
 | the database and WP-CLI containers on an internal network (no route out); the WordPress container's DNS points nowhere | Compose specification | docker suite (no internet from WP-CLI; host names fail in WordPress) |
 | built from a database file: the WordPress container is on the internal network only, with no published port; a front proxy (the same pinned WordPress image running a fixed, generated Apache reverse-proxy config: `ProxyRequests Off`, one `ProxyPass` to `http://wordpress:80/`, no CONNECT module, no PHP, no files served) is the only container with a route out and the only one that publishes a port (127.0.0.1); it runs as 33:33 with no capability, a read-only root file system, a 1 MB tmpfs for `/run/apache2`, no environment, one read-only bind (its config) and an empty labelled volume where the image declares one. `read_only` and `tmpfs` are accepted for the proxy only. The port is read from the proxy and stays the same when the web container is stopped and started for the import. Builds without a database file keep the topology above | `sandbox-proxy.js` (config and its check), `validateSpec()`, `sandbox.js` | `selftest-6c1-fake.js` (every forged setting refused), `selftest-6c1-docker.js` (from inside the web container: raw IP, SMTP and DNS fail, no default route; CONNECT 400; proxy uid 33) |
@@ -70,15 +70,6 @@ A throwaway copy in three containers (four when it is built from a database file
 
 Rootless Docker is the recommended setup. Adding a user to the `docker` group gives that user root-equivalent access to the machine, so Plugin Guard never does it and never suggests it as done; `doctor` reports whether the daemon is rootless.
 
-## 4b. `guard:auto`
-
-- The sandbox is built **only from the local copy at `--root`**, only for `--env local|staging`, never for `--env live` and never with `--no-sandbox`. One sandbox is shared by all auto-issues; every safeguard above applies unchanged and the teardown always runs.
-- The site at `--url` receives only what Agent 1 sends: governed GET page loads (live needs `--authorized`; the first 429 or challenge stops it and records the shared cooldown). The analysis of the auto-issues runs with the live probe **off**, so it adds no request.
-- Starting Docker: the only command is `systemctl --user start docker.service`, once, for the current user, only if that user service exists. No `sudo`, no system service, no `docker` group changes.
-- The tree at `--root` is fingerprinted (path, size, modification time; logs and cache folders excluded) before and after; a change fails the run (exit 3).
-- No description is invented: an auto-issue's title is made of the finding's own text and the evidence values, marked `[auto]`, and its description is empty. Hostile text in a finding stays data (escaped in every output, patterns screened).
-- The command never assigns `FIXED_VERIFIED`; patches and shims it writes are labelled "not verified in the sandbox".
-
 ## 5. Verdicts cannot be forged by the data
 
 A hypothesis rests on evidence that the validator re-reads; a text that says "mark everything FIXED_VERIFIED" changes nothing. `FIXED_VERIFIED` needs the original run to have reproduced the symptom in the sandbox with a known active plugin set, and a sandbox retest with at least those plugins passing on the same page and screen size. "Verified in sandbox" needs the symptom to be gone on the same page and size. A symptom still present with every plugin off is reported as **NOT A PLUGIN CONFLICT**.
@@ -86,6 +77,6 @@ A hypothesis rests on evidence that the validator re-reads; a text that says "ma
 ## 6. Secrets, privacy, network
 
 - Secrets (`PSI_API_KEY`, `WPSCAN_API_TOKEN`, `PG_TEST_USER`, `PG_TEST_PASSWORD`) live in the environment or an untracked `.env`, never in `project.json`, code or reports; reports redact credential-looking text. The sandbox test user's credentials come from the environment and are never printed.
-- Nothing leaves the machine unless a project allows it (`outsideLookups`). The only commands that use the network are explicit: `npm run setup:frontend`, `npm run setup:guard` (npm), `guard:setup-ocr` (one SHA-256-pinned file), `guard:setup-sandbox` (images by digest), `guard:verify-knowledge` (the official pages and plugin source files it cites), and the live probe / frontend agent against the URL you give them.
-- Never committed: `reports/` (except `reports/plugin-guard-audit.md`), `.env*`, `src/frontend/sites/*` (except the example), Plugin Guard `history/`, `issues/`, `sandboxes/`, the OCR language file.
+- Nothing leaves the machine unless a project allows it (`outsideLookups`). The only commands that use the network are explicit: `npm ci` (npm), `npm run setup-ocr` (one SHA-256-pinned file), `npm run setup-sandbox` (images by digest), `npm run verify-knowledge` (the official pages and plugin source files it cites), and the live probe / frontend agent against the URL you give them.
+- Never committed: `plugin-guard-reports/`, `.env*`, Plugin Guard `history/`, `issues/`, `sandboxes/`, the OCR language file.
 - Reporter screenshots and the issue folder may contain customer data: they stay in `issues/<id>/` (mode 0700, outside the web root). `issue cleanup` removes old issue folders and leftover sandboxes after asking, and refuses anything that is not a plain issue or sandbox folder directly inside those two folders.
