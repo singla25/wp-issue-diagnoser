@@ -1,5 +1,5 @@
 {
-  "name": "wordpress-dev-agent-plugin-guard",
+  "name": "wp-issue-diagnoser",
   "version": "0.3.0",
   "private": true,
   "bin": {
