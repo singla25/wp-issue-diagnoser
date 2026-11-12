@@ -47,6 +47,14 @@ function addressPageOf(pages, issueUrl) {
 }
 const pathText = u => { try { return (new URL(String(u)).pathname.replace(/\/+$/, '') || '/').slice(0, 300); } catch { return '/'; } };
 const pageSentence = p => `The page ${pathText(p.url)} answered HTTP ${Number(p.status)} (${STATUS_WORDS[Number(p.status)] || 'an error'}).`;
+// a probed page that redirects to itself (owner, 2026-11-12): the browser gave up (ERR_TOO_MANY_REDIRECTS, issue/oracle.js redirectSigns) and the page never
+// loaded. The live check DID run: it is said as such in the wording only (result.js `ran.probe` and everything the gate decides from it are unchanged).
+const LOOP_SIGN = /^redirect loop: the browser gave up/;
+const isSelfLoop = p => !!p && !p.loaded && require('./oracle').redirectSigns(p).some(x => LOOP_SIGN.test(x));
+const loopSentence = p => `The page ${pathText(p.url)} redirects to itself, so it never loads.`;
+const LOOP_LOOKED = 'the live page (it redirects to itself)';
+// the sentences for the pages that redirect to themselves, once per page (a page is probed at several screen sizes)
+function loopLines(pages) { const out = []; for (const p of pages || []) if (isSelfLoop(p)) { const t = loopSentence(p); if (!out.includes(t)) out.push(t); } return out.slice(0, 5); }
 // What the probed pages answered, in sentences: { five, address (the address page answered 4xx), others (other 4xx pages, at most 5, no advice), lines, any }
 function liveAnswers(pages, issueUrl) {
     const five = (pages || []).find(is5) || null;
@@ -116,10 +124,11 @@ function skippedText(d) {
 }
 // what truly ran / did not run -> "Looked at: ... Not looked at: ..."
 // copyBuilt: a test copy WAS built (sandbox.json replica.copy_built): it is never "Not looked at", even when its result is not used
-function lookedAt(facts, { box = false, copyBuilt = false } = {}) {
+// liveLoop: no probed page loaded, but one redirects to itself: the live page WAS looked at (owner wording)
+function lookedAt(facts, { box = false, copyBuilt = false, liveLoop = false } = {}) {
     const yes = [], no = [];
     (facts.hasLog ? yes : no).push('your log');
-    (facts.probeRan ? yes : no).push('the live page');
+    if (facts.probeRan) yes.push('the live page'); else if (liveLoop) yes.push(LOOP_LOOKED); else no.push('the live page');
     if (facts.hasCode) yes.push(facts.phpSkipped ? `the code (${skippedText(facts.phpSkippedDetail)})` : 'the code'); else no.push('the code');
     if (facts.sandboxRan) yes.push('a throwaway test copy'); else if (copyBuilt) yes.push('a throwaway test copy (it was built)'); else no.push(facts.sandboxFailed ? 'a throwaway test copy (it could not run)' : 'a throwaway test copy');
     // the PHP version only as the reporter stated it; the host's PHP (or the sandbox image's) is never claimed as the site's
@@ -152,6 +161,7 @@ function build(f, ctx) {
     const noCrash = (ctx.facts || {}).crash === false;
     const checkHeading = noCrash ? CHECK_NO_CRASH : CHECK;
     const sureLive = bc && bc.live ? bc.live : null;
+    const loops = loopLines(ctx.probePages);   // pages that redirect to themselves (a live check that ran, with no page loaded)
     // the live line(s) of the box: one sentence, or several (a 5xx and a 4xx are both said)
     // the address sentence ("Your address answered HTTP <code> ...") is said in STATUS and "What you see" only, never in a case's "How sure" list (owner)
     const liveRows = l => (Array.isArray(l) ? l.filter(x => typeof x === 'string') : l ? [l] : []).filter(x => !x.startsWith('Your address answered HTTP '));
@@ -164,7 +174,7 @@ function build(f, ctx) {
     // a confirmed case: the evidence lines, the log entry's date on its own line, and whether the live site was looked at (no page loaded: "Not checked on the live site.")
     const confirmedSure = () => {
         const sure = bc.last_seen ? bc.sure.map(l => l.replace(`, last seen ${bc.last_seen}`, '')) : bc.sure;
-        return [...sure, ...liveRows(sureLive), ...(bc.last_seen ? [`Last seen in your log on ${bc.last_seen}.`] : []), ...(facts.probeRan ? [] : [NOT_LIVE_SENTENCE])];
+        return [...sure, ...liveRows(sureLive), ...(bc.last_seen ? [`Last seen in your log on ${bc.last_seen}.`] : []), ...(facts.probeRan || loops.length ? [] : [NOT_LIVE_SENTENCE])];
     };
     const addBox = () => {
         const likely = box.tier === 'likely';
@@ -240,7 +250,7 @@ function build(f, ctx) {
     const fdc = ctx.fidelity ? require('./fidelity').clean(ctx.fidelity) : null;
     const level = copyLevel(fdc, ctx.replica || null, facts);
     const close = ctx.replica && ctx.replica.copy_built && fdc ? closeness({ versions: ctx.versions, activePlugins: ctx.activePlugins, fidelity: fdc }) : null;
-    const looked = lookedAt(facts, { box: !!close, copyBuilt: !!(ctx.replica && ctx.replica.copy_built) });
+    const looked = lookedAt(facts, { box: !!close, copyBuilt: !!(ctx.replica && ctx.replica.copy_built), liveLoop: loops.length > 0 });
     // a probed live page answered 4xx: said plainly in the STATUS area and under "What you see"; never "did not answer with an error"
     const answers = liveAnswers(ctx.probePages, ctx.issueUrl || null);
     const address = answers.address;
@@ -249,7 +259,7 @@ function build(f, ctx) {
     const images = (f.reported && f.reported.images) || [];
     if (images.length) see.push(`${images.length} ${plural(images.length, 'screenshot', 'screenshots')} from you: ${images.map(i => i.name).join(', ')}.`);
     // every error answer is said (5xx, the address page's 4xx with its advice, other 4xx pages without advice); never "did not answer with an error" then
-    if (answers.any) see.push(...answers.lines);
+    if (answers.any || loops.length) see.push(...answers.lines, ...loops);
     else if (ctx.facts && ctx.facts.probeRan) see.push('The live pages that were loaded did not answer with an error.');
     else see.push('No live check was run, so nothing was seen on the live page.');
     const cp = f.checkpoints ? f.checkpoints.counts : null;
@@ -461,4 +471,4 @@ function cli(cf) {
     return L.join('\n');
 }
 
-module.exports = { addressSentence, STATUS_WORDS, PROTECT_CODES, addressPageOf, liveAnswers, pageSentence, NOT_CONFIRMED_LABEL, NO_PAGE_MATCH, copyLevel, closeness, closeLines, LEVEL_HEADING, MISSING_TEXT, MISSING_INTRO, NOT_TESTED_LABEL, CHOSE_NO_COPY, MATCHED_LINE, CLOSE_TITLE, CLOSE_GROUPS, NOT_COVERED, countedChecks, countedSentence, fidelityPart, MISSING_SHOWN, userDataLines, activePluginLines, versionLines, build, markdown, markdownDeveloper, cli, statusLine, lookedAt, skippedText, confirmedSentence, LIKELY, CHECK, CHECK_NO_CRASH, CONFIRMED, SIGNS, EMPTY_STATUS, NOT_CONFIRMED_SENTENCE, NO_CAUSE_NOTE, NOT_LIVE_SENTENCE, PHP_NOT_STATED, MODIFIED_NOTE, MODIFIED_ADVICE, NO_LOG_HELP };
+module.exports = { isSelfLoop, loopSentence, loopLines, LOOP_LOOKED, addressSentence, STATUS_WORDS, PROTECT_CODES, addressPageOf, liveAnswers, pageSentence, NOT_CONFIRMED_LABEL, NO_PAGE_MATCH, copyLevel, closeness, closeLines, LEVEL_HEADING, MISSING_TEXT, MISSING_INTRO, NOT_TESTED_LABEL, CHOSE_NO_COPY, MATCHED_LINE, CLOSE_TITLE, CLOSE_GROUPS, NOT_COVERED, countedChecks, countedSentence, fidelityPart, MISSING_SHOWN, userDataLines, activePluginLines, versionLines, build, markdown, markdownDeveloper, cli, statusLine, lookedAt, skippedText, confirmedSentence, LIKELY, CHECK, CHECK_NO_CRASH, CONFIRMED, SIGNS, EMPTY_STATUS, NOT_CONFIRMED_SENTENCE, NO_CAUSE_NOTE, NOT_LIVE_SENTENCE, PHP_NOT_STATED, MODIFIED_NOTE, MODIFIED_ADVICE, NO_LOG_HELP };

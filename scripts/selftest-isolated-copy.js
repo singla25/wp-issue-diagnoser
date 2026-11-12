@@ -26,7 +26,7 @@ const REPO = layout.repoRoot();
 
 // ---- the pinned lists (names as in the root package.json guard:test, without "guard:selftest:") ----
 // need the Docker daemon and real containers: not re-run in the copy
-const DOCKER = ['issue-sandbox-docker', 'issue-resolve-docker', 'issue-verify-docker', '6a-docker', '6b-docker', '6c1-docker', '6c2-docker', '6d1-docker', '6d2-docker'];
+const DOCKER = ['issue-sandbox-docker', 'issue-resolve-docker', 'issue-verify-docker', '6a-docker', '6b-docker', '6c1-docker', '6c2-docker', '6d1-docker', '6d2-docker', 'second-site-docker'];
 // read something that is not part of src/plugin-guard: skipped in the copy, with the reason
 const NON_PORTABLE = {
     'issue-evidence': 'needs the OCR language file data/ocr/eng.traineddata, which is git-ignored and is NOT downloaded in the copy (npm run guard:setup-ocr)',
