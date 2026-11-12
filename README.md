@@ -1,5 +1,47 @@
 # Plugin Guard
 
+The first three sections are for anyone. They describe the `plugin-guard` command. The technical guide starts after them.
+
+## What this does
+
+- You tell it what is wrong with a WordPress site, for example "the shop page is blank". You also say where the site's folder is on this computer. You can add screenshots and the address of the website.
+- It makes its own copy of the site's files. It reads that copy and the site's error log. It looks for the plugin, theme or setting that most likely causes the problem.
+- With the website's address, it also loads a few pages of the site, to see the problem from the outside.
+- With a database export file of the site and Docker on this computer, it can build a throwaway test copy of the site and try the problem there. The test copy is removed at the end.
+- It writes a report you can open in your browser, and a short plan of what to do next.
+
+To start it, open a terminal in this repository's folder and type `npm run plugin-guard`. It asks one question at a time.
+
+## What it never does
+
+- It never writes to your site folder. It only reads it. Its copy of the site and its reports go into its own report folder, and that folder is never inside your site folder.
+- It reads your site's files. The only thing it runs on them is a PHP syntax check (`php -l`). Your site's own code is run only inside the Docker test copy.
+- It never changes your website. With an address, it only loads pages, like a visitor's browser: read-only requests (GET), one page at a time, with a pause between pages. It never logs in, clicks, types or sends a form there, so it only sees what any visitor can see.
+- It stops at the first sign that the website is protecting itself (a "too many requests" answer or a challenge page). It does not try again, and it sends nothing more to that website for 30 minutes.
+- It never visits a live website without your confirmation: you type the website's name (its domain) when asked, or you give `--authorized`.
+- A live site is never copied with its database. A test copy from a database file is built only for a local or staging site.
+- It never applies a fix to your site. Suggested changes are written into files and a plan, and a person makes them, on a copy first. A fix may be tried inside a test copy, to see whether it helps.
+- It never asks an AI. No AI service is called, and the same input gives the same report.
+- It sends nothing to other services on its own. Checking plugin versions at wordpress.org or WPScan happens only when you switch it on for a project (`outsideLookups`, for the older scan commands below). Apart from loading your own website's pages, only these commands use the internet: the one-time setup commands (`npm run setup:guard`, `npm run guard:setup-ocr`, `npm run guard:setup-sandbox`) and `npm run guard:verify-knowledge`.
+- Your real user accounts are never put into a test copy. Every account becomes a dummy account. One dummy administrator gets a password that is shown once on the screen and never saved.
+
+The test copy has limits on its network, but it is not cut off from it. Built from a database file, the WordPress in the copy has no route to the internet. Built without one (`--sandbox`), it can still open a direct connection to an internet address written as numbers (an IP address); only WordPress's own web requests and its e-mail are blocked. So build test copies only of sites you own, with plugins you trust. The full rules are in [the safety rules](./docs/SAFETY.md).
+
+## How to read the report
+
+- The top of the report is plain sentences, so you can forward it. Technical detail (files, lines, the error text) is further down, under "For a developer".
+- The STATUS line counts what was found, for example "1 likely cause (not confirmed) · 1 thing to check · 0 confirmed". A "Likely cause (not confirmed)" comes from your log and the code, but no second, independent test proved it. A "Confirmed cause" is backed by two independent checks. "Something else to check (probably not the crash)" is worth a look, but probably did not cause the problem.
+- A heading then says how far the testing went. There are three:
+  - "Tested on a copy of your site": a test copy of your site showed the same problem as your site. This is the strongest result.
+  - "Not tested on a copy": no test copy was used. The report lists what was missing (a database export file, Docker, the site's code, or a page that fails on your site to compare with), or says "You chose not to build a test copy." What the report says then comes from reading your log and the code; it is labelled NOT TESTED.
+  - "The test copy could not confirm this": a test copy was tried, but it could not run, or it did not show the same problem.
+- NOT CONFIRMED: this label means a test copy was built and showed the reported error in its log, but your site had no failing page to compare with. So the copy does not confirm the report.
+- "How close the copy is": this box is shown when a test copy was built. It sorts what was compared into four groups: "Matched", "Did not match", "Not known", and "Not covered in this version". It covers the versions (PHP, database, WordPress), the active plugins, and whether the copy showed the same error. "Not covered in this version" lists what a copy cannot show yet, such as calls to outside services, the web server's own rules, file permissions and cron jobs.
+- "What was checked" counts the checks: pass, fail, not checked, and also noticed (something was found, but nothing ties it to this problem).
+- Nothing in the report is done for you. Each case has a "What to do" line, and the plan file (FIX-PLAN.md) lists the steps, each with how to undo it.
+
+---
+
 Checks how the plugins, themes and settings of a WordPress project depend on each other, conflict with each other, and what they leave open to attackers. **Read-only: it never changes a site.** It produces a PDF report for the admin and, after the admin decides, a Markdown task file for a Claude agent to do the fixing.
 
 ```
@@ -184,10 +226,10 @@ npm run guard:selftest          # original offline suite (incl. PDF)
 npm run guard:selftest:agents   # ownership, config, regressions, Agents 2-3, reports, workflows, exit codes (offline)
 npm run guard:selftest:html     # report.html in Chromium from file://: search, filters, XSS, offline, mobile
 npm run guard:selftest:agent1   # Agent 1 through the real frontend agent against a fixture site on 127.0.0.1 (~30 s)
-npm run guard:test              # all four
+npm run guard:test              # every Plugin Guard suite in order (repository root only; isolated-copy is the last)
 ```
 
-The audit of the original module is in [`reports/plugin-guard-audit.md`](../../reports/plugin-guard-audit.md).
+The audit of the original module is in [`docs/plugin-guard-audit.md`](./docs/plugin-guard-audit.md). It was written during the first repair; some limits listed there have since been resolved (for example, `FIXED_VERIFIED` is now set by `issue/retest.js` only).
 
 ## One command: `guard:auto`
 
@@ -253,7 +295,7 @@ Output of one issue (`issues/<id>/`, outside the web root, owner-only, git-ignor
 
 ### Sandbox
 
-A throwaway copy in three Docker containers (WordPress, WP-CLI, MariaDB), images pinned by digest, not privileged, no `docker.sock`, `cap_drop ALL`, memory/CPU/process limits, ports on `127.0.0.1` only, external HTTP and mail blocked, payment gateways in live mode refused (`--neutralise-payments` switches them off in the copy), the database **always anonymised** with dummy users only (every account rewritten in place, IDs kept; the lowest-ID administrator becomes the one dummy admin `pgadmin` with a password generated for that copy, printed once on a terminal and never saved; rows rewritten or removed are counted per table, numbers only; `--keep-real-data` is retired and exits 2, `--users` accepts only `dummy`; with a database file and a terminal the wizard asks the user-accounts question: 1 dummy users, 0 skip the test copy), `wp-config.php` regenerated with new salts, always torn down (also on Ctrl-C or a crash; leftovers are swept at start). The WordPress container **can still make raw outbound connections** to an IP address: run sandboxes only for sites you own and code you trust. Details in [`docs/SAFETY.md`](../../docs/SAFETY.md).
+A throwaway copy in three Docker containers (WordPress, WP-CLI, MariaDB), images pinned by digest, not privileged, no `docker.sock`, `cap_drop ALL`, memory/CPU/process limits, ports on `127.0.0.1` only, external HTTP and mail blocked, payment gateways in live mode refused (`--neutralise-payments` switches them off in the copy), the database **always anonymised** with dummy users only (every account rewritten in place, IDs kept; the lowest-ID administrator becomes the one dummy admin `pgadmin` with a password generated for that copy, printed once on a terminal and never saved; rows rewritten or removed are counted per table, numbers only; `--keep-real-data` is retired and exits 2, `--users` accepts only `dummy`; with a database file and a terminal the wizard asks the user-accounts question: 1 dummy users, 0 skip the test copy), `wp-config.php` regenerated with new salts, always torn down (also on Ctrl-C or a crash; leftovers are swept at start). The WordPress container **can still make raw outbound connections** to an IP address: run sandboxes only for sites you own and code you trust. Details in [`docs/SAFETY.md`](./docs/SAFETY.md).
 
 ### Clean-up
 
@@ -284,7 +326,11 @@ npm run guard:selftest:issue-validate | issue-resolve | issue-cleanup | doctor
 npm run guard:selftest:auto | auto-sandbox | auto-preflight | auto-pipeline | auto-agent1   # guard:auto (offline; fake docker; the real frontend agent on a fixture site)
 npm run guard:selftest:auto-docker      # guard:auto on REAL containers
 npm run guard:selftest:issue-sandbox-docker | issue-resolve-docker | issue-verify-docker   # REAL containers; they skip, loudly, when Docker is not usable
+npm run guard:selftest:docs             # this README and docs/*.md: the commands, paths, links and plugin-guard flags they name exist
+npm run guard:selftest:isolated-copy    # LAST suite of guard:test: this folder copied alone to a temp folder, npm ci, doctor, issue + wizard, then its non-Docker suites
 ```
+
+The safety rules are also in [`docs/SAFETY.md`](./docs/SAFETY.md) inside this folder (a byte-for-byte copy of the repository's `docs/SAFETY.md`, checked by the repository's `scripts/selftest-repo.js`), so they travel with the package.
 
 ## Safety
 
@@ -318,4 +364,4 @@ These are things the tool cannot do or does not claim. They are repeated in ever
 
 ## The `plugin-guard` command
 
-`npm run plugin-guard` (from the repo root), `npm exec --prefix src/plugin-guard -- plugin-guard`, or after `npm pack` + `npm install ./wordpress-dev-agent-plugin-guard-*.tgz`: `npm exec -- plugin-guard`. It asks only plain questions: what is wrong, screenshots (optional), the website address (optional), and which WordPress folder. The folders found on this computer (here and above, and the usual web folders such as /var/www, ~/public_html, ~/Local Sites, XAMPP and MAMP; looked at read-only, three levels deep, never through symlinks) are shown as a numbered list; you type a number or a path. The site's own log (wp-content/debug.log, error_log, or the WP_DEBUG_LOG path in wp-config.php, always inside your site) is found by itself and a line says which one was used; logs outside the site such as /var/log are never read. There is no PHP question (use `--php`). With a website address the tool guesses local, staging or live from the name and asks you to confirm in one line (`--env` skips it). It then makes a redacted COPY of the site inside the report folder, and runs the issue pipeline with the gate and the follow-up questions. Nothing is written into your site folder. A live site is visited only after you type its domain (or pass `--authorized`). When Docker works and the site is not live, ONE optional question follows: a database export file of the site (.sql or .sql.gz; Enter = none). With a file (asked, or given with `--db-dump`) a test copy of the site is built without asking again, after one line: "Building a test copy of your site with your database, about N minutes." (N = max(2, 1 + ceil(MB / 50)) of the unpacked size, `lib/dump-intake.js` `estimateMinutes`). The size cap stays (`--max-size-mb`, default 1024 MB). `--no-replica` switches the test copy off (also for `issue investigate` and `issue retest`); a live site never gets one from a database file. The report then says at the top which of three levels it is: "Tested on a copy of your site", "Not tested on a copy" (with what was missing: a database file, Docker, the code, or a failing page on your site to compare) or "The test copy could not confirm this", and, when a copy was built, a "How close the copy is" box (Matched / Did not match / Not known / Not covered in this version). `plugin-guard --help` lists the flags; with `--yes` nothing is asked.
+`npm run plugin-guard` (from the repo root), `npm exec --prefix src/plugin-guard -- plugin-guard`, or after `npm pack` + `npm install ./wordpress-dev-agent-plugin-guard-*.tgz`: `npm exec -- plugin-guard`. It asks only plain questions: what is wrong, screenshots (optional), the website address (optional), and which WordPress folder. The folders found on this computer (here and above, and the usual web folders such as /var/www, ~/public_html, ~/Local Sites, XAMPP and MAMP; looked at read-only, three levels deep, never through symlinks) are shown as a numbered list; you type a number or a path. The site's own log (wp-content/debug.log, error_log, or the WP_DEBUG_LOG path in wp-config.php, always inside your site) is found by itself and a line says which one was used; logs outside the site such as /var/log are never read. There is no PHP question up front (use `--php`); when the site folder itself hints a PHP version, one `[Y/n]` line confirms it. With a website address the tool guesses local, staging or live from the name and asks you to confirm in one line (`--env` skips it). It then makes a redacted COPY of the site inside the report folder, and runs the issue pipeline with the gate and the follow-up questions. Nothing is written into your site folder. A live site is visited only after you type its domain (or pass `--authorized`). When Docker works and the site is not live, ONE optional question follows: a database export file of the site (.sql or .sql.gz; Enter = none). With a file (asked, or given with `--db-dump`) a test copy of the site is built without asking whether to build it (the wizard still asks the one user-accounts question: 1 dummy users, 0 skip the test copy), after one line: "Building a test copy of your site with your database, about N minutes." (N = max(2, 1 + ceil(MB / 50)) of the unpacked size, `lib/dump-intake.js` `estimateMinutes`). The size cap stays (`--max-size-mb`, default 1024 MB). `--no-replica` switches the test copy off (also for `issue investigate` and `issue retest`); a live site never gets one from a database file. The report then says at the top which of three levels it is: "Tested on a copy of your site", "Not tested on a copy" (with what was missing: a database file, Docker, the code, or a failing page on your site to compare) or "The test copy could not confirm this", and, when a copy was built, a "How close the copy is" box (Matched / Did not match / Not known / Not covered in this version). `plugin-guard --help` lists the flags (each one answers a question: `--description`, `--root`, `--url`, `--env`, `--authorized`, `--php`, `--images`, `--log`, `--sandbox`, `--db-dump`, `--max-size-mb`, `--no-replica`, `--out`, `--yes`); with `--yes` nothing is asked.

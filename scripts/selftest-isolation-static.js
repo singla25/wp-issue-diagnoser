@@ -14,7 +14,7 @@ const ROOT = path.join(__dirname, '..');
 const ALLOW_FILE = path.join(__dirname, 'isolation-allowlist.json');
 const SKIP_DIR = new Set(['node_modules', 'issues', 'sandboxes', 'reports', 'projects', '.git']);
 const SELF = new Set(['scripts/selftest-isolation-static.js', 'scripts/isolation-allowlist.json']);
-const SKIP_FILE = /\.(png|jpe?g|webp|pdf|traineddata|part)$|(^|\/)package-lock\.json$|^data\/(knowledge-verification\.json)$|^KNOWLEDGE-REVIEW\.md$/;
+const SKIP_FILE = /\.(png|jpe?g|webp|pdf|traineddata|part)$|(^|\/)package-lock\.json$|^data\/(knowledge-verification\.json)$|^KNOWLEDGE-REVIEW\.md$|^docs\/SAFETY\.md$|^docs\/plugin-guard-audit\.md$/;
 // what counts as a dependency on src/frontend
 const REFERENCE = [
     /src\/frontend/,                                  // a path
