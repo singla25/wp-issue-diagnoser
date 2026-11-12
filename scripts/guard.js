@@ -116,7 +116,7 @@ async function runScan(name, o, type) {
 async function main() {
     const o = parse(process.argv.slice(2));
     const [cmd, name, arg] = o._;
-    if (!cmd) { console.error(fs.readFileSync(__filename, 'utf8').split('\n').slice(1, 35).map(l => l.replace(/^\/\/ ?/, '')).join('\n')); return 2; }
+    if (!cmd) { console.error(require('../lib/hints').current().usage(fs.readFileSync(__filename, 'utf8').split('\n').slice(1, 35).map(l => l.replace(/^\/\/ ?/, '')).join('\n'))); return 2; }
 
     if (cmd === 'init') {
         const p = projectLib.create(name, { url: o.url, path: o.path && cfgLib.userPath(o.path), schedule: o.schedule, allowWordpressOrg: o['allow-wordpress-org'], allowVulnDb: o['allow-vuln-db'] }, { force: o.force });
@@ -138,7 +138,7 @@ async function main() {
     }
     if (cmd === 'issue') return require('../lib/issue-cli').run(o);
     if (cmd === 'auto' || cmd === 'qa-url') {
-        console.error(`"${cmd}" drives the Frontend QA agent, so it lives in src/combined now:\n  node src/combined/scripts/combined.js ${process.argv.slice(2).join(' ')}${cmd === 'auto' ? '\n  (or: npm run guard:auto -- ...)' : ''}`);
+        console.error(require('../lib/hints').current().frontendOnly(cmd, process.argv.slice(2)));
         return 2;
     }
     const QA = { 'qa-code': workflow.qaCode, 'qa-validate': workflow.qaValidate, doctor: workflow.doctor, config: workflow.showConfig, show: workflow.showRun };

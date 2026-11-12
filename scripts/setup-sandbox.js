@@ -14,6 +14,7 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 const { spawnSync } = require('child_process');
+const HINT = require('../lib/hints').current();   // lib/hints.js: the repository or the package form
 
 const PIN_FILE = path.join(__dirname, '..', 'data', 'sandbox-images.json');
 const WANT = {
@@ -86,7 +87,7 @@ function plan(pins, o) {
         if (!list.length) { refused.push({ key: what, reason: `${what} is not in data/sandbox-images.json`, command: null }); return; }
         for (const x of list) {
             if (pinned(x.entry)) pull.push(x);
-            else refused.push({ key: x.key, reason: `${label(x.entry)} is not pinned yet${x.entry.tag ? '' : ' (no tag chosen)'}`, command: 'npm run guard:setup-sandbox -- --repin' + (flag ? ` && npm run guard:setup-sandbox -- ${flag}` : '') });
+            else refused.push({ key: x.key, reason: `${label(x.entry)} is not pinned yet${x.entry.tag ? '' : ' (no tag chosen)'}`, command: `${HINT.npmRun('setup-sandbox')} -- --repin` + (flag ? ` && ${HINT.npmRun('setup-sandbox')} -- ${flag}` : '') });
         }
     };
     for (const v of o.php) take(all.filter(x => x.group === 'php' && x.version === v), `PHP ${v}`, `--php ${v}`);
@@ -168,8 +169,8 @@ function needDaemon(run) {
 }
 // -> exit code. run(args): the docker runner; out / err: line writers
 function main(argv, { run = dockerRun, out = s => console.log(s), err = s => console.error(s), pinFile = PIN_FILE } = {}) {
-    let o; try { o = parseArgs(argv); } catch (e) { err(`guard:setup-sandbox: ${e.message}`); return 2; }
-    if (!fs.existsSync(pinFile)) { err('data/sandbox-images.json is missing. Run:  npm run guard:setup-sandbox -- --repin'); return 2; }
+    let o; try { o = parseArgs(argv); } catch (e) { err(`${HINT.scriptLabel('setup-sandbox')}: ${e.message}`); return 2; }
+    if (!fs.existsSync(pinFile)) { err(`data/sandbox-images.json is missing. Run:  ${HINT.npmRun('setup-sandbox')} -- --repin`); return 2; }
     const pins = JSON.parse(fs.readFileSync(pinFile, 'utf8'));
     const nd = needDaemon(run); if (nd) { err(nd); return 2; }
     if (o.check) { const c = check(run, pins); for (const l of c.lines) out(l); return c.missingDefaults ? 2 : 0; }
@@ -191,7 +192,7 @@ module.exports = { WANT, WANT_PHP, WANT_DB, parseArgs, entries, plan, check, ins
 
 if (require.main === module) {
     (async () => {
-        if (process.argv.includes('--repin')) { try { parseArgs(process.argv.slice(2)); } catch (e) { console.error(`guard:setup-sandbox: ${e.message}`); process.exit(2); } await repin(); return; }
+        if (process.argv.includes('--repin')) { try { parseArgs(process.argv.slice(2)); } catch (e) { console.error(`${HINT.scriptLabel('setup-sandbox')}: ${e.message}`); process.exit(2); } await repin(); return; }
         process.exit(main(process.argv.slice(2)));
-    })().catch(e => { console.error(`guard:setup-sandbox failed: ${e.message}`); process.exit(2); });
+    })().catch(e => { console.error(`${HINT.scriptLabel('setup-sandbox')} failed: ${e.message}`); process.exit(2); });
 }

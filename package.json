@@ -44,6 +44,7 @@
     "selftest:issue-probe": "node scripts/selftest-issue-probe.js",
     "selftest:issue-sandbox": "node scripts/selftest-issue-sandbox.js",
     "setup-sandbox": "node scripts/setup-sandbox.js",
+    "setup-browser": "playwright install chromium",
     "selftest:issue-sandbox-lifecycle": "node scripts/selftest-issue-sandbox-lifecycle.js",
     "selftest:issue-sandbox-docker": "node scripts/selftest-issue-sandbox-docker.js",
     "selftest:issue-validate": "node scripts/selftest-issue-validate.js",
@@ -109,6 +110,7 @@
     "selftest:6d3-fixes": "node scripts/selftest-6d3-fixes.js",
     "selftest:second-site": "node scripts/selftest-second-site.js",
     "selftest:second-site-docker": "node scripts/selftest-second-site-docker.js",
+    "selftest:hints": "node scripts/selftest-hints.js",
     "selftest:docs": "node scripts/selftest-docs.js",
     "selftest:isolated-copy": "node scripts/selftest-isolated-copy.js"
   },

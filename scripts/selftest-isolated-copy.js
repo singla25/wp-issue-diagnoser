@@ -14,6 +14,7 @@
 //      suite of guard:test that can run alone; every SKIP line a suite prints in the copy must be one of the pinned SKIP_LINES
 // The Docker suites are NOT re-run in the copy (the full run covers them in the repository). The non-portable suites are skipped,
 // loudly, and their list is pinned BY NAME here: a suite that becomes portable, or a new suite, must be placed in a list on purpose.
+// The suites that pin the repository wording of the printed commands run in the copy with PG_HINT_LAYOUT=repo (HINT_REPO, pinned by name).
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -33,6 +34,20 @@ const NON_PORTABLE = {
     'issue-sandbox': 'reads the repository CLAUDE.md (the sandbox exception must be stated there)',
     'checkpoints': 'reads docs/COVERAGE.md (data/checkpoints.json is generated from it; gen-checkpoints --check is not run either)',
     'isolated-copy': 'this suite itself (it builds the copy)',
+    'hints': 'compares the repository texts of lib/hints.js and builds its own copy of src/plugin-guard from the repository (it skips itself outside one)',
+};
+// suites that pin the REPOSITORY wording of the printed commands (lib/hints.js: node src/plugin-guard/scripts/guard.js, npm run setup:guard,
+// npm run guard:setup-*, "issue mode (src/plugin-guard)"), in assertions or in a golden file. In the copy they run with PG_HINT_LAYOUT=repo,
+// which changes hint TEXT only; the copy's own wording is tested by the hints suite. Nothing else gets the override.
+const HINT_REPO = {
+    '6b': 'version-match SETUP and setup-sandbox commands: npm run guard:setup-sandbox -- ...',
+    'auto-preflight': 'the missing-image reason names guard:setup-sandbox',
+    doctor: 'npm run setup:guard and the label "Packages: issue mode (src/plugin-guard)"',
+    'gate-output': 'golden fixtures/issue/gate-off/tasks.md.golden: node src/plugin-guard/scripts/guard.js issue retest',
+    issue: 'the missing-package message names npm run setup:guard',
+    'issue-sandbox-lifecycle': 'the missing-image reason names guard:setup-sandbox',
+    playwright: 'npm run setup:guard and "not installed in src/plugin-guard"',
+    'plugin-guard': 'the OCR note names npm run guard:setup-ocr',
 };
 // the ONLY SKIP lines a suite may print in the copy (suite -> the line's start); any other SKIP line FAILS, and each of these must appear
 const SKIP_LINES = {
@@ -58,7 +73,7 @@ const group = t => console.log(`\n== ${t}`);
 const inside = (parent, child) => { const r = path.relative(parent, child); return r === '' || (!r.startsWith('..') && !path.isAbsolute(r)); };
 const childEnv = extra => {
     const env = { ...process.env, NO_COLOR: '1', ...extra };
-    for (const k of Object.keys(env)) if (/^(PG_REAL_|PLUGIN_GUARD_|PG_PROBE_COOLDOWN_FILE$)/.test(k) && !(k in (extra || {}))) delete env[k];
+    for (const k of Object.keys(env)) if (/^(PG_REAL_|PLUGIN_GUARD_|PG_PROBE_COOLDOWN_FILE$|PG_HINT_LAYOUT$)/.test(k) && !(k in (extra || {}))) delete env[k];
     return env;
 };
 
@@ -192,7 +207,7 @@ group('4b. the OCR command exists with what it needs (NOT run: nothing is downlo
 
 group('4c. doctor and guard:setup-sandbox --check in the copy (read-only)');
 {
-    const d = run(process.execPath, ['scripts/guard.js', 'doctor'], { timeout: 180000 });
+    const d = run(process.execPath, ['scripts/guard.js', 'doctor'], { timeout: 180000, env: { PG_HINT_LAYOUT: 'repo' } });   // the label below is the repository wording (the copy's own: the hints suite)
     const out = d.stdout + d.stderr;
     ok(d.status === 0 && /Plugin Guard prerequisites/.test(out) && /Packages: issue mode \(src\/plugin-guard\)/.test(out), `doctor runs in the copy (exit ${d.status})`);
     ok(!/src\/(?!plugin-guard\b)[a-z]+/.test(out) && !/Error: Cannot find module/.test(out), 'doctor names no other module under src/ and misses no module');
@@ -232,18 +247,20 @@ group('4e. the non-Docker suites of guard:test, in the copy, one at a time');
     const mine = names.filter(n => /--prefix src\/plugin-guard run /.test(root[n] || '')).map(n => ({ name: n.replace(/^guard:selftest:?/, '') || 'selftest', script: root[n].replace(/^.*--prefix src\/plugin-guard run /, '').trim() }));
     const other = names.filter(n => !/--prefix src\/plugin-guard run /.test(root[n] || ''));
     const known = new Set(mine.map(x => x.name));
-    const stale = [...DOCKER, ...Object.keys(NON_PORTABLE)].filter(n => !known.has(n));
+    const stale = [...DOCKER, ...Object.keys(NON_PORTABLE), ...Object.keys(HINT_REPO)].filter(n => !known.has(n));
     ok(names[names.length - 1] === 'guard:selftest:isolated-copy', 'this suite is the last one of guard:test');
-    ok(stale.length === 0 && mine.every(x => pkg[x.script]), `the pinned Docker and non-portable lists name only guard:test suites of src/plugin-guard, and each has a script in the copy's package.json (${stale.join(', ') || 'none stale'})`);
+    ok(stale.length === 0 && mine.every(x => pkg[x.script]), `the pinned Docker, non-portable and repository-wording lists name only guard:test suites of src/plugin-guard, and each has a script in the copy's package.json (${stale.join(', ') || 'none stale'})`);
     console.log(`\n${'!'.repeat(100)}\nNOT RE-RUN in the copy (Docker suites, ${DOCKER.length}): ${DOCKER.join(', ')}\nSKIPPED in the copy (non-portable, ${Object.keys(NON_PORTABLE).length}):`);
     for (const [n, why] of Object.entries(NON_PORTABLE)) console.log(`  - ${n}: ${why}`);
+    console.log(`RUN WITH PG_HINT_LAYOUT=repo in the copy (they pin the repository wording of the printed commands, ${Object.keys(HINT_REPO).length}):`);
+    for (const [n, why] of Object.entries(HINT_REPO)) console.log(`  - ${n}: ${why}`);
     console.log(`Not part of src/plugin-guard (run from the repository only, ${other.length}): ${other.join(', ')}\n${'!'.repeat(100)}`);
     skips += DOCKER.length + Object.keys(NON_PORTABLE).length;
     const todo = mine.filter(x => !DOCKER.includes(x.name) && !(x.name in NON_PORTABLE));
     let passLines = 0; const failed = [], skipLines = [];
     for (const x of todo) {
         const t0 = Date.now();
-        const r = run('npm', ['run', '-s', x.script], { timeout: 1200000 });
+        const r = run('npm', ['run', '-s', x.script], { timeout: 1200000, env: x.name in HINT_REPO ? { PG_HINT_LAYOUT: 'repo' } : undefined });
         const text = `${r.stdout}${r.stderr}`;
         const p = (text.match(/^PASS/gm) || []).length, fl = (text.match(/^FAIL/gm) || []).length; passLines += p;
         if (r.status !== 0) failed.push(x.name);

@@ -459,7 +459,7 @@ function tasks(f, { root, policy }) {
     if (!items.length) L.push('_No resolution qualifies for a code task._ See "Not tasks".', '');
     items.forEach(({ h, o }, i) => {
         L.push(`### ☐ T-${String(i + 1).padStart(2, '0')}: ${esc(o.title)}`, '', `- **Hypothesis:** ${esc(h.title)} (${h.status})`, `- **Root cause:** ${esc(h.mechanism)}`, `- **Allowed files:** ${code(o.file)}`, `- **Change requested:** apply the diff in \`result/patches/${path.basename(o.file)}.${o.generator}.diff\` to ${code(o.file)}. ${esc(o.detail)}`);
-        L.push('- **Validation commands:**', '  ```bash', `  php -l ${o.file}`, `  node src/plugin-guard/scripts/guard.js issue retest ${f.issue.id} --root <fixed-copy>${f.sandboxed ? ' --sandbox' : ''}`, '  ```');
+        L.push('- **Validation commands:**', '  ```bash', `  php -l ${o.file}`, `  ${require('../lib/hints').current().guard} issue retest ${f.issue.id} --root <fixed-copy>${f.sandboxed ? ' --sandbox' : ''}`, '  ```');
         L.push('- **Acceptance criteria:**', '    - `php -l` passes for the changed file', '    - no file outside "Allowed files" is changed', `    - \`issue retest ${f.issue.id}\` reports **Fixed** on the same page and screen size that failed before`, '');
     });
     const not = f.resolution.flatMap(r => r.options.filter(o => o.who === 'needs-a-human' || o.type === 'plugin').map(o => ({ r, o })));

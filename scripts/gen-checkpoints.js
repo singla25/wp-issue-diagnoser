@@ -96,7 +96,7 @@ if (require.main === module) {
     try { text = build(source); } catch (e) { console.error(e.message); process.exit(2); }
     if (argv.includes('--check')) {
         let have = null; try { have = fs.readFileSync(out, 'utf8'); } catch { /* missing */ }
-        if (have !== text) { console.error(`${path.relative(process.cwd(), out)} is stale: run "npm run guard:checkpoints"`); process.exit(1); }
+        if (have !== text) { console.error(`${path.relative(process.cwd(), out)} is stale: run "${require('../lib/hints').current().npmRun('checkpoints')}"`); process.exit(1); }
         console.log('data/checkpoints.json is in step with docs/COVERAGE.md');
     } else {
         fs.writeFileSync(out, text);

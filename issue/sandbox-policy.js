@@ -50,7 +50,7 @@ const LIMITS_PROXIED = [
 
 function images(file = PIN_FILE) {
     const p = JSON.parse(fs.readFileSync(file, 'utf8'));
-    for (const k of ['wordpress', 'cli', 'db']) if (!p.images[k] || !DIGEST_REF.test(p.images[k].ref)) throw Object.assign(new Error(`data/sandbox-images.json: image "${k}" is missing or not pinned by digest. Run: npm run guard:setup-sandbox -- --repin`), { exitCode: 2 });
+    for (const k of ['wordpress', 'cli', 'db']) if (!p.images[k] || !DIGEST_REF.test(p.images[k].ref)) throw Object.assign(new Error(`data/sandbox-images.json: image "${k}" is missing or not pinned by digest. Run: ${require('../lib/hints').current().npmRun('setup-sandbox')} -- --repin`), { exitCode: 2 });
     return p;
 }
 // An entry of the version matrix (data/sandbox-images.json "matrix") may be USED only when it is pinned: status "pinned", a sha256 digest, and a

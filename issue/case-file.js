@@ -416,7 +416,7 @@ function versionLines(v) {
     if (![v.php, v.db, v.wordpress].every(ok)) return [];
     const L = [`Versions of the test copy: ${v.php.text.slice(0, 300)}`, `Versions of the test copy: ${v.db.text.slice(0, 300)}`, `Versions of the test copy: ${v.wordpress.text.slice(0, 300)}`];
     for (const t of Array.isArray(v.todos) ? v.todos.slice(0, 4) : []) if (typeof t === 'string' && /^(PHP \d{1,2}\.\d{1,2}|MySQL|MariaDB): (no image tag is chosen yet|there is no image for it)/.test(t)) L.push(`Versions of the test copy: ${t.slice(0, 300)}`);
-    if (Array.isArray(v.commands) && v.commands.length) L.push(`Versions of the test copy: to test with the same versions, the images can be fetched once: ${v.commands.filter(c => /^npm run guard:setup-sandbox -- [a-z0-9 .&:-]+$/i.test(c)).join('  ;  ')}`);
+    if (Array.isArray(v.commands) && v.commands.length) L.push(`Versions of the test copy: to test with the same versions, the images can be fetched once: ${v.commands.filter(c => /^npm run (?:guard:)?setup-sandbox -- [a-z0-9 .&:-]+$/i.test(c)).join('  ;  ')}`);
     return L;
 }
 

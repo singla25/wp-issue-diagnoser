@@ -87,7 +87,7 @@ function render() {
 
 if (require.main === module) {
     const text = render();
-    if (process.argv.includes('--check')) { const cur = fs.existsSync(OUT) ? fs.readFileSync(OUT, 'utf8') : ''; if (cur !== text) { console.error('KNOWLEDGE-REVIEW.md is out of date: run  npm run guard:knowledge-review'); process.exit(1); } console.log('KNOWLEDGE-REVIEW.md is up to date'); }
+    if (process.argv.includes('--check')) { const cur = fs.existsSync(OUT) ? fs.readFileSync(OUT, 'utf8') : ''; if (cur !== text) { console.error(`KNOWLEDGE-REVIEW.md is out of date: run  ${require('../lib/hints').current().npmRun('knowledge-review')}`); process.exit(1); } console.log('KNOWLEDGE-REVIEW.md is up to date'); }
     else { fs.writeFileSync(OUT, text); console.log(`Wrote ${OUT} (${text.split('\n').length} lines, ${load('known-conflicts.json').entries.length} entries)`); }
 }
 module.exports = { render, OUT };

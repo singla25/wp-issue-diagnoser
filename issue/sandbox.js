@@ -73,7 +73,7 @@ function preflight(o = {}) {
         let present = false; try { present = r.ok && JSON.parse(r.stdout).some(d => d.endsWith(`@${img.digest}`)); } catch { /* not JSON */ }
         if (!present) missing.push(k);
     }
-    if (missing.length) return { ok: false, reason: `The pinned sandbox image(s) ${missing.join(', ')} are not present locally. Plugin Guard never pulls on its own: run  npm run guard:setup-sandbox` };
+    if (missing.length) return { ok: false, reason: `The pinned sandbox image(s) ${missing.join(', ')} are not present locally. Plugin Guard never pulls on its own: run  ${require('../lib/hints').current().npmRun('setup-sandbox')}` };
     return { ok: true, docker: info.stdout.trim(), pins };
 }
 

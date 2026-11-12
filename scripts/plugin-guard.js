@@ -20,7 +20,7 @@ Options (each one answers a question; with --yes nothing is asked):
   --php <version>          for example 8.1 (optional)
   --images <paths>         screenshots: files or folders, separated by commas (optional)
   --log <file>             a log file instead of the one found in your site; it is copied and redacted, never changed (optional)
-  --sandbox                also test in a throwaway copy in Docker (needs: npm run guard:setup-sandbox)
+  --sandbox                also test in a throwaway copy in Docker (needs: ${require('../lib/hints').current().npmRun('setup-sandbox')})
   --db-dump <file>         a database export (.sql or .sql.gz): a test copy of your site is built from it when Docker works and the site is not live
   --max-size-mb <n>        size cap in MB for the site copy and for the database file once unpacked (database default 1024)
   --no-replica             never build a test copy (no database question)

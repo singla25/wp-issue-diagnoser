@@ -17,7 +17,7 @@ const vd = require('../lib/version-detect');
 const policy = require('./sandbox-policy');
 
 const STATUSES = Object.freeze(['matched', 'nearest', 'assumed', 'not matched', 'unknown']);
-const SETUP = 'npm run guard:setup-sandbox --';
+const SETUP = `${require('../lib/hints').current().npmRun('setup-sandbox')} --`;   // lib/hints.js: the repository or the package form
 
 // a bounded read of a plain file: no symbolic link, a regular file, at most `cap` bytes. -> string or null
 function readCapped(file, cap) {

@@ -44,4 +44,4 @@ function get(url, hops = 0) {
     fs.writeFileSync(tmp, body); fs.renameSync(tmp, ocr.file());
     ocr.verified();
     console.log(`\nSaved ${ocr.file()} and verified it against the pinned hash.`);
-})().catch(e => { console.error(`\nguard:setup-ocr failed: ${e.message}\nNothing was saved. If you are offline, copy eng.traineddata (tessdata_fast 4.1.0) to ${ocr.DIR} yourself; its SHA-256 is checked on every load.`); process.exit(2); });
+})().catch(e => { console.error(`\n${require('../lib/hints').current().scriptLabel('setup-ocr')} failed: ${e.message}\nNothing was saved. If you are offline, copy eng.traineddata (tessdata_fast 4.1.0) to ${ocr.DIR} yourself; its SHA-256 is checked on every load.`); process.exit(2); });
