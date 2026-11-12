@@ -248,7 +248,7 @@ function build(f, ctx) {
     for (const c of cases) { c.n = noCause && c.advisory ? null : ++k; delete c.advisory; }
     // 6d-3: the report level (TEST-COPY-SPEC 8) and the "How close the copy is" box (section 7)
     const fdc = ctx.fidelity ? require('./fidelity').clean(ctx.fidelity) : null;
-    const level = copyLevel(fdc, ctx.replica || null, facts);
+    const level = copyLevel(fdc, ctx.replica || null, { ...facts, dbError: hasDbClue(ctx.clues) });
     const close = ctx.replica && ctx.replica.copy_built && fdc ? closeness({ versions: ctx.versions, activePlugins: ctx.activePlugins, fidelity: fdc }) : null;
     const looked = lookedAt(facts, { box: !!close, copyBuilt: !!(ctx.replica && ctx.replica.copy_built), liveLoop: loops.length > 0 });
     // a probed live page answered 4xx: said plainly in the STATUS area and under "What you see"; never "did not answer with an error"
@@ -293,6 +293,7 @@ function build(f, ctx) {
 //   1 Tested on a copy of your site          the fidelity check matched (or status-only, with its weaker sentence) against a failing page of your site
 //   2 Not tested on a copy                   a database file, Docker or the code is missing, or your site had no failing page to compare: with that list
 //   3 The test copy could not confirm this   the copy could not run, or did not show the same problem (the existing owner sentences say which)
+//   4 Tested on a test site built from your files   a copy built from the files only (no database file) showed the problem, or did not (owner, 2026-11-12)
 // Wording only: no status and no verdict changes with the level.
 const LEVEL_HEADING = { 1: 'Tested on a copy of your site', 2: 'Not tested on a copy', 3: 'The test copy could not confirm this' };
 const MISSING_TEXT = { database: 'a database export file of your site (.sql or .sql.gz)', docker: 'Docker on this computer, to build the test copy', code: 'the code of your site (its wp-content folder)', page: 'a page that fails on your site, to compare with the test copy', live: 'a copy built from your database is never made for a live site (try it on a local or staging copy of the site)' };
@@ -304,6 +305,14 @@ const MATCHED_LINE = 'A test copy of your site, built from your database, showed
 const NO_PAGE_REASON = 'no failing page and no error message from your site to compare';
 // the person chose not to build a test copy (the wizard's "0) Skip the test copy", or --no-replica): nothing is listed as missing (owner)
 const CHOSE_NO_COPY = 'You chose not to build a test copy.';
+// the fourth state (owner, 2026-11-12): a test site built from the person's FILES, without their database (a fresh install with the plugins of the copy),
+// whose result is known (it showed the problem, or it did not). Its own heading; the database file stays listed as what would make it stronger.
+// the clue issue/clues.js records for "Error establishing a database connection" (type wp-critical-error), from the log, the description or a screenshot
+const DB_ERROR = /Error establishing a database connection/i;
+const hasDbClue = clues => (Array.isArray(clues) ? clues : []).some(c => c && c.type === 'wp-critical-error' && DB_ERROR.test(String(c.value || '')));
+const FILES_ONLY_HEADING = 'Tested on a test site built from your files';
+const FILES_ONLY_YES = 'A test site built from your files, without your database, showed the same problem. It did not use your data, so this does not show that your site fails in exactly the same way.';
+const FILES_ONLY_NO = 'A test site built from your files, without your database, did not show the problem. Your database or settings may be needed to see it, so this does not show that your site is fine.';
 // fd: issue/fidelity.js clean() or null; rp: sandbox.json `replica` ({ requested, database_file, docker }) plus copy_built, or null (older runs)
 function copyLevel(fd, rp, facts = {}) {
     const r = rp || {};
@@ -312,6 +321,12 @@ function copyLevel(fd, rp, facts = {}) {
     // an explicit choice not to build a copy beats the other gaps (no file, no Docker, no code): the sentence, nothing listed. It never beats the
     // live-site reason (owner): on a live site (replica.live or db_dropped_live) the "never made for a live site" item is shown instead
     if (r.skipped === true && !r.copy_built && !(fd && fd.counts)) return r.live === true || r.db_dropped_live ? two(['live']) : { n: 2, heading: LEVEL_HEADING[2], missing: [], lines: [CHOSE_NO_COPY, NOT_TESTED_LABEL] };
+    // a copy WAS built from the files only (no database file, so no fidelity result), Docker worked, not skipped, not live, and it gave an answer
+    const sbr = facts.sandboxReproduced === true ? 'yes' : facts.sandboxReproduced === false ? 'no' : facts.sandboxReproduced;
+    // owner (2026-11-12): NOT when the real site's own evidence is a database-connection error (a clue, facts.dbError): a copy never gets the
+    // site's database settings, so it says nothing about that error; the old rule (level 2) stays for it
+    if (!fd && !facts.dbError && r.copy_built === true && !r.database_file && r.docker === true && r.skipped !== true && r.live !== true && !r.db_dropped_live && facts.hasCode !== false && (sbr === 'yes' || sbr === 'no'))
+        return { n: 4, heading: FILES_ONLY_HEADING, missing: [MISSING_TEXT.database], lines: [sbr === 'yes' ? FILES_ONLY_YES : FILES_ONLY_NO] };
     const inputsMissing = () => [...(r.db_dropped_live ? ['live'] : r.database_file ? [] : ['database']), ...(r.docker === false ? ['docker'] : []), ...(facts.hasCode === false ? ['code'] : [])];
     if (fd && fd.counts) return fd.real_page === false ? { ...two(['page']), lines: [NOT_CONFIRMED_LABEL] } : { n: 1, heading: LEVEL_HEADING[1], missing: [], lines: fd.level === 'matched' ? [MATCHED_LINE] : [] };
     if (fd && fd.level === 'did-not-match') return { n: 3, heading: LEVEL_HEADING[3], missing: [], lines: [] };
@@ -471,4 +486,4 @@ function cli(cf) {
     return L.join('\n');
 }
 
-module.exports = { isSelfLoop, loopSentence, loopLines, LOOP_LOOKED, addressSentence, STATUS_WORDS, PROTECT_CODES, addressPageOf, liveAnswers, pageSentence, NOT_CONFIRMED_LABEL, NO_PAGE_MATCH, copyLevel, closeness, closeLines, LEVEL_HEADING, MISSING_TEXT, MISSING_INTRO, NOT_TESTED_LABEL, CHOSE_NO_COPY, MATCHED_LINE, CLOSE_TITLE, CLOSE_GROUPS, NOT_COVERED, countedChecks, countedSentence, fidelityPart, MISSING_SHOWN, userDataLines, activePluginLines, versionLines, build, markdown, markdownDeveloper, cli, statusLine, lookedAt, skippedText, confirmedSentence, LIKELY, CHECK, CHECK_NO_CRASH, CONFIRMED, SIGNS, EMPTY_STATUS, NOT_CONFIRMED_SENTENCE, NO_CAUSE_NOTE, NOT_LIVE_SENTENCE, PHP_NOT_STATED, MODIFIED_NOTE, MODIFIED_ADVICE, NO_LOG_HELP };
+module.exports = { hasDbClue, FILES_ONLY_HEADING, FILES_ONLY_YES, FILES_ONLY_NO, isSelfLoop, loopSentence, loopLines, LOOP_LOOKED, addressSentence, STATUS_WORDS, PROTECT_CODES, addressPageOf, liveAnswers, pageSentence, NOT_CONFIRMED_LABEL, NO_PAGE_MATCH, copyLevel, closeness, closeLines, LEVEL_HEADING, MISSING_TEXT, MISSING_INTRO, NOT_TESTED_LABEL, CHOSE_NO_COPY, MATCHED_LINE, CLOSE_TITLE, CLOSE_GROUPS, NOT_COVERED, countedChecks, countedSentence, fidelityPart, MISSING_SHOWN, userDataLines, activePluginLines, versionLines, build, markdown, markdownDeveloper, cli, statusLine, lookedAt, skippedText, confirmedSentence, LIKELY, CHECK, CHECK_NO_CRASH, CONFIRMED, SIGNS, EMPTY_STATUS, NOT_CONFIRMED_SENTENCE, NO_CAUSE_NOTE, NOT_LIVE_SENTENCE, PHP_NOT_STATED, MODIFIED_NOTE, MODIFIED_ADVICE, NO_LOG_HELP };

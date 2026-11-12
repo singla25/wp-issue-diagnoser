@@ -3,6 +3,8 @@
 // from there, written before the first run; see that file's header for the MUST / NEVER list, the database-constant facts and what stays
 // untested), but the test copy is a real Docker sandbox built by the plain wizard (`plugin-guard ... --sandbox --yes`, no database file: a
 // fresh WordPress install with the plugins of the copy switched on), and the bisection loads real pages in it.
+// Added 2026-11-12 (owner): cases 5 (a theme fatal) and 6 (a missing dependency, unguarded and guarded), and the fourth report state ("Tested on a
+// test site built from your files") checked on every run here, since each builds its copy from the files only.
 // The "real site" of the live check is a tiny HTTP server on 127.0.0.1 in this process (never a real site).
 // It SKIPS LOUDLY (exit 0, a SKIP line saying nothing was verified) when Docker is not usable, the pinned images are missing
 // (`npm run guard:setup-sandbox`) or the browser is missing. Nothing is pulled. It must leave no labelled container, volume or network and
@@ -45,6 +47,7 @@ async function serve(kind) {
         const p = req.url.split('?')[0]; hits.push({ method: req.method, path: p });
         if (kind === 'loop' && p === '/') { res.writeHead(302, { Location: `http://127.0.0.1:${server.address().port}/` }); return res.end(); }
         if (kind === 'db') return page(res, 500, '<h1>Error establishing a database connection</h1>');
+        if (kind === 'crit') return page(res, 500, '<p>There has been a critical error on this website.</p>');
         return page(res, 200, `<h1>${sites.SHOP}</h1><p>Loose leaf teas, packed by hand.</p>`);
     });
     await new Promise(r => server.listen(0, '127.0.0.1', r)); servers.push(server);
@@ -83,19 +86,38 @@ async function run(name, builder, { live = null } = {}) {
     const P = await run('pair', sites.pluginPair);
     ok(P.bis !== null, `pair: a bisection ran on the real copy (${P.bis ? P.bis.status : 'no bisect.json'})`);
     checks.pairChecks(P, ok, { info: P.info, label: 'pair, real test copy', bisectRan: true });
+    checks.filesOnlyLevel(P, ok, { label: 'pair, real test copy', expect: 'yes' });
 
     group('2. healthy site on real containers');
     const H = await run('healthy', sites.healthy, { live: await serve('ok') });
     checks.healthyChecks(H, ok, { label: 'healthy, live check and real test copy', probeRan: true });
+    checks.filesOnlyLevel(H, ok, { label: 'healthy, real test copy', expect: 'no' });
 
     group('3. redirect loop made by a plugin, on real containers');
     const D3 = await run('redirect', sites.pluginRedirect, { live: await serve('loop') });
     ok(D3.bis !== null, `redirect: a bisection ran on the real copy (${D3.bis ? `${D3.bis.status} ${JSON.stringify(D3.bis.causes.map(c => c.plugins))}` : 'no bisect.json'})`);
     checks.redirectChecks(D3, ok, { info: D3.info, label: 'redirect, live check and real test copy' });
+    checks.filesOnlyLevel(D3, ok, { label: 'redirect, real test copy', expect: 'yes' });
 
     group('4. database error on real containers (the copy gets its own fresh wp-config.php, so it cannot show the wrong credentials)');
     const D4 = await run('db', sites.dbError, { live: await serve('db') });
     checks.dbChecks(D4, ok, { info: D4.info, label: 'db, live check and real test copy' });
+    // CHANGED 2026-11-12 (owner decision: the database case keeps the old rule; old text in HANDOFF row 62)
+    ok(D4.f && D4.f.case_file && D4.f.case_file.level && D4.f.case_file.level.n === 2 && D4.f.case_file.level.heading === 'Not tested on a copy', `db, real test copy: level 2 "Not tested on a copy", not the fourth state (${D4.f && D4.f.case_file && D4.f.case_file.level ? D4.f.case_file.level.heading : 'no level'})`);
+
+    group('5. a fatal error in the active theme, on real containers');
+    const T5 = await run('theme', sites.themeFatal, { live: await serve('crit') });
+    ok(T5.bis !== null, `theme: a bisection ran on the real copy (${T5.bis ? `${T5.bis.status}, theme ${JSON.stringify(T5.bis.theme)}` : 'no bisect.json'})`);
+    checks.themeChecks(T5, ok, { info: T5.info, label: 'theme, live check and real test copy', bisectRan: true });
+    checks.filesOnlyLevel(T5, ok, { label: 'theme, real test copy', expect: 'yes' });
+
+    group('6. a missing dependency on real containers: unguarded and guarded');
+    const Da = await run('dep-unguarded', root => sites.missingDep(root, { guarded: false }), { live: await serve('crit') });
+    checks.depChecks(Da, ok, { info: Da.info, label: 'dependency, unguarded, real test copy' });
+    checks.filesOnlyLevel(Da, ok, { label: 'dependency, unguarded, real test copy', expect: 'yes' });
+    const Db = await run('dep-guarded', root => sites.missingDep(root, { guarded: true }), { live: await serve('ok') });
+    checks.depChecks(Db, ok, { info: Db.info, label: 'dependency, guarded, real test copy' });
+    checks.filesOnlyLevel(Db, ok, { label: 'dependency, guarded, real test copy', expect: 'no' });
 
     group('nothing left behind');
     const after = volumes();

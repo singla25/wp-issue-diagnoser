@@ -6,6 +6,9 @@
 //   healthy         nothing is wrong: the home page loads, the log has no error
 //   pluginRedirect  a PLUGIN (not .htaccess) redirects the home page to itself on template_redirect, so the browser gives up
 //   dbError         wp-config.php holds wrong database credentials; the log has the connection warning WordPress writes
+//   themeFatal      the ACTIVE theme's functions.php calls a function that does not exist, on every front-end page (HTTP 500, a fatal in the log)
+//   missingDep      a plugin calls a function of Advanced Custom Fields, which is NOT installed: { guarded: false } unguarded (a fatal),
+//                   { guarded: true } behind function_exists( 'get_field' ) (no fatal, the page loads)
 const fs = require('fs');
 const path = require('path');
 
@@ -63,4 +66,34 @@ function dbError(root) {
     return { description: 'Every page of the site shows "Error establishing a database connection" since the host moved the database.', plugins: [INNOCENT.slug], phrase: 'Error establishing a database connection' };
 }
 
-module.exports = { w, base, pluginPair, healthy, pluginRedirect, dbError, SHOP, INNOCENT };
+// 5. A fatal error in the ACTIVE theme. A test site built from the files only (no database) starts WordPress's default theme folder, twentytwentyfive,
+//    so the made-up theme "Larkspur Teahouse" lives in that folder (its own Theme Name); twentytwentyfour stays clean, so the bisection's
+//    "default theme" step can show the page loading without it. The fatal happens only on front-end pages (template_redirect), never for WP-CLI.
+const THEME = { slug: 'twentytwentyfive', name: 'Larkspur Teahouse' };
+function themeFatal(root) {
+    base(root);
+    w(root, `wp-content/themes/${THEME.slug}/style.css`, `/*\nTheme Name: ${THEME.name}\nVersion: 2.0.1\nAuthor: Larkspur Fixtures\n*/\n`);
+    const fn = w(root, `wp-content/themes/${THEME.slug}/functions.php`, "<?php\n// Larkspur Teahouse: show the seasonal tea badge in the header\nadd_action( 'template_redirect', function () {\n\tlk_teahouse_badge();\n} );\n");
+    const one = t => `[${t} UTC] PHP Fatal error:  Uncaught Error: Call to undefined function lk_teahouse_badge() in ${root}/wp-content/themes/${THEME.slug}/functions.php:4\nStack trace:\n#0 ${root}/wp-includes/class-wp-hook.php(324): {closure}('')\n#1 {main}\n  thrown in ${root}/wp-content/themes/${THEME.slug}/functions.php on line 4\n`;
+    w(root, 'wp-content/debug.log', one('12-Nov-2026 09:10:00') + one('12-Nov-2026 09:10:31'));
+    return { description: 'After I updated my theme, every page of the shop shows "There has been a critical error on this website."', theme: THEME.slug, themeName: THEME.name, plugins: [INNOCENT.slug], file: fn };
+}
+
+// 6. A missing dependency. Larkspur Banner Fields reads a field with get_field(), a function of Advanced Custom Fields, which is NOT installed.
+//    guarded: false -> called directly on every front-end page: "Call to undefined function get_field()" (a fatal, in the log)
+//    guarded: true  -> behind function_exists( 'get_field' ): nothing happens without ACF, the page loads, the log stays empty
+const DEP = { slug: 'lk-banner-fields', name: 'Larkspur Banner Fields', needs: 'advanced-custom-fields' };
+function missingDep(root, { guarded = false } = {}) {
+    base(root);
+    const call = guarded ? "\tif ( function_exists( 'get_field' ) ) {\n\t\techo esc_html( get_field( 'lk_banner_text' ) );\n\t}\n" : "\techo esc_html( get_field( 'lk_banner_text' ) );\n";
+    w(root, `wp-content/plugins/${DEP.slug}/${DEP.slug}.php`, head(DEP.name) + `defined( 'ABSPATH' ) || exit;\n\nadd_action( 'template_redirect', function () {\n${call}} );\n`);
+    if (!guarded) {
+        const line = 10;
+        const one = t => `[${t} UTC] PHP Fatal error:  Uncaught Error: Call to undefined function get_field() in ${root}/wp-content/plugins/${DEP.slug}/${DEP.slug}.php:${line}\nStack trace:\n#0 ${root}/wp-includes/class-wp-hook.php(324): {closure}('')\n#1 {main}\n  thrown in ${root}/wp-content/plugins/${DEP.slug}/${DEP.slug}.php on line ${line}\n`;
+        w(root, 'wp-content/debug.log', one('12-Nov-2026 10:00:00') + one('12-Nov-2026 10:00:52'));
+    }
+    return { description: guarded ? 'Please check the shop banner plugin; I removed Advanced Custom Fields and want to be sure nothing broke.' : 'Since I removed Advanced Custom Fields the shop shows "There has been a critical error on this website."',
+        plugin: DEP.slug, pluginName: DEP.name, needs: DEP.needs, guarded, plugins: [INNOCENT.slug, DEP.slug] };
+}
+
+module.exports = { w, base, pluginPair, healthy, pluginRedirect, dbError, themeFatal, missingDep, THEME, DEP, SHOP, INNOCENT };

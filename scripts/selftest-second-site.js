@@ -35,8 +35,21 @@
 //       MUST   "could not confirm on a copy" (the copy does not reproduce it); no plugin named; not a plugin conflict; not CONFIRMED as a plugin
 //              cause; the database clue may be shown as read from the log, labelled as not tested on a copy
 //       NEVER  a plugin / theme conflict cause; REPRODUCIBLE / CONFIRMED for a plugin; "NOT A PLUGIN CONFLICT" as proven
+//   5 THEME FATAL (added 2026-11-12, assertions written before the first run). How: the ACTIVE theme's functions.php calls a function that does not
+//     exist on template_redirect (every front-end page answers 500 with the critical-error page; the site's log has the fatal twice). A test site from
+//     the files only starts the folder twentytwentyfive, so the made-up theme "Larkspur Teahouse" lives there; twentytwentyfour stays clean.
+//       MUST   with a bisection: the default-theme step shows the page working without the theme (bisect.json theme.involved true) and the report
+//              names the THEME (by its name or folder) as the cause; the cause is never a plugin
+//       NEVER  a plugin conflict / "two plugins"; a plugin named as the cause; "NOT A PLUGIN CONFLICT" while the theme was proven and is not named
+//              as the cause; "5xx" / "server error" wording (the page shows a fatal; the plain fact "HTTP 500" is not forbidden here)
+//   6 MISSING DEPENDENCY (added 2026-11-12, assertions written before the first run). How: Larkspur Banner Fields calls get_field() of Advanced Custom
+//     Fields, which is NOT installed. (a) unguarded: a fatal on every front-end page, in the log; (b) guarded by function_exists( 'get_field' ):
+//     no fatal, the page loads. lib/implied.js judges the guard PER USE (cp-13).
+//       MUST   (a) only: the report's dependency wording ("missing dependency", cause.js "needs another plugin or theme that is not installed or not
+//              active", graph.js "... which is not installed") and checkpoint cp-13 found it (FAIL or ALSO NOTICED)
+//       NEVER  (b): any dependency wording, cp-13 FAIL / ALSO NOTICED, a cause case or a CONFIRMED / REPRODUCIBLE hypothesis naming the plugin
 //
-// What stays untested here (HANDOFF row 62): a theme fatal, a missing plugin dependency.
+// Also tested here (owner, 2026-11-12, group 0b): the FOURTH report state of issue/case-file.js copyLevel, a test site built from the files only.
 
 const fs = require('fs');
 const os = require('os');
@@ -149,7 +162,51 @@ function dbChecks(R, ok, { info, label }) {
     else console.log(`NOTE  ${label}: the database clue ("${info.phrase}") is not shown in the case file (allowed: "may be shown")`);
 }
 
-module.exports = { view, pairChecks, healthyChecks, redirectChecks, dbChecks, mentions, caseText, FINE };
+// 5. THEME FATAL
+const DEP_WORDS = /missing dependency|needs another plugin or theme that is not installed|which is not installed/i;
+function themeChecks(R, ok, { info, label, bisectRan }) {
+    const V = view(R), t = info.theme, tn = info.themeName;
+    ok(!!V.cf, `${label}: the report has its case file (gate on)`);
+    const themeNamed = V.causeCases.some(c => mentions(caseText(c), t, tn));
+    if (bisectRan) {
+        ok(!!R.bis && !!R.bis.theme && R.bis.theme.involved === true, `${label} MUST: the default-theme step shows the page working without the theme (bisect ${R.bis ? `${R.bis.status}, theme ${JSON.stringify(R.bis.theme)}` : 'none'})`);
+        ok(themeNamed, `${label} MUST: the report names the theme (${tn} / ${t}) as the cause (${V.causeCases.map(c => `${c.heading}: ${rowText(c, ['Components', 'Where']).slice(0, 100)}`).join(' | ') || 'no cause case'})`);
+        ok(!(R.bis && R.bis.causes && R.bis.causes.length), `${label} NEVER: the bisection names a plugin set (${R.bis ? JSON.stringify(R.bis.causes.map(c => c.plugins)) : 'none'})`);
+    }
+    const plugCause = V.causeCases.filter(c => /\bthe plugin\b|wp-content\/plugins\//i.test(rowText(c, ['Components', 'Where'])) || info.plugins.some(s => mentions(caseText(c), s)));
+    ok(plugCause.length === 0, `${label} NEVER: a plugin named as the cause (${plugCause.map(c => c.heading).join(', ') || 'none'})`);
+    ok(!/plugin conflict|plugins clash|two plugins/i.test(V.RT.replace(/NOT A PLUGIN CONFLICT/g, '')), `${label} NEVER: a plugin conflict or "two plugins"`);
+    const proven = !!(R.bis && R.bis.theme && R.bis.theme.involved === true);
+    ok(!(proven && /NOT A PLUGIN CONFLICT/i.test(V.SHOWN) && !themeNamed), `${label} NEVER: "NOT A PLUGIN CONFLICT" while the theme was proven and is not named as the cause`);
+    ok(!/\b5xx\b|server error/i.test(V.CF), `${label} NEVER: "5xx" / "server error" wording for a page that shows a fatal`);
+}
+
+// 6. MISSING DEPENDENCY
+function depChecks(R, ok, { info, label }) {
+    const V = view(R), p = info.plugin, pn = info.pluginName;
+    ok(!!V.cf, `${label}: the report has its case file (gate on)`);
+    const cp13 = ((R.f && R.f.checkpoints && R.f.checkpoints.items) || []).find(x => x.id === 'cp-13') || null;
+    if (!info.guarded) {
+        ok(DEP_WORDS.test(V.RT), `${label} MUST: the report says it is a missing dependency (its existing wording)`);
+        ok(!!cp13 && ['FAIL', 'ALSO NOTICED'].includes(cp13.result), `${label} MUST: checkpoint cp-13 (missing dependency) found it (${cp13 ? `${cp13.result}: ${String(cp13.reason || '').slice(0, 100)}` : 'no cp-13 row'})`);
+    } else {
+        ok(!DEP_WORDS.test(V.RT), `${label} NEVER: the guarded use is called a missing dependency`);
+        ok(!cp13 || !['FAIL', 'ALSO NOTICED'].includes(cp13.result), `${label} NEVER: checkpoint cp-13 flags the guarded use (${cp13 ? cp13.result : 'no cp-13 row'})`);
+        ok(!!cp13 && cp13.result === 'PASS', `${label} MUST: checkpoint cp-13 was actually checked and passed for the guarded use, not "not checked" (${cp13 ? cp13.result : 'no cp-13 row'})`);
+        const named = [...V.causeCases.filter(c => mentions(caseText(c), p, pn)), ...V.hyps.filter(h => (STRONG.includes(h.status) || h.type === 'missing-dependency') && mentions(hypNames(h), p, pn))];
+        ok(named.length === 0, `${label} NEVER: the guarded plugin as a cause or a missing-dependency hypothesis (${named.map(x => x.heading || `${x.status} ${x.title}`).join(' | ') || 'none'})`);
+    }
+}
+
+// the FOURTH report state (owner, 2026-11-12): a test site built from the files only, whose answer is known
+function filesOnlyLevel(R, ok, { label, expect }) {
+    const caseFile = require('../issue/case-file'), V = view(R), lv = V.cf && V.cf.level;
+    const line = expect === 'yes' ? caseFile.FILES_ONLY_YES : caseFile.FILES_ONLY_NO;
+    ok(!!lv && lv.heading === 'Tested on a test site built from your files' && JSON.stringify(lv.lines) === JSON.stringify([line]) && JSON.stringify(lv.missing) === JSON.stringify([caseFile.MISSING_TEXT.database]), `${label}: the level is "Tested on a test site built from your files" with the ${expect === 'yes' ? '"showed the same problem"' : '"did not show the problem"'} line, the database file listed (${lv ? `${lv.n} "${lv.heading}"` : 'no level'})`);
+    ok(!V.CF.includes(caseFile.NOT_TESTED_LABEL) && !V.CF.includes('It was not tried on a copy of your site'), `${label}: never "It was not tried on a copy of your site"`);
+}
+
+module.exports = { themeChecks, depChecks, filesOnlyLevel, DEP_WORDS, view, pairChecks, healthyChecks, redirectChecks, dbChecks, mentions, caseText, FINE };
 
 // ================================================================ the runs (only when this file is run, not when the Docker suite loads the checks)
 if (require.main === module) main().catch(e => { console.error(e); process.exit(1); });
@@ -176,6 +233,7 @@ async function main() {
             const p = req.url.split('?')[0]; hits.push({ method: req.method, path: p });
             if (kind === 'loop' && p === '/') { res.writeHead(302, { Location: `http://127.0.0.1:${server.address().port}/` }); return res.end(); }
             if (kind === 'db') return page(res, 500, '<h1>Error establishing a database connection</h1>');
+            if (kind === 'crit') return page(res, 500, '<p>There has been a critical error on this website.</p>');
             return page(res, 200, `<h1>${sites.SHOP}</h1><p>Loose leaf teas, packed by hand.</p>`);
         });
         await new Promise(r => server.listen(0, '127.0.0.1', r)); servers.push(server);
@@ -192,19 +250,24 @@ async function main() {
         fs.copyFileSync(path.join(__dirname, 'fixtures', 'issue', 'fake-docker.js'), path.join(dir, 'docker')); fs.chmodSync(path.join(dir, 'docker'), 0o755);
         const sbx = path.join(tmp, `sbx-${nFake}`); fs.mkdirSync(sbx, { recursive: true, mode: 0o700 });
         fs.writeFileSync(path.join(dir, 'fake.json'), JSON.stringify({ wp: [{ match: 'plugin list', out: pluginSlugs.slice().sort().join('\n') + '\n' }, { match: 'theme list', out: 'twentytwentyfive\ntwentytwentyfour\n' }, { match: 'option get stylesheet', out: 'twentytwentyfive\n' }] }));
+        let theme = 'twentytwentyfive';
         const active = () => {
-            const on = new Set();
+            const on = new Set(); theme = 'twentytwentyfive';
             const lines = fs.existsSync(path.join(dir, 'fake.log')) ? fs.readFileSync(path.join(dir, 'fake.log'), 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l)) : [];
             for (const l of lines) {
                 const at = l.args.indexOf('wp'); if (l.args[0] !== 'compose' || at < 0) continue;
                 const t = l.args.slice(at + 1).filter(x => !x.startsWith('-'));
                 if (t[0] === 'plugin' && t[1] === 'activate') t.slice(2).forEach(x => on.add(x));
                 if (t[0] === 'plugin' && t[1] === 'deactivate') t.slice(2).forEach(x => on.delete(x));
+                if (t[0] === 'theme' && t[1] === 'activate' && t[2]) theme = t[2];
             }
             return on;
         };
         const stand = async (id, o) => {
-            const rec = { url: `${o.url}/`, viewport: { name: 'laptop', width: 1280, height: 800 }, console_errors: [], page_errors: [], error_responses: [], failed_requests: [], scroll: { doc_width: 1280, viewport_width: 1280 }, ...rule(active()) };
+            const on = active(), got = rule(on, { theme }), { copyLog, ...pageRec } = got;
+            // what the copy's PHP writes to its own log (issue/sandbox-phase.js reads <sandbox>/logs/debug.log): the stand-in appends it, like PHP would
+            if (copyLog && o.stateDir) { const lf = path.join(path.dirname(o.stateDir), 'logs', 'debug.log'); fs.mkdirSync(path.dirname(lf), { recursive: true }); fs.appendFileSync(lf, copyLog + '\n'); }
+            const rec = { url: `${o.url}/`, viewport: { name: 'laptop', width: 1280, height: 800 }, console_errors: [], page_errors: [], error_responses: [], failed_requests: [], scroll: { doc_width: 1280, viewport_width: 1280 }, ...pageRec };
             return { ok: true, pages: [rec], status_codes: rec.status ? [rec.status] : [], oracle: { result: 'no' } };
         };
         const leftovers = () => { try { const s = JSON.parse(fs.readFileSync(path.join(dir, 'fake.state.json'), 'utf8')); return s.containers.length + s.volumes.length + s.networks.length; } catch { return 0; } };
@@ -266,6 +329,46 @@ async function main() {
         ok(caseFile.lookedAt({ hasLog: true, hasCode: true, probeRan: false }).line === 'Looked at: your log, the code. Not looked at: the live page, a throwaway test copy.', 'lookedAt without the new option: unchanged');
     }
 
+    // ============================================================ 0b. the fourth report state (owner, 2026-11-12; issue/case-file.js copyLevel)
+    group('0b. a test site built from the files only, without the database: its own level');
+    {
+        const caseFile = require('../issue/case-file');
+        const H = 'Tested on a test site built from your files';
+        const YES = 'A test site built from your files, without your database, showed the same problem. It did not use your data, so this does not show that your site fails in exactly the same way.';
+        const NO = 'A test site built from your files, without your database, did not show the problem. Your database or settings may be needed to see it, so this does not show that your site is fine.';
+        const RP = (x = {}) => ({ requested: true, database_file: false, docker: true, copy_built: true, ...x });
+        const L = (rp, sb, extra = {}) => caseFile.copyLevel(null, rp, { hasCode: true, sandboxReproduced: sb, ...extra });
+        const y = L(RP(), 'yes'), n = L(RP(), 'no');
+        ok(y.heading === H && JSON.stringify(y.lines) === JSON.stringify([YES]) && JSON.stringify(y.missing) === JSON.stringify([caseFile.MISSING_TEXT.database]), 'reproduced: the heading, the owner sentence, the database file still listed');
+        ok(n.heading === H && JSON.stringify(n.lines) === JSON.stringify([NO]) && JSON.stringify(n.missing) === JSON.stringify([caseFile.MISSING_TEXT.database]), 'not reproduced: the heading, the owner sentence, the database file still listed');
+        ok(![y, n].some(l => l.lines.includes(caseFile.NOT_TESTED_LABEL)), 'never the NOT TESTED label for this state');
+        const two = l => l.n === 2 && l.heading === 'Not tested on a copy';
+        ok(two(L(RP(), null)) && L(RP(), null).lines.includes(caseFile.NOT_TESTED_LABEL), 'could not test (null): level 2 as before');
+        ok(two(L(RP({ copy_built: false }), 'no')), 'no copy built: level 2 as before');
+        ok(two(L(RP({ docker: false, copy_built: false }), 'no')) && L(RP({ docker: false, copy_built: false }), 'no').missing.includes(caseFile.MISSING_TEXT.docker), 'no Docker: level 2 with Docker listed, as before');
+        // SETUP FIXED 2026-11-12 (owner decision; old text in HANDOFF row 62): a skip builds nothing, so copy_built is false here (RP's default is true)
+        ok(L(RP({ skipped: true, copy_built: false }), 'no').lines[0] === caseFile.CHOSE_NO_COPY && L(RP({ skipped: true, live: true, copy_built: false }), 'no').missing[0] === caseFile.MISSING_TEXT.live, 'skipped and live: unchanged');
+        // owner (2026-11-12): the real site's own evidence is a database-connection error -> the old rule (level 2), never the fourth state
+        const DBC = [{ type: 'wp-critical-error', value: 'Error establishing a database connection', source: { kind: 'log', ref: 'debug.log', line: 1 }, confidence: 'certain' }];
+        const mkD = () => ({ issue: { title: 'Database error', id: 'iss-x' }, issue_title_short: 'Database error', hypotheses: [], findings: [], likely: [], advisories: [], reported: { images: [] }, checkpoints: null });
+        const dbFacts = { hasLog: true, hasCode: true, probeRan: true, sandboxRan: true, sandboxReproduced: 'no' };
+        const withClue = caseFile.build(mkD(), { comps: [], facts: dbFacts, replica: RP(), clues: DBC });
+        ok(withClue.level.n === 2 && withClue.level.heading === 'Not tested on a copy' && withClue.level.lines.includes(caseFile.NOT_TESTED_LABEL) && JSON.stringify(withClue.level.missing) === JSON.stringify([caseFile.MISSING_TEXT.database]), 'a database-connection clue + a files-only copy that did not show it: level 2 "Not tested on a copy" with the NOT TESTED label (the old rule)');
+        const noClue = caseFile.build(mkD(), { comps: [], facts: dbFacts, replica: RP(), clues: [{ ...DBC[0], type: 'php-fatal', value: 'Uncaught Error: x' }] });
+        ok(noClue.level.heading === 'Tested on a test site built from your files' && JSON.stringify(noClue.level.lines) === JSON.stringify([caseFile.FILES_ONLY_NO]), 'the same copy without the database clue: the fourth state');
+        ok(JSON.stringify(L(RP({ db_dropped_live: true }), 'yes').missing) === JSON.stringify([caseFile.MISSING_TEXT.live]), 'a live site whose database file was dropped: unchanged');
+        ok(L(RP(), 'yes', { hasCode: false }).heading !== H, 'no code: not this state');
+        ok(L(RP({ database_file: true }), 'yes').heading !== H, 'a database file given: not this state (the fidelity levels apply)');
+        const fd = { schema: 1, level: 'did-not-match', counts: false, page: '/', status_class: '5xx', real_fatal: null, copy_fatal: null, reasons: [], likely_reasons: [], real_page: true };
+        ok(caseFile.copyLevel(fd, RP(), { hasCode: true, sandboxReproduced: 'no' }).n === 3, 'with a fidelity result: the existing levels decide (did not match: level 3)');
+        const mkF = () => ({ issue: { title: 'Home page error', id: 'iss-x' }, issue_title_short: 'Home page error', hypotheses: [], findings: [], likely: [], advisories: [], reported: { images: [] }, checkpoints: null });
+        const cf = caseFile.build(mkF(), { comps: [], facts: { hasLog: true, hasCode: true, probeRan: false, sandboxRan: true, sandboxReproduced: 'yes' }, replica: RP() });
+        const md = caseFile.markdown(cf, t => String(t)).join('\n'), cl = caseFile.cli({ ...cf, checked: null });
+        ok(md.includes(`## ${H}`) && md.includes(YES) && md.includes(caseFile.MISSING_INTRO) && cl.includes(H.toUpperCase()) && cl.includes(YES) && !md.includes(caseFile.NOT_TESTED_LABEL) && !cl.includes(caseFile.NOT_TESTED_LABEL), 'Markdown and terminal: the heading, the sentence, what is missing; no NOT TESTED label');
+        const gate = fs.readFileSync(path.join(__dirname, '..', 'lib', 'issue-html-gate.js'), 'utf8');
+        ok(/CF\.level\.heading/.test(gate) && /CF\.level\.lines\.forEach/.test(gate), 'the page renders the level heading and lines from the data (lib/issue-html-gate.js), so it shows this state too');
+    }
+
     // ============================================================ 1. PLUGIN PAIR
     group('1. plugin pair: two plugins that only fail together');
     {
@@ -276,6 +379,7 @@ async function main() {
         const R1 = await run('pair-copy', sites.pluginPair, { fake: F });
         ok(R1.bis !== null, `pair, test copy: a bisection ran (${R1.bis ? `${R1.bis.status}, ${R1.bis.loads} loads` : 'no bisect.json'})`);
         pairChecks(R1, ok, { info: R1.info, label: 'pair, test copy (offline stand-in)', bisectRan: true });
+        filesOnlyLevel(R1, ok, { label: 'pair, test copy (offline stand-in)', expect: 'yes' });
     }
 
     // ============================================================ 2. HEALTHY SITE
@@ -288,6 +392,7 @@ async function main() {
         const F = fakeSandbox(hInfo.plugins, () => OK_PAGE);
         const R1 = await run('healthy-copy', sites.healthy, { live: await liveOr('ok'), fake: F });
         healthyChecks(R1, ok, { label: 'healthy, live check and test copy (offline stand-in)', probeRan: browser.ok });
+        filesOnlyLevel(R1, ok, { label: 'healthy, test copy (offline stand-in)', expect: 'no' });
         ok(R1.sbx && R1.sbx.reproduced_in_sandbox === 'no' && !R1.bis, `healthy, test copy: the copy did not show a problem and nothing was bisected (reproduced_in_sandbox ${R1.sbx && JSON.stringify(R1.sbx.reproduced_in_sandbox)})`);
     }
 
@@ -331,6 +436,30 @@ async function main() {
         const F = fakeSandbox(dInfo.plugins, () => OK_PAGE);   // the copy runs with its own fresh database settings: its pages load
         const R1 = await run('db-copy', sites.dbError, { live: await liveOr('db'), fake: F });
         dbChecks(R1, ok, { info: R1.info, label: 'db, live check and test copy (offline stand-in)' });
+        // CHANGED 2026-11-12 (owner decision: the database case keeps the old rule; old text in HANDOFF row 62)
+        ok(R1.f && R1.f.case_file && R1.f.case_file.level && R1.f.case_file.level.n === 2 && R1.f.case_file.level.heading === 'Not tested on a copy', `db, test copy (offline stand-in): level 2 "Not tested on a copy", not the fourth state (${R1.f && R1.f.case_file && R1.f.case_file.level ? R1.f.case_file.level.heading : 'no level'})`);
+    }
+
+    // ============================================================ 5. THEME FATAL
+    group('5. a fatal error in the active theme');
+    {
+        const R0 = await run('theme-live', sites.themeFatal, { live: await liveOr('crit') });
+        themeChecks(R0, ok, { info: R0.info, label: 'theme, live check, no test copy', bisectRan: false });
+        const tInfo = sites.themeFatal(path.join(tmp, 'theme-info'));
+        const F = fakeSandbox(tInfo.plugins, (on, st) => (st.theme === tInfo.theme ? { loaded: true, status: 500, text: 'There has been a critical error on this website.', copyLog: `[12-Nov-2026 09:20:00 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function lk_teahouse_badge() in /var/www/html/wp-content/themes/${tInfo.theme}/functions.php:4` } : OK_PAGE));
+        const R1 = await run('theme-copy', sites.themeFatal, { live: await liveOr('crit'), fake: F });
+        ok(R1.bis !== null, `theme, test copy: a bisection ran (${R1.bis ? `${R1.bis.status}, theme ${JSON.stringify(R1.bis.theme)}` : 'no bisect.json'})`);
+        themeChecks(R1, ok, { info: R1.info, label: 'theme, live check and test copy (offline stand-in)', bisectRan: true });
+    }
+
+    // ============================================================ 6. MISSING DEPENDENCY
+    group('6. a missing dependency: unguarded (a fatal) and guarded by function_exists (no fatal)');
+    {
+        const unguarded = root => sites.missingDep(root, { guarded: false }), guarded = root => sites.missingDep(root, { guarded: true });
+        const Ra = await run('dep-unguarded', unguarded, { live: await liveOr('crit') });
+        depChecks(Ra, ok, { info: Ra.info, label: 'dependency, unguarded' });
+        const Rb = await run('dep-guarded', guarded, { live: await liveOr('ok') });
+        depChecks(Rb, ok, { info: Rb.info, label: 'dependency, guarded' });
     }
 
     for (const s of servers) s.close();
