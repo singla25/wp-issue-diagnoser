@@ -116,7 +116,7 @@ async function runScan(name, o, type) {
 async function main() {
     const o = parse(process.argv.slice(2));
     const [cmd, name, arg] = o._;
-    if (!cmd) { console.error(require('../lib/hints').current().usage(fs.readFileSync(__filename, 'utf8').split('\n').slice(1, 35).map(l => l.replace(/^\/\/ ?/, '')).join('\n'))); return 2; }
+    if (!cmd) { console.error(require('../lib/hints').current().usage(fs.readFileSync(__filename, 'utf8').split('\n').slice(1).filter((l, i, a) => a.slice(0, i + 1).every(x => x.startsWith('//'))).map(l => l.replace(/^\/\/ ?/, '')).join('\n'))); return 2; }
 
     if (cmd === 'init') {
         const p = projectLib.create(name, { url: o.url, path: o.path && cfgLib.userPath(o.path), schedule: o.schedule, allowWordpressOrg: o['allow-wordpress-org'], allowVulnDb: o['allow-vuln-db'] }, { force: o.force });

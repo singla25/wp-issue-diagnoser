@@ -92,6 +92,7 @@ module.exports = { build, SOURCE, OUT, KEYS, BREAKS_SITE, NO_EVALUATOR, CLASSIC_
 if (require.main === module) {
     const argv = process.argv.slice(2), opt = n => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] : null; };
     const source = opt('--source') || SOURCE, out = opt('--out') || OUT;
+    if (!opt('--source') && !fs.existsSync(SOURCE)) { console.error("needs the repository's docs/COVERAGE.md, which is not part of this package"); process.exit(2); }
     let text;
     try { text = build(source); } catch (e) { console.error(e.message); process.exit(2); }
     if (argv.includes('--check')) {

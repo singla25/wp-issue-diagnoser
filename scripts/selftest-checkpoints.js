@@ -81,6 +81,14 @@ const T = rows => cpMod.tally(rows);
     ok(stale.status === 1 && /stale/.test(stale.stderr), '--check exits 1 and says "stale" when the table no longer matches the file');
     const noTable = path.join(tmp, 'empty.md'); fs.writeFileSync(noTable, '# nothing\n');
     ok(chk(noTable).status === 2, 'a source without the table is a usage error (exit 2), not a stale file');
+    // default source missing: a copy of the script without docs/COVERAGE.md above it
+    const lone = path.join(tmp, 'lone', 'pkg'); fs.mkdirSync(path.join(lone, 'scripts'), { recursive: true }); fs.mkdirSync(path.join(lone, 'lib'), { recursive: true }); fs.mkdirSync(path.join(lone, 'data'), { recursive: true });
+    fs.copyFileSync(script, path.join(lone, 'scripts', 'gen-checkpoints.js')); fs.copyFileSync(path.join(__dirname, '..', 'lib', 'hints.js'), path.join(lone, 'lib', 'hints.js')); fs.copyFileSync(path.join(__dirname, '..', 'lib', 'repo-layout.js'), path.join(lone, 'lib', 'repo-layout.js'));
+    const loneRun = (...a) => spawnSync(process.execPath, [path.join(lone, 'scripts', 'gen-checkpoints.js'), ...a], { encoding: 'utf8' });
+    const MSG = "needs the repository's docs/COVERAGE.md, which is not part of this package";
+    for (const a of [[], ['--check']]) { const r = loneRun(...a); ok(r.status === 2 && r.stderr.trim() === MSG && !/\n\s+at /.test(r.stderr), `default source missing (${a[0] || 'write'}): exit 2, one sentence, no stack trace`); }
+    ok(!fs.existsSync(path.join(lone, 'data', 'checkpoints.json')), 'default source missing: nothing was written');
+    const rx = loneRun('--source', path.join(tmp, 'nope.md')); ok(rx.status === 2 && rx.stderr.trim() !== MSG, 'an explicit --source that is missing keeps its own error (exit 2)');
 
     group('2. every row has an evaluator or a reason for none');
     ok(cps.every(c => (c.evaluator ? !c.no_evaluator_reason : typeof c.no_evaluator_reason === 'string' && c.no_evaluator_reason.length > 8)), 'a row has an evaluator key XOR a documented reason');

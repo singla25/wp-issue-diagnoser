@@ -46,6 +46,7 @@ const OLD = {
     pdfFix: 'Run once: npm run setup:guard',
     ocrLine: 'Run once from the repository root:  npm run guard:setup-ocr',
     noRun: 'No run found. Start one with: node src/plugin-guard/scripts/guard.js qa-url --url <site>',
+    noBrowserStage: 'this Plugin Guard build has no browser-test stage; the combined tool (src/combined) provides one',
 };
 const OLD_DEPS = 'Issue mode needs packages that are not installed: nope-pkg.\nRun once from the repository root:  npm run setup:guard\n(The classic scan and qa-* commands work without them.)';
 const OLD_QA_URL = '"qa-url" drives the Frontend QA agent, so it lives in src/combined now:\n  node src/combined/scripts/combined.js qa-url --url http://x\n';
@@ -66,11 +67,14 @@ const NEW = {
     pdfFix: 'Run once in this folder: npm ci, then: npm run setup-browser',
     ocrLine: 'Run once in this folder: npm run setup-ocr',
     noRun: 'No run found. Start one with: node scripts/guard.js qa-code --root <wordpress-root>',
+    noBrowserStage: 'this package has no browser-test stage',
 };
 const NEW_FRONTEND = cmd => `"${cmd}" needs the Frontend QA agent, which is not part of this package.`;
 const FORBIDDEN = ['src/plugin-guard', 'repository root', 'src/combined', 'setup:guard', 'guard:setup-'];
 const forbiddenIn = text => FORBIDDEN.filter(s => text.includes(s));
-const headerUsage = file => fs.readFileSync(file, 'utf8').split('\n').slice(1, 35).map(l => l.replace(/^\/\/ ?/, '')).join('\n') + '\n';
+// the usage text is the header comment: from line 2 up to (not including) the first line that does not start with //
+const headerUsage = file => { const ls = fs.readFileSync(file, 'utf8').split('\n').slice(1); const end = ls.findIndex(l => !l.startsWith('//')); return ls.slice(0, end).map(l => l.replace(/^\/\/ ?/, '')).join('\n') + '\n'; };
+const noCodeLines = text => !text.split('\n').some(l => /^(const |require)/.test(l));
 
 // ================================================================ 1. inside the repository: exactly as before
 group('1. inside the repository every hint is the old text, byte for byte');
@@ -98,7 +102,9 @@ group('1. inside the repository every hint is the old text, byte for byte');
     const r1 = runIn(PG, ['scripts/guard.js', 'qa-validate'], { PLUGIN_GUARD_RUNS: path.join(t, 'runs') });
     ok(r1.out === `\nPlugin Guard: ${OLD.noRun}\n`, 'lib/runs.js: "No run found" is the old text');
     const u = runIn(PG, ['scripts/guard.js']);
-    ok(u.status === 2 && u.out === headerUsage(path.join(PG, 'scripts', 'guard.js')), 'scripts/guard.js usage is its header comment, unchanged');
+    ok(u.status === 2 && u.out === headerUsage(path.join(PG, 'scripts', 'guard.js')), 'scripts/guard.js usage is its header comment (up to the first non-comment line), unchanged');
+    ok(noCodeLines(u.out) && !u.out.includes('const fs'), 'scripts/guard.js usage prints no source line (no line starting with const / require)');
+    ok(require('../lib/workflow').NO_BROWSER_STAGE === OLD.noBrowserStage && R.noBrowserStage === 'this Plugin Guard build has no browser-test stage; the combined tool (src/combined) provides one', 'lib/workflow.js: the "no browser-test stage" text is the old one, byte for byte');
     const q = runIn(PG, ['scripts/guard.js', 'qa-url', '--url', 'http://x']), a = runIn(PG, ['scripts/guard.js', 'auto', '--url', 'http://x']);
     ok(q.status === 2 && q.out === OLD_QA_URL && a.status === 2 && a.out === OLD_AUTO, 'scripts/guard.js qa-url / auto: the old message');
     const ih = runIn(PG, ['scripts/guard.js', 'issue', 'help']);
@@ -182,6 +188,9 @@ const check = (label, r, { mustHave = [], exact } = {}) => {
     group('2a. without packages (no node_modules in the copy)');
     const u = runIn(COPY, ['scripts/guard.js']);
     check('guard.js usage names no repository path and says issue mode needs npm ci', u, { mustHave: ['(issue mode; needs: npm ci)', 'see README.md', 'not part of this package'] });
+    ok(noCodeLines(u.out) && u.out === hints.forLayout(false).usage(headerUsage(path.join(COPY, 'scripts', 'guard.js'))), 'standalone usage prints no source line and is the header comment with the standalone replacements');
+    ok(A.noBrowserStage === 'this package has no browser-test stage' && !A.noBrowserStage.includes('src/combined'), 'standalone: the "no browser-test stage" text is exact and names no src/combined');
+    check('in-process (copy): workflow "no browser-test stage" text', runIn(COPY, ['-e', "console.log(require('./lib/workflow').NO_BROWSER_STAGE)"]), { exact: 'this package has no browser-test stage\n' });
     check('guard.js qa-url: the standalone message', runIn(COPY, ['scripts/guard.js', 'qa-url', '--url', 'http://x']), { exact: NEW_FRONTEND('qa-url') + '\n' });
     check('guard.js auto: the standalone message', runIn(COPY, ['scripts/guard.js', 'auto', '--url', 'http://x']), { exact: NEW_FRONTEND('auto') + '\n' });
     check('guard.js qa-validate with no run: points at node scripts/guard.js qa-code', runIn(COPY, ['scripts/guard.js', 'qa-validate'], { PLUGIN_GUARD_RUNS: path.join(W, 'runs') }), { exact: `\nPlugin Guard: ${NEW.noRun}\n` });
@@ -247,7 +256,8 @@ group('4. PG_HINT_LAYOUT=repo forces the repository wording in the copy (hint te
     ok(q.out === OLD_QA_URL, 'qa-url: the repository message');
     ok(runIn(COPY, ['scripts/guard.js', 'issue', 'help'], R).out.split('\n')[0] === OLD_ISSUE_USAGE, 'issue help: the repository usage line');
     const u = runIn(COPY, ['scripts/guard.js'], R);
-    ok(u.out === headerUsage(path.join(COPY, 'scripts', 'guard.js')), 'guard.js usage: the header comment unchanged');
+    ok(u.out === headerUsage(path.join(COPY, 'scripts', 'guard.js')) && noCodeLines(u.out), 'guard.js usage: the header comment unchanged, no source line');
+    ok(runIn(COPY, ['-e', "console.log(require('./lib/workflow').NO_BROWSER_STAGE)"], R).out === OLD.noBrowserStage + '\n', 'the "no browser-test stage" text: the repository wording');
     const p = runIn(COPY, ['-e', "let m='';try{require('./lib/issue-deps').need(['nope-pkg'])}catch(e){m=e.message};const r=require('./lib/runs'),l=require('./lib/repo-layout');console.log(JSON.stringify([m,r.runsRoot(),l.repoRoot(),require('./issue/version-match').SETUP]))"], R);
     let got = null; try { got = JSON.parse(p.out); } catch { /* none */ }
     ok(got && got[0] === OLD_DEPS && got[3] === OLD_SETUP, 'missing packages and SETUP: the repository wording');
