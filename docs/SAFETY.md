@@ -27,7 +27,7 @@ Descriptions, log lines, OCR text, page text, plugin headers and file contents a
 
 ## 4. The sandbox
 
-A throwaway copy in three containers (four when it is built from a database file: a front proxy is added, see below). Safeguards and where they are enforced:
+A throwaway copy in three containers (WordPress, WP-CLI, a MariaDB or MySQL database); four when it is built from a database file: a front proxy is added. With a database file, the proxy is the only container with a route out and the WordPress container is on an internal network only; without one there is no proxy and the WordPress container has a route out. Safeguards and where they are enforced:
 
 | Safeguard | Enforced in | Test |
 |---|---|---|
@@ -55,7 +55,7 @@ A throwaway copy in three containers (four when it is built from a database file
 
 ### What the sandbox does NOT stop (said in every report)
 
-- **Without a database file, the WordPress container can still make raw outbound connections** to an IP address: code in a copied plugin or theme that opens its own socket (cURL, `fsockopen`, `file_get_contents` on a URL with an IP) is not blocked, because Docker cannot publish a port on a network with no route out and a firewall inside the container would need extra privileges. `WP_HTTP_BLOCK_EXTERNAL` stops WordPress's own HTTP API; host-name lookups fail; mail is intercepted; the database and WP-CLI containers have no route out at all.
+- Built without a database file, the WordPress container can still open raw connections to an IP address (code in a copied plugin or theme that opens its own socket is not blocked); WordPress's own web requests, host-name lookups and mail are blocked. Built from a database file, it has no route out. Docker cannot publish a port on a network with no route out and a firewall inside the container would need extra privileges. The database and WP-CLI containers have no route out at all.
 - **With a database file, the WordPress container has no route out**: raw IP connections, SMTP and host-name lookups fail. The front proxy is the only container with a route out, and it runs only the fixed reverse-proxy config.
 - Code that talks SMTP itself or uses the PHP `mail()` function is not intercepted (the image has no mail transport, so it fails; with a database file SMTP also has no route out).
 - Site Health's loopback test (WordPress asking its own address) fails in the sandbox, with or without a database file: the address belongs to this computer, not to the container.
@@ -76,6 +76,6 @@ A hypothesis rests on evidence that the validator re-reads; a text that says "ma
 ## 6. Secrets, privacy, network
 
 - Secrets (`PSI_API_KEY`, `WPSCAN_API_TOKEN`, `PG_TEST_USER`, `PG_TEST_PASSWORD`) live in the environment or an untracked `.env`, never in `project.json`, code or reports; reports redact credential-looking text. The sandbox test user's credentials come from the environment and are never printed.
-- Nothing leaves the machine unless a project allows it (`outsideLookups`). The only commands that use the network are explicit: `npm ci` (npm), `npm run setup-browser` (Chromium), `npm run setup-ocr` (one SHA-256-pinned file), `npm run setup-sandbox` (images by digest), `npm run verify-knowledge` (the official pages and plugin source files it cites), and the live probe against the URL you give it.
+- Nothing leaves the machine except in these explicit cases: the one-time setup downloads (`npm ci` and `npm run setup-browser` (npm packages, Chromium), `npm run setup-ocr` (one SHA-256-pinned file), `npm run setup-sandbox` (images by digest)); `npm run verify-knowledge` (the official pages and plugin source files it cites); opt-in `outsideLookups` (off by default), which send plugin and theme slugs, their versions and the WordPress version to api.wordpress.org and downloads.wordpress.org, and plugin names (with your WPScan API token) to wpscan.com; the read-only probe, which sends paced GET/HEAD requests to the URL you give it; and one DNS lookup of that URL's host to guess local, staging or live.
 - Never committed: `plugin-guard-reports/`, `.env*`, Plugin Guard `history/`, `issues/`, `sandboxes/`, the OCR language file.
 - Reporter screenshots and the issue folder may contain customer data: they stay in `issues/<id>/` (mode 0700, outside the web root). `issue cleanup` removes old issue folders and leftover sandboxes after asking, and refuses anything that is not a plain issue or sandbox folder directly inside those two folders.
