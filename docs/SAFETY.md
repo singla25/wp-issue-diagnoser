@@ -60,7 +60,7 @@ A throwaway copy in three containers (WordPress, WP-CLI, a MariaDB or MySQL data
 - Code that talks SMTP itself or uses the PHP `mail()` function is not intercepted (the image has no mail transport, so it fails; with a database file SMTP also has no route out).
 - Site Health's loopback test (WordPress asking its own address) fails in the sandbox, with or without a database file: the address belongs to this computer, not to the container.
 - API keys stored outside `wp_options` (a custom table, a file) are not found and blanked.
-- Tables of other plugins are not scrubbed ("N tables could not be checked and are copied as they are"), and neither are post and comment text, order notes or option values outside the secret patterns.
+- Tables of other plugins are not scrubbed ("N tables it does not know are not scrubbed and are copied as they are"), and neither are post and comment text, order notes or option values outside the secret patterns.
 - Email addresses and IP addresses in other tables (form entries, order notes, plugin settings) are not hidden in this version.
 
 **Therefore: run sandboxes only for copies of sites you own or are explicitly authorised to test, and whose plugin code you trust. Do not run a sandbox on untrusted or third-party code.**

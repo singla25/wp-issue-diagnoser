@@ -193,7 +193,7 @@ const fidelityStep = fd => step('sandbox-fidelity', 'Test copy: does it show the
 
 // a LIVE site is never copied with its database, whatever path asked for it (issue investigate, issue retest, the wizard, --yes): the database file
 // and --export-db are dropped here, centrally, before anything else; what live does without a database file is not changed
-const LIVE_NO_DB = 'A live site is never copied with its database.';
+const LIVE_NO_DB = 'A site marked live is never copied with its database.';
 const liveDbStep = () => step('sandbox-database', 'Sandbox: database file', 'NOT_RUN', LIVE_NO_DB);
 async function run(id, o) {
     const issue = store.load(id), dir = store.dirOf(id), steps = [];

@@ -247,12 +247,12 @@ const sub = (l, s, svc) => l.args[0] === 'compose' && l.args[5] === s && (!svc |
         const sm = f.sandbox && f.sandbox.summary;
         ok(sb.sandbox && sm && sm.users === 'dummy' && sm.dummy_admin === true && JSON.stringify(sm.removal_counts) === JSON.stringify({ users: 12, usermeta: 0, comments: 340, options: 0, postmeta: 0 }) && sm.unchecked_tables === 2 && !('real_data_kept' in sm), `findings.json sandbox.summary: ${JSON.stringify(sm && { users: sm.users, dummy_admin: sm.dummy_admin, removal_counts: sm.removal_counts, unchecked_tables: sm.unchecked_tables })}`);
         const dev = f.case_file ? f.case_file.developer : [];
-        ok(dev.includes('2 tables could not be checked and are copied as they are.') && dev.some(l => /^Test copy, rewritten or removed: users 12, usermeta 0, comments 340/.test(l)) && dev.includes(cli.OTHER_TABLES_NOTE) && dev.some(l => /^Test copy users: dummy users only/.test(l)), 'the developer block lists users, the counts, the unchecked-tables line and the other-tables note');
-        ok(fs.readFileSync(path.join(dir, 'result', 'ISSUE-REPORT.md'), 'utf8').includes('2 tables could not be checked and are copied as they are.'), 'and so does ISSUE-REPORT.md');
+        ok(dev.includes('2 tables it does not know are not scrubbed and are copied as they are.') && dev.some(l => /^Test copy, rewritten or removed: users 12, usermeta 0, comments 340/.test(l)) && dev.includes(cli.OTHER_TABLES_NOTE) && dev.some(l => /^Test copy users: dummy users only/.test(l)), 'the developer block lists users, the counts, the unchecked-tables line and the other-tables note');
+        ok(fs.readFileSync(path.join(dir, 'result', 'ISSUE-REPORT.md'), 'utf8').includes('2 tables it does not know are not scrubbed and are copied as they are.'), 'and so does ISSUE-REPORT.md');
         ok(ppw && seen.length === 1 && seen[0].password === ppw && filesWith(dir, ppw).length === 0 && countFiles(dir) > 10, `the password set in this build is in none of the ${countFiles(dir)} files of the issue folder (findings.json, issue.html, ISSUE-REPORT.md, work/sandbox.json, ...)`);
         ok(!JSON.stringify(sb).includes(ppw), 'nor in what the sandbox phase returned (its steps and summary)');
         const caseLines = caseFile.userDataLines(resultMod.cleanUserData({ schema: 1, users: 'dummy', dummy_admin: false, removal_counts: { users: 3, '<b>x': 9, comments: -1, posts: 'x' }, unchecked_tables: 0 }));
-        ok(caseLines[1] === 'Test copy, rewritten or removed: users 3.' && caseLines[2] === '0 tables could not be checked and are copied as they are.' && /no dummy administrator/.test(caseLines[0]), 'only table-name keys and whole numbers pass into the report');
+        ok(caseLines[1] === 'Test copy, rewritten or removed: users 3.' && caseLines[2] === '0 tables it does not know are not scrubbed and are copied as they are.' && /no dummy administrator/.test(caseLines[0]), 'only table-name keys and whole numbers pass into the report');
         ok(resultMod.cleanUserData({ schema: 1, users: 'real', unchecked_tables: 1 }) === null && resultMod.cleanUserData({ schema: 1, users: 'dummy', unchecked_tables: 'x' }) === null, 'a user-data file that is not "dummy" with a number is not shown');
     }
 
@@ -300,7 +300,7 @@ const sub = (l, s, svc) => l.args[0] === 'compose' && l.args[5] === s && (!svc |
         if (!wp1) wizDiag('one', r);
         ok(!r.error && r.text.includes(Qtext) && occurrences(r.text, 'Your database file contains user accounts') === 1, `asked once with a terminal and a database file${r.error ? ` (error: ${r.error.message})` : ''}`);
         ok(wp1 && occurrences(r.text, `Test login for the copy: pgadmin / ${wp1}  (shown only here, never saved)`) === 1 && occurrences(r.text, wp1) === 1 && !r.errs.includes(wp1), 'answer 1: the copy is built and the one terminal line shows the password, exactly once; it is nowhere else in stdout or stderr');
-        ok(occurrences(r.text, '2 tables could not be checked and are copied as they are.') === 1 && occurrences(r.text, cli.OTHER_TABLES_NOTE) === 1 && /FOR A DEVELOPER[\s\S]*2 tables could not be checked/.test(r.text), 'the unchecked-tables line and the other-tables note are printed once, in the summary after the build (FOR A DEVELOPER)');
+        ok(occurrences(r.text, '2 tables it does not know are not scrubbed and are copied as they are.') === 1 && occurrences(r.text, cli.OTHER_TABLES_NOTE) === 1 && /FOR A DEVELOPER[\s\S]*2 tables it does not know/.test(r.text), 'the unchecked-tables line and the other-tables note are printed once, in the summary after the build (FOR A DEVELOPER)');
         ok(r.text.indexOf(Qtext) < r.text.indexOf('Test login for the copy'), 'order: the question, then (after the build) the test login');
         const sbDir = r.dir && path.join(r.F.sandboxesRoot, path.basename(r.dir));
         ok(r.dir && fs.existsSync(sbDir) && filesWith(sbDir, wp1).length === 0 && countFiles(sbDir) > 5, `the kept sandbox folder (${sbDir ? countFiles(sbDir) : 0} files) does not contain the password`);
@@ -330,7 +330,7 @@ const sub = (l, s, svc) => l.args[0] === 'compose' && l.args[5] === s && (!svc |
     }
     {
         const r = await wiz('nodump', ['', ''], { sandbox: true }, { fake: base() });
-        ok(!r.error && !r.text.includes('Your database file contains user accounts') && !/Test login|tables could not be checked/.test(r.text) && !r.text.includes(cli.OTHER_TABLES_NOTE), 'without a database file: no question, no user-data lines');
+        ok(!r.error && !r.text.includes('Your database file contains user accounts') && !/Test login|tables it does not know/.test(r.text) && !r.text.includes(cli.OTHER_TABLES_NOTE), 'without a database file: no question, no user-data lines');
     }
     {
         const r = await wiz('noadmin', ['', '', '1'], { sandbox: true, 'db-dump': SQL }, { fake: base(COUNTS) });
@@ -346,7 +346,7 @@ const sub = (l, s, svc) => l.args[0] === 'compose' && l.args[5] === s && (!svc |
         try { await cli.investigate(iss.id, { _: [], sandbox: true, 'db-dump': SQL, 'no-probe': true, 'no-questions': true }, 'investigate', { interactive: false, loginOut: { tty: false, write: t => lines.push(t) }, sandboxOptions: F.base({ pageCheck: () => ({ status: 200 }) }) }); }
         catch (e) { error = e; } finally { console.log = log; }
         const pc = F.password();
-        ok(!error && occurrences(logged, cli.OTHER_TABLES_NOTE) === 1 && occurrences(logged, '2 tables could not be checked and are copied as they are.') === 1, `the other-tables note and the unchecked-tables line are printed once each${error ? ` (error: ${error.message})` : ''}`);
+        ok(!error && occurrences(logged, cli.OTHER_TABLES_NOTE) === 1 && occurrences(logged, '2 tables it does not know are not scrubbed and are copied as they are.') === 1, `the other-tables note and the unchecked-tables line are printed once each${error ? ` (error: ${error.message})` : ''}`);
         ok(pc && !logged.includes(pc) && !lines.length, 'not a terminal: the password is not printed (nothing was written to the terminal line)');
         ok(filesWith(store.dirOf(iss.id), pc).length === 0, 'and it is in no file of the issue folder');
         const lines2 = [];

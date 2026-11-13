@@ -389,9 +389,9 @@ function userDataLines(u) {
     if (!u || u.users !== 'dummy' || !Number.isInteger(u.unchecked_tables)) return [];
     const counts = Object.entries(u.removal_counts || {}).filter(([k, v]) => /^[A-Za-z0-9_]{1,64}$/.test(k) && (v === null || Number.isInteger(v))).map(([k, v]) => `${k} ${v === null ? 'not counted' : v}`);
     return [
-        `Test copy users: dummy users only, your real users were not copied; ${u.dummy_admin ? 'one dummy administrator (pgadmin) with a test password that was shown once and not saved' : 'no dummy administrator'}.`,
+        `Test copy users: dummy users only, your real user accounts were replaced by dummy ones; ${u.dummy_admin ? 'one dummy administrator (pgadmin) with a test password that was shown once and not saved' : 'no dummy administrator'}.`,
         `Test copy, rewritten or removed: ${counts.length ? counts.join(', ') : 'nothing'}.`,
-        `${u.unchecked_tables} tables could not be checked and are copied as they are.`,
+        `${u.unchecked_tables} tables it does not know are not scrubbed and are copied as they are.`,
         OTHER_TABLES_NOTE
     ];
 }

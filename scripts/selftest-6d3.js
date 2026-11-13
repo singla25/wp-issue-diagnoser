@@ -292,7 +292,7 @@ const noConclusion = r => r.status === 'inconclusive' && !r.causes.length && r.t
     }
     {
         const r = await wiz([], { 'db-dump': SQL, sandbox: true, yes: true, url: 'https://shop.example.net/', env: 'live', authorized: true });
-        ok(!r.error && occurrences(r.text, wizard.LIVE_NO_DB) === 1 && wizard.LIVE_NO_DB === 'A live site is never copied with its database.' && !r.built && !r.text.includes('Building a test copy') && !r.text.includes('Your database file contains user accounts') && r.f, 'a LIVE site with --sandbox --db-dump: one plain line, nothing built, the check goes on without the copy');
+        ok(!r.error && occurrences(r.text, wizard.LIVE_NO_DB) === 1 && wizard.LIVE_NO_DB === 'A site marked live is never copied with its database.' && !r.built && !r.text.includes('Building a test copy') && !r.text.includes('Your database file contains user accounts') && r.f, 'a LIVE site with --sandbox --db-dump: one plain line, nothing built, the check goes on without the copy');
     }
     group('a LIVE site is never copied with its database, in any path (issue/sandbox-phase.js, centrally)');
     {
