@@ -106,7 +106,7 @@ function options(ctx, answers = {}, evidence = null) {
                 steps: [[`On the copy, install ${prov.name} ${evidence.version} from its vendor's own download (for a plugin on WordPress.org: its page, Advanced View, Previous versions).`, `Update ${prov.name} back to ${prov.version || 'the version you had'}, or restore the backup.`]] });
             else unavailable.push(`An older version of ${prov.name}: which version still has this is not known (the ${c ? c.kind : 'theme'}'s own files of the copy state no compatible version), so it is not suggested.`);
         }
-        out.push({ id: 'developer-text', title: 'Ask a developer for a change, written as text for review', why: `A developer can write the change as text for you to review, to be used as a child-theme override or a small separate plugin. Plugin Guard does not write a patch for the code of ${who} or of any plugin.`,
+        out.push({ id: 'developer-text', title: 'Ask a developer for a change, written as text for review', why: `A developer can write the change as text for you to review, to be used as a child-theme override or a small separate plugin. wp-issue-diagnoser does not write a patch for the code of ${who} or of any plugin.`,
             steps: [[`Give a developer this plan and ask for the change as text for review, to be used on the copy as a child-theme override or a small separate plugin. The files of ${who} stay as they are.`, 'Switch off the child theme or the small plugin.']] });
     }
     const pick = a.plan && a.plan !== 'not-sure' ? out.find(o => o.id === a.plan) : null;
@@ -126,7 +126,7 @@ function build(f, answers = null, evidence = null) {
     L.push(`# Fix plan: ${esc(title)}`, '');
     // the short plain summary on top
     const what = ctx.kind === 'signs' ? 'This copy of your site shows signs that a theme or plugin was changed from the vendor\'s version.' : `${ctx.confirmed ? 'Confirmed cause' : 'Likely cause (not confirmed)'}: ${esc(firstWhy(ctx)).replace(/^./, x => x.toLowerCase())}`;
-    L.push(`In short: ${what} The plan: ${esc(ch.title.replace(/^./, x => x.toLowerCase()))}. Work on a copy of your site, after a backup. Plugin Guard did not change your site and does not apply this plan; a developer, or Claude Code, can follow the steps below on a copy after a backup.`, '');
+    L.push(`In short: ${what} The plan: ${esc(ch.title.replace(/^./, x => x.toLowerCase()))}. Work on a copy of your site, after a backup. wp-issue-diagnoser did not change your site and does not apply this plan; a developer, or Claude Code, can follow the steps below on a copy after a backup.`, '');
     // the problem, in two lines
     L.push(`## ${HEAD.problem}`, '');
     if (ctx.kind === 'signs') { L.push(esc((ctx.signsCase && rowOf(ctx.signsCase, 'Signs')[0]) || 'Signs that a copy was modified were found.')); L.push(esc("This copy shows signs of being changed from the vendor's version. It cannot be verified against the vendor.")); }

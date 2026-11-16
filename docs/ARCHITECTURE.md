@@ -1,6 +1,6 @@
 # Architecture
 
-One read-only review tool for WordPress sites: Plugin Guard. Plain Node.js (20.12 or newer, CommonJS). The package is the repository root. The tool does not change the site it looks at; the rules for what it may write are in [SAFETY.md](SAFETY.md).
+One read-only review tool for WordPress sites: wp-issue-diagnoser. Plain Node.js (20.12 or newer, CommonJS). The package is the repository root. The tool does not change the site it looks at; the rules for what it may write are in [SAFETY.md](SAFETY.md).
 
 ```
 repo
@@ -16,7 +16,7 @@ repo
                   REPORT-SPEC.md and TEST-COPY-SPEC.md (the approved report and test-copy designs), archive/ (old step logs)
 ```
 
-`guard.js` at the root is a small entry shim for `scripts/guard.js`; the `plugin-guard` command is `scripts/plugin-guard.js` (bin entry `plugin-guard`).
+`guard.js` at the root is a small entry shim for `scripts/guard.js`; the `wp-issue-diagnoser` command is `scripts/plugin-guard.js` (bin entry `wp-issue-diagnoser`).
 
 ## 1. Classic scan and the three-agent workflow
 
@@ -58,7 +58,7 @@ Design rules that hold across the issue-mode code:
 - **Text from the site is data.** It is escaped in every output; `issue.html` is one offline file (a Content-Security-Policy forbids loads, text goes in with `textContent`).
 - **Oracles are data.** A reporter's pattern is plain text unless written `re:` and goes through `lib/safe-pattern.js`; selectors are only passed to `querySelector`.
 
-### The `plugin-guard` command (`scripts/plugin-guard.js`)
+### The `wp-issue-diagnoser` command (`scripts/plugin-guard.js`)
 
 ```
 scripts/plugin-guard.js   flags (the option table of scripts/guard.js) or questions

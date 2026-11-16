@@ -115,7 +115,7 @@ function build(id, { validation, plans, dir, gate = false, verbose = false, poli
     })).sort((a, b) => a.ref < b.ref ? -1 : a.ref > b.ref ? 1 : 0);
     const imgs = (issue.images || []).map(i => { let t = null; try { t = fs.readFileSync(path.join(dir, 'work', 'ocr', `${i.name}.txt`), 'utf8').slice(0, 4000); } catch { /* no OCR text */ } return { name: i.name, kind: i.kind || null, width: i.width || null, height: i.height || null, ocr_text: t }; });
     const f = {
-        schema: 1, generator: 'plugin-guard issue mode', generated_at: new Date().toISOString(),
+        schema: 1, generator: 'wp-issue-diagnoser issue mode', generated_at: new Date().toISOString(),
         issue: { id, title: issue.title, symptom: issue.symptom, environment: issue.environment, oracle: issue.oracle, pages: issue.pages || [], needs_login: !!issue.needs_login },
         verdict: verdict(validation, retests, bis),
         hypotheses: hyps,
@@ -145,7 +145,7 @@ const LIMITS = [
     'Patch generators exist for four patterns only: removal at the wrong hook priority, a missing function_exists / class_exists guard, a custom copy replacing a WordPress core script or style, and a dependency on a handle nobody registers. Everything else is "needs a human".',
     'Only custom code (the customPaths allowlist) is ever named in a code task. Core, vendor, third-party and unknown-owner code is not.',
     'Settings suggestions come from the knowledge base in words; exact option names are not stored, so they are guidance and were not applied in the sandbox.',
-    'Plugin Guard never edits the site. Patches and shims are files in this report for a person (or a separate Claude Code session) to review and apply on a copy.'
+    'wp-issue-diagnoser never edits the site. Patches and shims are files in this report for a person (or a separate Claude Code session) to review and apply on a copy.'
 ];
 
 // the first Limits sentence for the reader (gate mode): exact owner wording; the middle sentence follows what ran
@@ -285,7 +285,7 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
             r.what_to_try = items;
             f.fix_text = `No automatic fix is offered. What to try: ${items.map(t => t.replace(/^./, c => c.toLowerCase())).join('; ')}.`;
             for (const o of r.options) {
-                if (o.type === 'human' && o.title === 'No safe automatic option') { o.reader_title = 'No automatic fix is offered'; o.reader_detail = 'Plugin Guard does not change your site. Try the steps under "What to try", one at a time, on a copy of the site.'; }
+                if (o.type === 'human' && o.title === 'No safe automatic option') { o.reader_title = 'No automatic fix is offered'; o.reader_detail = 'wp-issue-diagnoser does not change your site. Try the steps under "What to try", one at a time, on a copy of the site.'; }
                 else if (o.type === 'plugin') { const m = /^Deactivate, replace or update (.+)$/.exec(o.title); if (m) o.reader_title = `Update ${plainNames.plainText(m[1], comps)} (switch it off only as a last resort)`; }
             }
         }
@@ -447,7 +447,7 @@ function tasks(f, { root, policy }) {
         if (!h || h.status === 'REJECTED_FALSE_POSITIVE') continue;
         for (const o of r.options) if (o.type === 'patch' && o.who === 'send-to-claude-code' && o.verified) items.push({ h, o });
     }
-    const L = ['# Tasks for Claude Code', '', `From issue \`${f.issue.id}\` (${esc(f.issue.title)}). Plugin Guard did not change any code and does not run this file.`, ''];
+    const L = ['# Tasks for Claude Code', '', `From issue \`${f.issue.id}\` (${esc(f.issue.title)}). wp-issue-diagnoser did not change any code and does not run this file.`, ''];
     L.push('## Rules', '');
     L.push('- Work **only** on the files listed under each task ("Allowed files"). Anything else is out of scope.');
     L.push('- **Do not modify** WordPress core (`wp-admin/`, `wp-includes/`, root `wp-*.php`), third-party plugins or themes, `vendor/`, `node_modules/`, generated or minified files, or any file not listed. If a fix seems to need one of those, stop and report it instead.');

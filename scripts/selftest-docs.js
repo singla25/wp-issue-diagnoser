@@ -146,13 +146,13 @@ group('5. --flags: known to the guard.js / plugin-guard.js option table, or an e
     ok(dup.length === 0 && stale.length === 0, `no OTHER_FLAGS entry is an option of guard.js or unused by the docs${list([...dup, ...stale])}`);
     const wizardFlags = ['description', 'root', 'url', 'env', 'authorized', 'php', 'images', 'log', 'sandbox', 'db-dump', 'max-size-mb', 'no-replica', 'out', 'yes'];
     const help = require('./plugin-guard').HELP;
-    ok(wizardFlags.every(f => FLAGS[f] && help.includes(`--${f}`) && doc['README.md'].includes(`--${f}`)), 'the plugin-guard flags of --help are all in the option table and named in README.md');
+    ok(wizardFlags.every(f => FLAGS[f] && help.includes(`--${f}`) && doc['README.md'].includes(`--${f}`)), 'the wp-issue-diagnoser flags of --help are all in the option table and named in README.md');
 }
 
 group('5b. the detectors catch a planted doc (in memory; nothing is written)');
 {
     const planted = scan({ 'docs/planted.md': [
-        '```bash', 'npm run selftest:no-such-suite', 'npm frobnicate', 'node src/plugin-guard/scripts/no-such-file.js', 'plugin-guard --no-such-flag', '```',
+        '```bash', 'npm run selftest:no-such-suite', 'npm frobnicate', 'node src/plugin-guard/scripts/no-such-file.js', 'wp-issue-diagnoser --no-such-flag', '```',
         'See [the rules](../../docs/SAFETY.md) and [a missing page](./missing.md).'].join('\n') });
     ok(planted.npmRun.length === 1 && /selftest:no-such-suite/.test(planted.npmRun[0]), 'an unknown npm run name is reported');
     ok(planted.npmCmd.length === 1 && /npm frobnicate/.test(planted.npmCmd[0]), 'an unknown npm command in code is reported');
@@ -189,7 +189,7 @@ function readmeProblems(text) {
             if ((c = /^npm run(?: -s)?\s+([A-Za-z0-9:_-]+)/.exec(l))) { if (!scripts[c[1]]) bad.push(`npm run ${c[1]}`); }
             else if ((c = /^npm\s+([a-z][a-z-]*)/.exec(l))) { if (!(c[1] in NPM_COMMANDS) && !scripts[c[1]]) bad.push(`npm ${c[1]}`); if (c[1] === 'exec') { const b = /^npm exec -- ([A-Za-z0-9-]+)/.exec(l); if (!b || !BIN.includes(b[1])) bad.push(`npm exec: ${l.slice(0, 40)}`); } }
             else if ((c = /^node\s+(\S+)/.exec(l))) { if (!/^(\.\/)?scripts\//.test(c[1]) || !fs.existsSync(path.join(PG, c[1].replace(/^\.\//, '')))) bad.push(`node ${c[1]}`); }
-            else if ((c = /^([A-Za-z][A-Za-z0-9-]*)\b/.exec(l)) && c[1] === 'plugin-guard' && !BIN.includes('plugin-guard')) bad.push('plugin-guard is not a bin entry');
+            else if ((c = /^([A-Za-z][A-Za-z0-9-]*)\b/.exec(l)) && c[1] === 'wp-issue-diagnoser' && !BIN.includes('wp-issue-diagnoser')) bad.push('wp-issue-diagnoser is not a bin entry');
             else if (/^git clone\s+https?:/.test(l)) bad.push('a public clone address (the repository is private)');
         }
     }
@@ -227,6 +227,16 @@ const mapped = text => new Set([...text.replace(/```[\s\S]*?```/g, '').matchAll(
     ok(planted.length === 1 && planted[0] === 'docs/TESTING.md', 'the map check catches a planted missing entry (one link removed in memory)');
     const ghost = [...mapped((doc['docs/README.md'] || '') + '\n[Ghost](./NO-SUCH-FILE.md)')].filter(f => !fs.existsSync(path.join(PG, f)));
     ok(ghost.length === 1 && ghost[0] === 'docs/NO-SUCH-FILE.md', 'the map check catches a planted entry for a file that does not exist (in memory)');
+}
+
+group('9. README.md and docs/GUIDE.md use the product name wp-issue-diagnoser, not the old command name');
+// the old name may stay only as an internal name: the report folder, the config file, the script file, the audit file, the placeholder install folder
+const OLD_NAME_INTERNAL = /plugin-guard-reports(?:\/plugin-guard)?|plugin-guard\.config(?:\.example)?\.json|plugin-guard\.js|plugin-guard-audit\.md|\/path\/to\/plugin-guard\/scripts\//g;
+const oldNameHits = text => text.split('\n').flatMap((l, i) => { const t = l.replace(OLD_NAME_INTERNAL, ''); return /Plugin Guard|plugin-guard/.test(t) ? [`line ${i + 1}: ${t.trim().slice(0, 60)}`] : []; });
+{
+    for (const d of ['README.md', 'docs/GUIDE.md']) { const h = oldNameHits(doc[d]); ok(h.length === 0, `${d} does not name the product or the command "Plugin Guard" / "plugin-guard" (internal names listed in the test are allowed)${list(h)}`); }
+    const p = oldNameHits('Run `npm run plugin-guard` or ask Plugin Guard.\nThe folder plugin-guard-reports and the file plugin-guard.config.json are fine.');
+    ok(p.length === 1 && /^line 1:/.test(p[0]), 'the old-name check catches a planted old command and product name, and allows the internal names (in memory)');
 }
 
 console.log(failures ? `\n${failures} check(s) FAILED` : '\nAll docs checks passed');

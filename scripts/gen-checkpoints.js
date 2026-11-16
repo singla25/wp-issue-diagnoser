@@ -22,7 +22,7 @@ const KEYS = {
 // row number -> why there is no evaluator (plain words, shown to the reader). Classic-only rows get the standard sentence.
 const NO_EVALUATOR = {
     16: 'no check reads the theme templates for this yet',
-    17: 'Plugin Guard only lists who provides a feature; no check decides that the theme repeats a plugin',
+    17: 'wp-issue-diagnoser only lists who provides a feature; no check decides that the theme repeats a plugin',
     23: 'the real load order of the plugins is not read yet',
     28: 'the site is tested on one PHP version only',
     29: 'nothing checks code that assumes a single site',

@@ -4,14 +4,14 @@ What this tool may and may not do, and where each rule is enforced. The rules ar
 
 ## 1. The one rule: the site under test is never written
 
-- **Plugin Guard** reads a local copy. WP-CLI is wrapped in an allow-list (`lib/wpcli.js`): listing commands and `SELECT`, always `--skip-plugins --skip-themes`.
+- **wp-issue-diagnoser** reads a local copy. WP-CLI is wrapped in an allow-list (`lib/wpcli.js`): listing commands and `SELECT`, always `--skip-plugins --skip-themes`.
 - **Issue mode** reads the site, and nothing else; it never applies a patch or a shim (there is no `--apply`: a person, or a separate Claude Code session working from `tasks.md`, makes changes on a copy).
 - Every candidate log, including a `WP_DEBUG_LOG` path in `wp-config.php`, is lstat-checked first: a symlink, a non-regular file, or a file whose real path is outside the site folder is rejected without being read (so a `wp-config.php` cannot make the tool read an arbitrary file). A relative `WP_DEBUG_LOG` is ignored.
 
 The only places these tools may write while investigating a site:
 
 1. their own report folders (`reports/`, `reports/runs/<run-id>/`);
-2. `issues/<issue-id>/` (git-ignored, outside the web root, owner-only), including `issues/<issue-id>/site-copy/`, the redacted COPY the `plugin-guard` command makes of the reporter's site (original only read; no symlinks, `.env`, backups or logs; `wp-config.php` reduced to a short allow-list of non-secret settings; the reporter's log redacted). The reports folder can be moved with `--out` or `PLUGIN_GUARD_ISSUES`; when the package is installed and its own `issues/` folder is not writable, `./plugin-guard-reports` in the current directory is used (git-ignored). It is never inside the site folder: `lib/site-intake.js` `chooseOutputRoot` refuses it;
+2. `issues/<issue-id>/` (git-ignored, outside the web root, owner-only), including `issues/<issue-id>/site-copy/`, the redacted COPY the `wp-issue-diagnoser` command makes of the reporter's site (original only read; no symlinks, `.env`, backups or logs; `wp-config.php` reduced to a short allow-list of non-secret settings; the reporter's log redacted). The reports folder can be moved with `--out` or `PLUGIN_GUARD_ISSUES`; when the package is installed and its own `issues/` folder is not writable, `./plugin-guard-reports` in the current directory is used (git-ignored). It is never inside the site folder: `lib/site-intake.js` `chooseOutputRoot` refuses it;
 3. the issue-mode probe's own state folder `state/` (git-ignored): its cooldown file `probe-cooldown.json`; the per-run counters live in the issue's own folder (`issues/<issue-id>/`);
 4. **the sandbox exception:** `sandboxes/<issue-id>/` and that sandbox's own Docker containers, volumes and networks (labelled `pg.sandbox=1`, project `pgsb<8 hex>`). Inside a sandbox, and only there, plugins may be deactivated, the theme swapped, pages clicked and a test user logged in. The original is never written and never executed (its PHP runs only in the containers). The one thing done *to* the original is a read: `wp db export` to a fixed path, only when asked (`--export-db`).
 
@@ -48,7 +48,7 @@ A throwaway copy in three containers (WordPress, WP-CLI, a MariaDB or MySQL data
 | a database file is checked before use: only a plain file (no symbolic link); `.gz` is unpacked as a stream; UTF-16, `.crypt`, `.zip` and other binary files are refused with a plain message; the 1024 MB cap counts unpacked bytes (a small `.gz` that unpacks to more stops at the cap) | `lib/dump-intake.js` | `selftest-6a-fake.js` |
 | the temporary copy of the dump is created owner-only (0600) in `sandboxes/<id>/db/`, streamed into the import from a file descriptor (never read whole, never mounted), and deleted right after the import, on failure and on Ctrl-C / SIGTERM; a copy left by a killed run is listed and removed by `issue cleanup` | `sandbox.js`, `sandbox-wpcli.js`, `cleanup.js` | lifecycle suite, `selftest-6a-fake.js` |
 | start order with a dump: the three containers start with the database still empty; the web container is stopped before the import and started again only after the payment check and the anonymisation; its port is read again and checked to be on 127.0.0.1 after that start; siteurl and home are then rewritten separately. If the import or anonymisation fails, the web container is never started again and the sandbox is destroyed | `sandbox.js` | `selftest-6a-fake.js` (every call recorded with the web container's state), `selftest-6a-docker.js` (`docker inspect` during the import, StartedAt after it) |
-| teardown always runs (errors, Ctrl-C, SIGTERM, uncaught exception, exit); leftovers are swept by label at the next start; only resources carrying **both** Plugin Guard labels, and never a sandbox whose owner process is alive | `sandbox.js` | lifecycle suite (child processes) and docker suite (real SIGINT) |
+| teardown always runs (errors, Ctrl-C, SIGTERM, uncaught exception, exit); leftovers are swept by label at the next start; only resources carrying **both** wp-issue-diagnoser labels, and never a sandbox whose owner process is alive | `sandbox.js` | lifecycle suite (child processes) and docker suite (real SIGINT) |
 | `SandboxWpCli`: the real path is re-resolved on every call; refuses the original site, `..`, symbolic links, a mismatched state file; a closed command table; arguments as arrays, no shell; an environment rebuilt from an allow-list | `sandbox-wpcli.js` | offline suite |
 | only a **local** Docker daemon: `unix:///var/run/docker.sock` or this user's `unix:///run/user/<uid>/docker.sock` (a socket owned by this user, not world-writable); `tcp://`, `ssh://` and every other address, and a remote Docker *context*, are refused | `sandbox-wpcli.js` `checkLocalSocket`, `sandbox.js` preflight | lifecycle suite |
 | files created by the container user are handed back to the host user before teardown (rootless Docker would otherwise leave them undeletable) | `sandbox.js` `releaseOwnership` | docker suite |
@@ -67,7 +67,7 @@ A throwaway copy in three containers (WordPress, WP-CLI, a MariaDB or MySQL data
 
 ### Docker access
 
-Rootless Docker is the recommended setup. Adding a user to the `docker` group gives that user root-equivalent access to the machine, so Plugin Guard never does it and never suggests it as done; `doctor` reports whether the daemon is rootless.
+Rootless Docker is the recommended setup. Adding a user to the `docker` group gives that user root-equivalent access to the machine, so wp-issue-diagnoser never does it and never suggests it as done; `doctor` reports whether the daemon is rootless.
 
 ## 5. Verdicts cannot be forged by the data
 
@@ -77,5 +77,5 @@ A hypothesis rests on evidence that the validator re-reads; a text that says "ma
 
 - Secrets (`PSI_API_KEY`, `WPSCAN_API_TOKEN`, `PG_TEST_USER`, `PG_TEST_PASSWORD`) live in the environment or an untracked `.env`, never in `project.json`, code or reports; reports redact credential-looking text. The sandbox test user's credentials come from the environment and are never printed.
 - Nothing leaves the machine except in these explicit cases: the one-time setup downloads (`npm ci` and `npm run setup-browser` (npm packages, Chromium), `npm run setup-ocr` (one SHA-256-pinned file), `npm run setup-sandbox` (images by digest)); `npm run verify-knowledge` (the official pages and plugin source files it cites); opt-in `outsideLookups` (off by default), which send plugin and theme slugs, their versions and the WordPress version to api.wordpress.org and downloads.wordpress.org, and plugin names (with your WPScan API token) to wpscan.com; the read-only probe, which sends paced GET/HEAD requests to the URL you give it; and one DNS lookup of that URL's host to guess local, staging or live.
-- Never committed: `plugin-guard-reports/`, `.env*`, Plugin Guard `history/`, `issues/`, `sandboxes/`, the OCR language file.
+- Never committed: `plugin-guard-reports/`, `.env*`, wp-issue-diagnoser `history/`, `issues/`, `sandboxes/`, the OCR language file.
 - Reporter screenshots and the issue folder may contain customer data: they stay in `issues/<id>/` (mode 0700, outside the web root). `issue cleanup` removes old issue folders and leftover sandboxes after asking, and refuses anything that is not a plain issue or sandbox folder directly inside those two folders.

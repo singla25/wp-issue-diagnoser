@@ -3,7 +3,7 @@
 
 const SLUG = /^[a-z0-9][a-z0-9._-]{0,80}$/i;
 const clip = (s, n = 160) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim().slice(0, n);
-const INTRO = 'Plugin Guard itself changed nothing on your website.';
+const INTRO = 'wp-issue-diagnoser itself changed nothing on your website.';
 
 function undoOption(o) {
     switch (o.type) {
@@ -20,7 +20,7 @@ function undoOption(o) {
 
 // plan: { hypothesis, options:[...] } from issue/resolve.js, or null
 function rollbackFor(plan) {
-    const options = ((plan && plan.options) || []).map(o => ({ title: clip(o.title, 120), type: o.type, undo: undoOption(o) || 'Nothing was applied by Plugin Guard for this option, so there is nothing to undo.' }));
+    const options = ((plan && plan.options) || []).map(o => ({ title: clip(o.title, 120), type: o.type, undo: undoOption(o) || 'Nothing was applied by wp-issue-diagnoser for this option, so there is nothing to undo.' }));
     return { intro: INTRO, options };
 }
 

@@ -65,7 +65,7 @@ async function wiz(answers, flags, extra = {}) {
 (async () => {
     group('the bin entry, the shebang and what a package contains');
     const pkg = JSON.parse(fs.readFileSync(path.join(PG, 'package.json'), 'utf8'));
-    ok(pkg.bin && pkg.bin['plugin-guard'] === 'scripts/plugin-guard.js', 'package.json: bin.plugin-guard -> scripts/plugin-guard.js');
+    ok(pkg.bin && pkg.bin['wp-issue-diagnoser'] === 'scripts/plugin-guard.js' && !pkg.bin['plugin-guard'], 'package.json: bin.wp-issue-diagnoser -> scripts/plugin-guard.js (and no bin.plugin-guard)');
     ok(fs.readFileSync(BIN, 'utf8').split('\n')[0] === '#!/usr/bin/env node', 'the first line is a node shebang');
     ok((fs.statSync(BIN).mode & 0o111) === 0o111, 'the file is executable');
     ok(Array.isArray(pkg.files) && !pkg.files.some(f => /selftest|fixtures|issues|projects|sandboxes|state/.test(f)), 'files: lists no tests, fixtures, issues, projects, sandboxes or state');
@@ -81,7 +81,7 @@ async function wiz(answers, flags, extra = {}) {
         const ex = path.join(tmp, 'unpacked'); fs.mkdirSync(ex);
         const tar = spawnSync('tar', ['-xzf', path.join(tmp, packed.filename), '-C', ex], { encoding: 'utf8' });
         const run = spawnSync(process.execPath, [path.join(ex, 'package', 'scripts', 'plugin-guard.js'), '--help'], { encoding: 'utf8', cwd: ex });
-        ok(tar.status === 0 && run.status === 0 && /plugin-guard/.test(run.stdout), 'the unpacked tarball runs --help on its own');
+        ok(tar.status === 0 && run.status === 0 && /wp-issue-diagnoser/.test(run.stdout), 'the unpacked tarball runs --help on its own');
     }
 
     group('prompt order, and a bad folder is asked for again');

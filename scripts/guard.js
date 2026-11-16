@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Plugin Guard: read-only WordPress plugin / theme / site security checks.
+// wp-issue-diagnoser: read-only WordPress plugin / theme / site security checks.
 //
 //   guard.js init <project> --url https://site/ [--path <local WordPress folder>] [--schedule none|daily|weekly|monthly]
 //                           [--allow-wordpress-org] [--allow-vuln-db] [--force]
@@ -83,7 +83,7 @@ function writeFindings(result, dir) {
 function summary(result, dir, built, retest) {
     const open = result.findings.filter(isOpen);
     const c = s => open.filter(f => f.severity === s).length;
-    console.log(`\nPlugin Guard ${retest ? 'retest' : 'scan'} of "${result.name}" (${result.mode}): ${open.length} open finding(s)  Critical ${c('P0')} · High ${c('P1')} · Medium ${c('P2')} · Low ${c('P3')}`);
+    console.log(`\nwp-issue-diagnoser ${retest ? 'retest' : 'scan'} of "${result.name}" (${result.mode}): ${open.length} open finding(s)  Critical ${c('P0')} · High ${c('P1')} · Medium ${c('P2')} · Low ${c('P3')}`);
     const notRun = result.checks.filter(x => x.status !== 'done');
     if (notRun.length) console.log(`${notRun.length} check(s) did not run:\n${notRun.map(x => `  - ${x.label}: ${x.reason}`).join('\n')}`);
     for (const n of result.notes) console.log(`Note: ${n}`);

@@ -72,7 +72,7 @@ const opts = (f, type) => f.resolution.flatMap(r => r.options).filter(o => !type
     const bp = opts(B.findings, 'patch');
     ok(bp.length >= 1 && bp.every(p => p.file === 'wp-content/themes/acme/functions.php'), `patch(es) only for the custom theme's functions.php (${bp.map(p => p.generator).join(', ')})`);
     const lib = bp.find(p => p.generator === 'core-library-replacement'), dep = bp.find(p => p.generator === 'missing-dependency');
-    ok(lib && lib.verified && /\/\/ \[Plugin Guard suggestion\] \s*wp_deregister_script/.test(lib.diff.replace(/^\+/gm, '')) && lib.verification.find(v => v.id === 'php-l').status === 'PASSED', 'the core-library patch comments out the deregister/register of "jquery" and passes php -l');
+    ok(lib && lib.verified && /\/\/ \[wp-issue-diagnoser suggestion\] \s*wp_deregister_script/.test(lib.diff.replace(/^\+/gm, '')) && lib.verification.find(v => v.id === 'php-l').status === 'PASSED', 'the core-library patch comments out the deregister/register of "jquery" and passes php -l');
     ok(dep && dep.verified && /-.*acme-missing-lib/.test(dep.diff) && !/\+.*acme-missing-lib/.test(dep.diff), 'the dependency patch removes only the unregistered handle "acme-missing-lib" and passes php -l + scanner re-run');
     ok(B.after() === B.before, 'original tree unchanged (hash)');
     console.log('      (the live-probe half of case 3, "found by the live probe", needs a running site: covered by selftest-issue-probe.js)');

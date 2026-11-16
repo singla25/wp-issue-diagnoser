@@ -163,7 +163,7 @@ function needDaemon(run) {
     if (r.error) return 'Docker is not installed (no `docker` command).';
     if (r.status !== 0) {
         const denied = /permission denied/i.test(r.stderr);
-        return `Docker is installed but its daemon cannot be used by this user${denied ? ' (permission denied on the Docker socket)' : ''}: ${String(r.stderr).trim().split('\n')[0]}\n${denied ? 'Either add this user to the "docker" group (that gives the user root-equivalent access to this machine, so it is your decision) or use rootless Docker. Plugin Guard changes nothing on its own.' : ''}`;
+        return `Docker is installed but its daemon cannot be used by this user${denied ? ' (permission denied on the Docker socket)' : ''}: ${String(r.stderr).trim().split('\n')[0]}\n${denied ? 'Either add this user to the "docker" group (that gives the user root-equivalent access to this machine, so it is your decision) or use rootless Docker. wp-issue-diagnoser changes nothing on its own.' : ''}`;
     }
     return null;
 }

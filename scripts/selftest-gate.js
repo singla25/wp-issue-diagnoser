@@ -220,7 +220,7 @@ group('rollback text: only from data the result has');
         { type: 'settings', title: 'Setting', setting: { label: 'Delay JavaScript', admin_path: 'WP Rocket > File Optimization', stored_key: 'delay_js' } }, { type: 'human', title: 'Look at it' }, { type: 'plugin', title: 'bad slug', plugin: '../../etc; rm -rf' }
     ] };
     const r = rollback.rollbackFor(plan);
-    ok(r.intro === 'Plugin Guard itself changed nothing on your website.', 'the first line says Plugin Guard changed nothing');
+    ok(r.intro === 'wp-issue-diagnoser itself changed nothing on your website.', 'the first line says wp-issue-diagnoser changed nothing');
     ok(/restore wp-content\/plugins\/a\/a\.php from your backup/.test(r.options[0].undo), 'patch: restore the file from the backup');
     ok(/delete wp-content\/mu-plugins\/pg-shim\.php/.test(r.options[1].undo), 'shim: delete the file');
     ok(/re-activate woo-thing/.test(r.options[2].undo) && /wp plugin activate woo-thing/.test(r.options[2].undo), 'plugin: re-activate it');

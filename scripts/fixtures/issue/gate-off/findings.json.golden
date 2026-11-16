@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generator": "plugin-guard issue mode",
+  "generator": "wp-issue-diagnoser issue mode",
   "generated_at": "<TIME>",
   "issue": {
     "id": "<ISSUE>",
@@ -204,7 +204,7 @@
           "lost_features": [],
           "verification": [],
           "not_verified": [
-            "Which plugin to deactivate is a decision for the site owner; Plugin Guard does not make it."
+            "Which plugin to deactivate is a decision for the site owner; wp-issue-diagnoser does not make it."
           ]
         },
         {
@@ -216,7 +216,7 @@
           "lost_features": [],
           "verification": [],
           "not_verified": [
-            "Which plugin to deactivate is a decision for the site owner; Plugin Guard does not make it."
+            "Which plugin to deactivate is a decision for the site owner; wp-issue-diagnoser does not make it."
           ]
         }
       ]
@@ -342,7 +342,7 @@
     "Patch generators exist for four patterns only: removal at the wrong hook priority, a missing function_exists / class_exists guard, a custom copy replacing a WordPress core script or style, and a dependency on a handle nobody registers. Everything else is \"needs a human\".",
     "Only custom code (the customPaths allowlist) is ever named in a code task. Core, vendor, third-party and unknown-owner code is not.",
     "Settings suggestions come from the knowledge base in words; exact option names are not stored, so they are guidance and were not applied in the sandbox.",
-    "Plugin Guard never edits the site. Patches and shims are files in this report for a person (or a separate Claude Code session) to review and apply on a copy."
+    "wp-issue-diagnoser never edits the site. Patches and shims are files in this report for a person (or a separate Claude Code session) to review and apply on a copy."
   ],
   "counts": {
     "REPRODUCIBLE": 0,

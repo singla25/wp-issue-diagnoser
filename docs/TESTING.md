@@ -26,13 +26,13 @@ Logs are in `~/pg-runs/<label>/`: `started.txt`, `tree.sha`, `progress.txt` (Doc
 
 A run is **valid** only if `test.exit` says `test exit 0` AND the Docker state after the run equals the baseline. A computer restart during a run makes it invalid; start a new run instead of repairing the old one.
 
-## The baseline (first valid full run)
+## The baseline (latest valid full run)
 
-Run `p-c2b`, 2026-11-16, on HEAD `8909198` (snapshot tree `b914f9d`), valid: `test exit 0` and Docker back at 5/0/11 (5 containers, 0 labelled, 11 volumes, before and after). The machine was not restarted during the run (up since 10:01).
+Run `p-n1`, 2026-11-16, on the working tree of the rename step (HEAD `b4470a2` plus the Stage 1 rename; snapshot tree `29147eb`), valid: `test exit 0` and Docker back at 5/0/11 (5 containers, 0 labelled, 11 volumes, before and after). The machine was not restarted during the run (up since 10:01).
 
-- Suites: 75 (65 offline + 10 Docker). Duration: 38 min 43 s (16:17:58 to 16:56:41).
-- Checks: **4468 PASS, 0 FAIL, 7 SKIP**.
-- The earlier run `p-c2` was not valid (9 offline suites failed on old command wording); that was fixed in C4 and C5.
+- Suites: 75 (65 offline + 10 Docker). Duration: 38 min 12 s (18:13:17 to 18:51:29).
+- Checks: **4478 PASS, 0 FAIL, 7 SKIP**.
+- History: the first valid run was `p-c2b` (4468 PASS, 0 FAIL, 7 SKIP, 38 min 43 s, on HEAD `8909198`). The run before it, `p-c2`, was not valid. The 10 more checks now come from the docs checks added since (README commands and diagrams, the docs map, the old-name check).
 
 Every SKIP, with its reason (all are loud skips that name their reason):
 

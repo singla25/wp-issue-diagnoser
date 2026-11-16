@@ -4,7 +4,7 @@
 
 **Find the likely cause of a WordPress problem. It reads a copy of your site and changes nothing.**
 
-The command is called `plugin-guard`.
+The command is called `wp-issue-diagnoser`. From the repository folder you run it with `npm run diagnose`. `npm run guard` is the advanced entry: the older scan commands, the issue subcommands and the doctor (see the [technical guide](./docs/GUIDE.md)).
 
 ![Node.js](https://img.shields.io/badge/node-%3E%3D20.12-brightgreen) ![License: MIT](https://img.shields.io/badge/license-MIT-blue)
 
@@ -175,7 +175,7 @@ npm run guard -- doctor     # check what is installed
 2. **Run it on your own site.** Give it the problem and the folder that contains `wp-content` (or `wp-content` itself):
 
    ```bash
-   npm run plugin-guard -- --description "White screen after activating Plugin B" --root /path/to/wordpress --yes
+   npm run diagnose -- --description "White screen after activating Plugin B" --root /path/to/wordpress --yes
    ```
 
    It prints the report as in the example above and saves it in a report folder (by default the `issues/` folder of this package, or the place given with `--out`) and prints where. Open the `issue.html` file it names in a browser. The plan is `FIX-PLAN.md` next to it.
@@ -183,16 +183,16 @@ npm run guard -- doctor     # check what is installed
 3. **Or let it ask you.** With no options it asks one question at a time (the problem, screenshots, the address, the folder from a numbered list):
 
    ```bash
-   npm run plugin-guard        # not tested here: it needs a terminal to answer in
+   npm run diagnose        # not tested here: it needs a terminal to answer in
    ```
 
 4. **Try the problem in a throwaway copy** (needs Docker and `npm run setup-sandbox`; the commands in this step are not tested here by hand, the Docker test suites cover the database copy): add a database export of the site and a test copy is built for you when the site is not marked live:
 
    ```bash
-   npm run plugin-guard -- --description "Checkout is blank" --root /path/to/wordpress --db-dump /path/to/site.sql   # not tested here by hand
+   npm run diagnose -- --description "Checkout is blank" --root /path/to/wordpress --db-dump /path/to/site.sql   # not tested here by hand
    ```
 
-All options of `plugin-guard`:
+All options of `wp-issue-diagnoser`:
 
 | Option | What it is |
 |---|---|
@@ -211,7 +211,7 @@ All options of `plugin-guard`:
 | `--out <folder>` | Where the reports go. |
 | `--yes` | Never ask; a missing required value is an error. |
 
-`npm exec -- plugin-guard --help` prints the same list. The technical guide covers the older scan commands and issue mode in detail.
+`npm exec -- wp-issue-diagnoser --help` prints the same list. The technical guide covers the older scan commands and issue mode in detail.
 
 ## Troubleshooting
 
@@ -230,7 +230,7 @@ Start Docker, or add your user to the `docker` group (or use rootless Docker), a
 <details>
 <summary>The Docker images are missing</summary>
 
-`The pinned sandbox image(s) ... are not present locally. Plugin Guard never pulls on its own: run  npm run setup-sandbox`
+`The pinned sandbox image(s) ... are not present locally. wp-issue-diagnoser never pulls on its own: run  npm run setup-sandbox`
 
 Run `npm run setup-sandbox` once (it needs the Docker daemon and downloads the images by their digest; not tested here by hand).
 
@@ -272,7 +272,7 @@ A test copy uses one PHP version. Images are pinned for 8.2, 8.3 and 8.4. If the
 
 The checks are plain scripts, run with `npm test` (the offline suites, then the Docker suites), or one at a time with `npm run selftest:docs` and so on. The details, the full-run script and every skipped check are in [docs/TESTING.md](./docs/TESTING.md).
 
-First full run (valid): 75 suites, 4468 PASS, 0 FAIL, 7 SKIP, on one machine, on 2026-11-16. The skips are listed with their reasons in the testing document; they include PHP 7.4, 8.0 and 8.1 (no pinned image) and the git checks that cannot run in a snapshot.
+Latest full run (valid): 75 suites, 4478 PASS, 0 FAIL, 7 SKIP, on one machine, on 2026-11-16. The skips are listed with their reasons in the testing document; they include PHP 7.4, 8.0 and 8.1 (no pinned image) and the git checks that cannot run in a snapshot.
 
 ## Project structure
 

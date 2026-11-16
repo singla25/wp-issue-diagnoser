@@ -195,7 +195,7 @@
       "missing": "A listing, not a finding: no code decides that the theme and a plugin do the same job. Classic duplicate-feature considers plugins and mu-plugins only.",
       "evaluator": null,
       "breaks_site": "depends",
-      "no_evaluator_reason": "Plugin Guard only lists who provides a feature; no check decides that the theme repeats a plugin"
+      "no_evaluator_reason": "wp-issue-diagnoser only lists who provides a feature; no check decides that the theme repeats a plugin"
     },
     {
       "id": "cp-18",
@@ -373,7 +373,7 @@
       "coverage": "PARTIAL",
       "reached_in": "Both",
       "where": "Classic: checks/serversettings.js cfg-http-url; checks/database.js opt-http-siteurl (needs WP-CLI). Issue: issue/classic-adapter.js takes cfg-http-url for the symptom \"redirect\" (test in ...",
-      "missing": "Only the http scheme; no comparison between the constants, the database options and the URL being tested. Wizard (plugin-guard, step 8): wp-config.php is not copied as is; it is READ from the original (read-only) and a redacted copy (WP_HOME, WP_SITEURL, WP_DEBUG*, … only) is written into the issue's site-copy/, so this check works on the copy; with no wp-config.php the report timeline says \"wp-config was not read\" and this check does not run.",
+      "missing": "Only the http scheme; no comparison between the constants, the database options and the URL being tested. Wizard (wp-issue-diagnoser, step 8): wp-config.php is not copied as is; it is READ from the original (read-only) and a redacted copy (WP_HOME, WP_SITEURL, WP_DEBUG*, … only) is written into the issue's site-copy/, so this check works on the copy; with no wp-config.php the report timeline says \"wp-config was not read\" and this check does not run.",
       "evaluator": "home-siteurl",
       "breaks_site": "no"
     },

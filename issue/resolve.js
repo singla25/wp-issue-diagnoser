@@ -57,7 +57,7 @@ function build(id, validation, { root, policy, dir }) {
         for (const sup of h.supports.filter(x => /^graph-relevant/.test(x.kind))) {
             for (const s of shim.generateOrder(edgeById.get(sup.ref), { workDir: path.join(dir, 'work') })) {
                 if (s.skipped) { options.push({ type: 'human', who: 'needs-a-human', title: 'Hook order', detail: `no shim: ${s.skipped}`, verification: [] }); continue; }
-                options.push({ type: 'shim', who: 'you-can-do-this', title: `${s.summary} (candidate; test to choose)`, detail: `TEST TO CHOOSE: this is one of TWO candidate orders and neither is the answer yet. ${s.why}`, file: s.file, php: s.php, candidate: s.candidate, test_to_choose: true, verification: s.validation, verified: s.ok, not_verified: ['TEST TO CHOOSE: one of two candidate orders. Plugin Guard cannot tell from the code which one is right; only a run in the sandbox (--sandbox) can say which one, if either, makes the symptom disappear. Do not apply either before testing both.'] });
+                options.push({ type: 'shim', who: 'you-can-do-this', title: `${s.summary} (candidate; test to choose)`, detail: `TEST TO CHOOSE: this is one of TWO candidate orders and neither is the answer yet. ${s.why}`, file: s.file, php: s.php, candidate: s.candidate, test_to_choose: true, verification: s.validation, verified: s.ok, not_verified: ['TEST TO CHOOSE: one of two candidate orders. wp-issue-diagnoser cannot tell from the code which one is right; only a run in the sandbox (--sandbox) can say which one, if either, makes the symptom disappear. Do not apply either before testing both.'] });
             }
         }
         // ---- 3. settings from the knowledge base (guidance, not a verified option name) ----
@@ -80,9 +80,9 @@ function build(id, validation, { root, policy, dir }) {
             const c = comps.find(x => x.slug === slug || x.ref === slug);
             const lost = (index.providers || []).filter(p => (p.rows || []).some(r => r.ref === slug || r.component === slug || r.name === c.name)).map(p => p.label);
             options.push({ type: 'plugin', who: 'needs-a-human', title: `Deactivate, replace or update ${c.name || slug}`, detail: `Switching off ${c.name || slug}${c.version ? ` ${c.version}` : ''} would stop: ${lost.length ? lost.join(', ') : 'whatever it provides (no feature in the table maps to it; read its description: ' + String(c.description || 'none').slice(0, 160) + ')'}. ${h.type === 'duplicate-declaration' ? 'Of the two plugins that declare the same name, deactivate the one whose features you need least, or ask its author to prefix the name.' : 'Check for an updated version first.'}`, plugin: slug, lost_features: lost, verification: [],
-                not_verified: ['Which plugin to deactivate is a decision for the site owner; Plugin Guard does not make it.'] });
+                not_verified: ['Which plugin to deactivate is a decision for the site owner; wp-issue-diagnoser does not make it.'] });
         }
-        if (!options.length) options.push({ type: 'human', who: 'needs-a-human', title: 'No safe automatic option', detail: 'The evidence names no custom code Plugin Guard may change and no known setting or shim for this pattern.', verification: [] });
+        if (!options.length) options.push({ type: 'human', who: 'needs-a-human', title: 'No safe automatic option', detail: 'The evidence names no custom code wp-issue-diagnoser may change and no known setting or shim for this pattern.', verification: [] });
         plans.push({ hypothesis: h.id, title: h.title, status: h.status, options });
     }
     return plans;

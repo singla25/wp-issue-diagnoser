@@ -1,4 +1,4 @@
-# Third-party components (Plugin Guard, issue mode)
+# Third-party components (wp-issue-diagnoser, issue mode)
 
 Everything below runs locally and offline (apart from the Docker sandbox containers, which are described below). Versions are exact and come from `package-lock.json` (run `npm ci` to install them).
 No component calls a network service at run time. Three explicit commands use the network, and only when you run them:

@@ -110,7 +110,7 @@ G['core-library-replacement'] = (h, ev, src) => {
     const semi = src.indexOf(';', call.close); if (semi < 0) return { skipped: 'the statement has no ";"' };
     const a = lineOfOffset(src, call.start), b = lineOfOffset(src, semi), L = src.split('\n');
     for (let i = a - 1; i < b; i++) if (L[i].slice(0, call.start - offsetOfLine(src, a)).trim() !== '' && i === a - 1) return { skipped: 'other code shares the line with the statement' };
-    for (let i = a - 1; i < b; i++) L[i] = L[i].replace(/^(\s*)/, '$1// [Plugin Guard suggestion] ');
+    for (let i = a - 1; i < b; i++) L[i] = L[i].replace(/^(\s*)/, '$1// [wp-issue-diagnoser suggestion] ');
     return { new_text: L.join('\n'), summary: `Stop replacing WordPress's own "${h.handle}" ${h.handle_type} (lines ${a}-${b})`, why: `This code removes WordPress's bundled "${h.handle}"${h.core_version ? ` (version ${h.core_version})` : ''} and loads its own copy${h.replacement && h.replacement.ver ? ` (${h.replacement.ver})` : ''}. Other components then get a different version than they were written for. Check that nothing in this theme/plugin needs the old version before applying.`,
         after: facts => !facts.assets.some(x => x.handle === h.handle && x.line >= a && x.line <= b) };
 };

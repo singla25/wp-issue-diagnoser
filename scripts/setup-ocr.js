@@ -31,7 +31,7 @@ function get(url, hops = 0) {
 
 (async () => {
     const wantPin = process.argv.includes('--pin');
-    console.log(`Downloading ${URL_}\n(this is the only download Plugin Guard makes; run it once)`);
+    console.log(`Downloading ${URL_}\n(this is the only download wp-issue-diagnoser makes; run it once)`);
     const { body, etag } = await get(URL_);
     const sum = crypto.createHash('sha256').update(body).digest('hex');
     const pinned = fs.existsSync(ocr.PIN_FILE) ? (ocr.pin().files['eng.traineddata'] || {}).sha256 : null;

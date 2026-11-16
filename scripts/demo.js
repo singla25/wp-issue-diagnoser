@@ -33,7 +33,7 @@ function finish() { if (KEEP) say(`\nKept: ${tmp}\n  open ${path.join(process.en
     const c = SANDBOX ? trees.hookCollision(root) : trees.duplicateFunction(root);
     const cfg = path.join(tmp, 'config.json'); fs.writeFileSync(cfg, JSON.stringify(c.config));
     const before = hashTree(root);
-    say(`Plugin Guard demo: ${SANDBOX ? 'hook collision, with the sandbox' : 'duplicate function, offline'}\nA fake WordPress site was built in a temporary folder. The reported problem:\n  "${c.description}"`);
+    say(`wp-issue-diagnoser demo: ${SANDBOX ? 'hook collision, with the sandbox' : 'duplicate function, offline'}\nA fake WordPress site was built in a temporary folder. The reported problem:\n  "${c.description}"`);
     step(1, 'Create the issue');
     const nw = guard('issue', 'new', '--title', SANDBOX ? 'Post text disappears' : 'White screen after activating Plugin B', '--description', c.description, '--symptom', c.symptom, ...(c.oracle ? ['--oracle', c.oracle] : []), '--pages', c.pages || '/', '--root', root, '--env', 'local', '--url', 'http://localhost/', '--no-prompt');
     const id = /(iss-\d{8}-\d{6}-[0-9a-f]{6})/.exec(nw.stdout)?.[1]; if (!id) { say(nw.stdout + nw.stderr); code = 1; return finish(); }
@@ -51,7 +51,7 @@ function finish() { if (KEEP) say(`\nKept: ${tmp}\n  open ${path.join(process.en
     const diffs = fs.readdirSync(path.join(dir, 'result', 'patches')).filter(n => n.endsWith('.diff'));
     if (diffs.length) say(`\n  patch (result/patches/${diffs[0]}):\n` + fs.readFileSync(path.join(dir, 'result', 'patches', diffs[0]), 'utf8').split('\n').map(l => '    ' + l).join('\n'));
     say(`  files:    ${['issue.html', 'ISSUE-REPORT.md', 'tasks.md', 'findings.json'].map(n => rel(path.join(dir, 'result', n))).join(', ')}`);
-    say(`  tasks.md: ${(fs.readFileSync(path.join(dir, 'result', 'tasks.md'), 'utf8').match(/^### ☐/gm) || []).length} task(s) for a separate Claude Code session (Plugin Guard never changes your site)`);
+    say(`  tasks.md: ${(fs.readFileSync(path.join(dir, 'result', 'tasks.md'), 'utf8').match(/^### ☐/gm) || []).length} task(s) for a separate Claude Code session (wp-issue-diagnoser never changes your site)`);
 
     if (SANDBOX) {
         step(4, 'Apply the verified shim to a COPY and retest in a fresh sandbox');

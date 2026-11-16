@@ -6,7 +6,7 @@
 // Nothing is changed on the site. Exit codes: 0 done · 1 problem found that needs attention (not used) · 2 missing or bad answer · 3 a site that may not be visited.
 
 const { parse } = require('./guard');
-const HELP = `plugin-guard: find the likely cause of a WordPress problem. Reads a copy of your site; changes nothing.
+const HELP = `wp-issue-diagnoser: find the likely cause of a WordPress problem. Reads a copy of your site; changes nothing.
 
 Run it with no options to be asked: what is wrong, screenshots, the website address (optional), and which WordPress folder (a list of the ones found on this computer is shown).
 The site's own log is found by itself, and with an address it only asks you to confirm one guess: local, staging or live.
@@ -35,7 +35,7 @@ async function main() {
     return require('../lib/wizard').run(o);
 }
 if (require.main === module) main().then(c => process.exit(c || 0)).catch(e => {
-    console.error(`\nplugin-guard: ${e.message}`);
+    console.error(`\nwp-issue-diagnoser: ${e.message}`);
     process.exit(e.exitCode || 2);
 });
 module.exports = { main, HELP };

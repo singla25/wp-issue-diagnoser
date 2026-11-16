@@ -3,7 +3,7 @@
   "version": "0.3.0",
   "private": true,
   "bin": {
-    "plugin-guard": "scripts/plugin-guard.js"
+    "wp-issue-diagnoser": "scripts/plugin-guard.js"
   },
   "files": [
     "scripts/plugin-guard.js",
@@ -29,7 +29,7 @@
   },
   "scripts": {
     "guard": "node scripts/guard.js",
-    "plugin-guard": "node scripts/plugin-guard.js",
+    "diagnose": "node scripts/plugin-guard.js",
     "selftest": "node scripts/selftest.js",
     "selftest:agents": "node scripts/selftest-agents.js",
     "selftest:html": "node scripts/selftest-html.js",
