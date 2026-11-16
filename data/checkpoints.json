@@ -314,8 +314,8 @@
       "section": "Core and PHP",
       "coverage": "NOT DETECTED",
       "reached_in": "Neither",
-      "where": "The sandbox uses one pinned image (data/sandbox-images.json, WordPress on PHP 8.3).",
-      "missing": "No rerun on another PHP version; issue/sandbox-config.js has no PHP version setting.",
+      "where": "A sandbox build uses one PHP version, picked once from the stated or detected version (issue/version-match.js select, issue/sandbox.js:263-265); the default is PHP 8.3 (data/sandbox-images.json:34).",
+      "missing": "No rerun of the same reproduction on another PHP version: nothing loops over the matrix, and the bisect varies plugins, not PHP. WordPress images are pinned for PHP 8.2, 8.3 and 8.4 only; 7.4, 8.0 and 8.1 are not pinned.",
       "evaluator": null,
       "breaks_site": "depends",
       "no_evaluator_reason": "the site is tested on one PHP version only"
