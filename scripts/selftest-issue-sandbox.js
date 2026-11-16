@@ -372,8 +372,8 @@ echo json_encode(array('mail' => $mail, 'http_is_error' => $http instanceof WP_E
     ok(/spawnSync/.test(code('issue/sandbox-wpcli.js')) && /spawnSync/.test(code('issue/sandbox.js')) && !/privileged\s*[:=]\s*true/.test(files.map(code).join('\n')), 'Docker is driven only with spawnSync and argument arrays; nothing sets privileged: true');
     ok(/docker\.sock/.test(src('issue/sandbox-policy.js')) && !files.filter(f => f !== 'issue/sandbox-policy.js' && f !== 'issue/sandbox-wpcli.js').some(f => /docker\.sock/.test(code(f))), 'docker.sock is mentioned only where it is REFUSED (the validator and the environment check)');
     ok(!/fetch\(|https?\.(get|request)|XMLHttpRequest/.test(files.map(code).join('\n')), 'the sandbox modules make no network request of their own');
-    const claude = fs.readFileSync(path.join(__dirname, '..', '..', '..', 'CLAUDE.md'), 'utf8');
-    ok(/sandbox exception/.test(claude) && /src\/plugin-guard\/sandboxes\/<issue-id>\//.test(claude) && /pgsb/.test(claude) && /original site is never written/.test(claude) && !/Issue mode has no sandbox yet/.test(claude), 'CLAUDE.md states the sandbox exception exactly (where it may write, what runs where, that the original is never written)');
+    const claude = fs.readFileSync(path.join(__dirname, '..', 'CLAUDE.md'), 'utf8');
+    ok(/sandbox exception/.test(claude) && /sandboxes\/<issue-id>\//.test(claude) && /pgsb/.test(claude) && /original site is never written/.test(claude) && !/Issue mode has no sandbox yet/.test(claude), 'CLAUDE.md states the sandbox exception exactly (where it may write, what runs where, that the original is never written)');
 
     console.log(failures ? `\n${failures} check(s) FAILED` : '\nAll checks passed');
     fs.rmSync(tmp, { recursive: true, force: true });

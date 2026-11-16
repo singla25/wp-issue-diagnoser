@@ -107,7 +107,7 @@ Types for step 7, in precedence order: compromise > environment/server > plugin-
 | C1b | `.gitignore` patterns and the nine hygiene `.gitignore` checks run here (`bb5df4e`, decision 71) | done |
 | C1c | Docs fixes after the reviews: literal flags, archive header, staging lists, decisions 70-72 | this commit |
 | C3a | Checkpoints: `scripts/gen-checkpoints.js` reads `../docs/COVERAGE.md` | done: source path fixed |
-| C3b | issue-sandbox: the test reads `../CLAUDE.md`; its regex becomes `sandboxes/<issue-id>/` | assertion text change: the owner sees old and new first |
+| C3b | issue-sandbox: the test reads `../CLAUDE.md`; its regex becomes `sandboxes/<issue-id>/` | done: owner approved the path and regex change 2026-11-16 |
 | C3c | The "validate.js unmodified" git checks in case-file and 6d2 point to this repository root | assertion text change: the owner sees old and new first |
 | C2 | npm test (offline suites, then the Docker suites) and `scripts/run-full.sh`; `docs/TESTING.md`; the first full run must be GREEN and becomes the baseline | `isolated-copy` is left out of npm test until C7 (decision 69) |
 | C4 | Command names in messages (group 1 of the leftovers list) | pinned assertions change: old and new text first |
