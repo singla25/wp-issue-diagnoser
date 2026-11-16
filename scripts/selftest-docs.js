@@ -167,5 +167,42 @@ group('6. the three plain sections are at the top of README.md');
     ok(JSON.stringify(heads.slice(0, 3)) === JSON.stringify(['What this does', 'What it never does', 'How to read the report']), `the first three headings (${heads.slice(0, 3).join(' / ')})`);
 }
 
+group('7. README.md: the commands in its code blocks exist, the Mermaid diagrams are well formed, no image files');
+// problems found in one README text: a command line that names something this package does not have, a broken diagram, a relative image
+const BIN = Object.keys(pkg.bin || {});
+function readmeProblems(text) {
+    const bad = []; let diagrams = 0;
+    for (const m of text.matchAll(/```([a-z]*)[^\n]*\n([\s\S]*?)```/g)) {
+        const lang = m[1], body = m[2];
+        if (lang === 'mermaid') {
+            diagrams++;
+            const first = body.split('\n').find(l => l.trim()) || '';
+            if (!/^\s*(flowchart|graph)\s+(LR|RL|TD|TB|BT)\s*$/.test(first)) bad.push(`mermaid: first line is not a flowchart header (${first.trim().slice(0, 40)})`);
+            const open = (body.match(/[\[{]/g) || []).length, close = (body.match(/[\]}]/g) || []).length;
+            if (open !== close || (body.match(/"/g) || []).length % 2) bad.push('mermaid: unbalanced brackets or quotes');
+            continue;
+        }
+        if (!['bash', 'sh', ''].includes(lang)) continue;
+        for (const raw of body.split('\n')) {
+            const l = raw.replace(/#.*$/, '').trim();
+            let c;
+            if ((c = /^npm run(?: -s)?\s+([A-Za-z0-9:_-]+)/.exec(l))) { if (!scripts[c[1]]) bad.push(`npm run ${c[1]}`); }
+            else if ((c = /^npm\s+([a-z][a-z-]*)/.exec(l))) { if (!(c[1] in NPM_COMMANDS) && !scripts[c[1]]) bad.push(`npm ${c[1]}`); if (c[1] === 'exec') { const b = /^npm exec -- ([A-Za-z0-9-]+)/.exec(l); if (!b || !BIN.includes(b[1])) bad.push(`npm exec: ${l.slice(0, 40)}`); } }
+            else if ((c = /^node\s+(\S+)/.exec(l))) { if (!/^(\.\/)?scripts\//.test(c[1]) || !fs.existsSync(path.join(PG, c[1].replace(/^\.\//, '')))) bad.push(`node ${c[1]}`); }
+            else if ((c = /^([A-Za-z][A-Za-z0-9-]*)\b/.exec(l)) && c[1] === 'plugin-guard' && !BIN.includes('plugin-guard')) bad.push('plugin-guard is not a bin entry');
+            else if (/^git clone\s+https?:/.test(l)) bad.push('a public clone address (the repository is private)');
+        }
+    }
+    for (const m of text.matchAll(/!\[[^\]]*\]\(([^)\s]+)\)/g)) if (!/^https?:/.test(m[1])) bad.push(`a relative image: ${m[1]}`);
+    return { bad, diagrams };
+}
+{
+    const r = readmeProblems(doc['README.md']);
+    ok(r.bad.length === 0, `every command line in the README code blocks names a script, a bin entry or a file of this package${list(r.bad)}`);
+    ok(r.diagrams >= 2, `the README has at least two well-formed Mermaid diagrams (${r.diagrams})`);
+    const p = readmeProblems(['```bash', 'npm run no-such-script', 'npm exec -- no-such-bin', 'node scripts/no-such.js', 'git clone https://example.org/x.git', '```', '```mermaid', 'sequenceDiagram', 'A[x', '```', '![a](./pic.png)'].join('\n'));
+    ok(p.bad.length === 7 && p.diagrams === 1, `the README check catches a planted bad README (${p.bad.length} problems)`);
+}
+
 console.log(failures ? `\n${failures} check(s) FAILED` : '\nAll docs checks passed');
 process.exit(failures ? 1 : 0);

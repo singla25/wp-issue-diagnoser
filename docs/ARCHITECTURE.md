@@ -12,7 +12,7 @@ repo
 ├── probe/        the read-only, paced live probe (worker, safety, recorder, layout, sandbox actions)
 ├── data/         pinned data (sandbox images, checkpoints, knowledge files, OCR pin)
 ├── projects/     per-project settings of the classic scan (git-ignored except `.gitkeep`)
-└── docs/         this file, SAFETY.md, WORKFLOW.md (working model), HANDOFF.md (memory), COVERAGE.md (what is detected),
+└── docs/         this file, GUIDE.md (the detailed technical guide), SAFETY.md, WORKFLOW.md (working model), HANDOFF.md (memory), COVERAGE.md (what is detected),
                   REPORT-SPEC.md and TEST-COPY-SPEC.md (the approved report and test-copy designs), archive/ (old step logs)
 ```
 
