@@ -26,9 +26,23 @@ Logs are in `~/pg-runs/<label>/`: `started.txt`, `tree.sha`, `progress.txt` (Doc
 
 A run is **valid** only if `test.exit` says `test exit 0` AND the Docker state after the run equals the baseline. A computer restart during a run makes it invalid; start a new run instead of repairing the old one.
 
-## Status of the baseline
+## The baseline (first valid full run)
 
-Baseline pending. The first full run, `p-c2` (2026-11-16), was not valid: test exit 1 (the chain stopped at the first failing suite, `selftest:issue`; a survey of the offline suites one by one found nine failing, seven on old command wording, one on a golden file of `selftest:gate-output`, and one caused by wording in the docs, now fixed), Docker back at the known state. No green baseline exists yet. Do not read this file as saying the chain is green.
+Run `p-c2b`, 2026-11-16, on HEAD `8909198` (snapshot tree `b914f9d`), valid: `test exit 0` and Docker back at 5/0/11 (5 containers, 0 labelled, 11 volumes, before and after). The machine was not restarted during the run (up since 10:01).
+
+- Suites: 75 (65 offline + 10 Docker). Duration: 38 min 43 s (16:17:58 to 16:56:41).
+- Checks: **4468 PASS, 0 FAIL, 7 SKIP**.
+- The earlier run `p-c2` was not valid (9 offline suites failed on old command wording); that was fixed in C4 and C5.
+
+Every SKIP, with its reason (all are loud skips that name their reason):
+
+1. `unshare -rn is not available here: only the in-process network guard was used`: (`selftest:issue-evidence`) this machine has no user network namespace, so one extra network proof is replaced by the in-process guard.
+2. `not inside a git work tree: the validate.js unmodified check did not run` (`selftest:case-file`): the snapshot has no `.git`.
+3. `validate.js / retest.js / fatal-recheck.js unmodified: git is not available here (nothing claimed)` (`selftest:6d2`): same cause, the snapshot has no `.git` (the message says "git is not available"; the real reason is that there is no work tree).
+4. `this is not the repository ... the repository texts cannot be compared` (`selftest:hints`): the whole suite skips here (see "Not in the chain").
+5. to 7. `PHP 7.4`, `PHP 8.0` and `PHP 8.1` (`selftest:6b-docker`): no pinned image for these versions (no tag chosen, or the registry does not know the tag).
+
+The seeded-bug test (`selftest:issue-seeded`) takes its real-site settings from the optional `~/pg-runs/env.sh`, which is never stored in the repository.
 
 ## Rules
 
