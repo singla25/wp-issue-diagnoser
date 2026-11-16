@@ -19,8 +19,11 @@ console.log(`== scanning ${files.length} files`);
 rules.contentChecks(ROOT, files, ok, rules.projectNames(path.join(ROOT, 'projects')));
 
 // .gitignore (the repository's; a copy of this package on its own has none, so these checks are skipped there, loudly)
-if (!REPO) console.log('SKIP  .gitignore checks: this is a copy of src/plugin-guard on its own, the repository .gitignore is not part of it');
-else for (const [pat, why] of [['src/plugin-guard/issues/', 'issue folders (reports, screenshots, OCR text)'], ['src/plugin-guard/sandboxes/', 'sandbox copies of sites'], ['src/plugin-guard/plugin-guard-reports/', 'classic reports of a copy of this package on its own'], ['src/plugin-guard/data/ocr/*.traineddata', 'the OCR language file'], ['.env', 'environment files'], ['.env.*', 'environment files'], ['node_modules/', 'dependencies'], ['reports/*', 'run output'], ['src/plugin-guard/projects/*/history/', 'scan history']]) ok(fs.readFileSync(path.join(REPO, '.gitignore'), 'utf8').split('\n').map(l => l.trim()).includes(pat), `.gitignore covers ${pat} (${why})`);
+// the repository .gitignore: the old layout's repository root, or this folder itself when the package is the repository root
+const GI_ROOT = REPO || (fs.existsSync(path.join(ROOT, '.gitignore')) ? ROOT : null);
+const PFX = REPO ? 'src/plugin-guard/' : '';   // in the package-is-the-root layout the same patterns have no prefix
+if (!GI_ROOT) console.log('SKIP  .gitignore checks: this is a copy of src/plugin-guard on its own, the repository .gitignore is not part of it');
+else for (const [pat, why] of [[PFX + 'issues/', 'issue folders (reports, screenshots, OCR text)'], [PFX + 'sandboxes/', 'sandbox copies of sites'], [PFX + 'plugin-guard-reports/', 'classic reports of a copy of this package on its own'], [PFX + 'data/ocr/*.traineddata', 'the OCR language file'], ['.env', 'environment files'], ['.env.*', 'environment files'], ['node_modules/', 'dependencies'], ['reports/*', 'run output'], [PFX + 'projects/*/history/', 'scan history']]) ok(fs.readFileSync(path.join(GI_ROOT, '.gitignore'), 'utf8').split('\n').map(l => l.trim()).includes(pat), `.gitignore covers ${pat} (${why})`);
 // the OCR file really is not present as a tracked-looking file outside data/ocr, and no dump / archive is lying around
 rules.strayCheck(ROOT, files, ok);
 

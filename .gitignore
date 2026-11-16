@@ -11,3 +11,18 @@ plugin-guard-reports/
 # real database dumps (the test fixtures are *.sql.txt and stay tracked)
 *.sql
 *.sql.gz
+
+# patterns the source repository had (C1b)
+.env.*
+!.env.example
+reports/*
+projects/*/history/
+data/ocr/*.traineddata
+data/ocr/*.part
+playwright-report/
+test-results/
+coverage/
+dist/
+build/
+.DS_Store
+.nyc_output/
