@@ -32,11 +32,15 @@ npm run demo [-- --sandbox] [-- --keep] # the worked example end to end on a fix
 npm run checkpoints [-- --check]        # regenerate data/checkpoints.json from the COVERAGE table (--check exits 1 if stale)
 npm run verify-knowledge                # re-fetch the official pages cited by the knowledge data files
 npm run knowledge-review                # regenerate KNOWLEDGE-REVIEW.md for a person to review; a test fails if it is stale
+npm test                                # every suite: test:offline (65 suites), then test:docker (10 suites, real containers)
+npm run test:offline                    # the offline suites only
+npm run test:docker                     # the Docker suites only (they skip loudly when Docker is unusable)
+scripts/run-full.sh <label>             # the ONE full run on a snapshot; logs in ~/pg-runs/<label>/
 npm run selftest                        # the original offline suite
 npm run selftest:<name>                 # one suite; the names are in package.json
 ```
 
-The one command that runs every suite (`npm test`) and the one full-run script (`scripts/run-full.sh`) are added in step C2 of the plan in [docs/HANDOFF.md](docs/HANDOFF.md). Until then, run one named suite at a time.
+`npm test` runs every suite (`test:offline`, then `test:docker`), and `scripts/run-full.sh <label>` is the one full run (on a snapshot, with the Docker baseline check). Details: [docs/TESTING.md](docs/TESTING.md). `isolated-copy` is not in the chain until C7.
 
 The `plugin-guard` command (`npm run plugin-guard`; bin entry `plugin-guard`, `scripts/plugin-guard.js`) is an interactive plain wizard:
 
@@ -69,7 +73,7 @@ These apply to every agent in every session.
 - Do not paste secrets (tokens, passwords, keys, `.env` values) into any file, report or message.
 - Real site names, client names and nicknames never go into files; write "a real site".
 - Every diff gets a review by an Opus reviewer before it is committed.
-- One full run per commit, once `scripts/run-full.sh` exists (added in C2).
+- One full run per commit, with `scripts/run-full.sh <label>` (it must be valid: test exit 0 and Docker back at its baseline).
 - The history file is kept outside the repository. After each commit a dated entry is added to it and its secret scan is run.
 - The owner reviews each report before the next step starts. One commit per step.
 - Write short, simple English.

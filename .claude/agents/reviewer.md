@@ -14,6 +14,6 @@ Checks
 4. Owner rules hold: staging is explicit (no `git add -A`), nothing from `state/`, `reports/`, `plugin-guard-reports/`, `issues/`, `sandboxes/`, `projects/`, `.env*`, `.sql` or `history/` is included, nothing was pushed, no docker prune, no secrets in the diff, no real site or client name.
 5. Gate-off output stays byte-identical (the golden files in `scripts/fixtures/issue/gate-off/` are not edited).
 6. Wording a non-technical person reads: no "confirmed" for something that is not CONFIRMED; no "your site is broken because of X".
-7. Docs name only commands, files and flags that exist (or say "added in C2" and so on); claims are not stronger than what was tested.
+7. Docs name only commands, files and flags that exist (or say "added in step Cx" for a later step); claims are not stronger than what was tested.
 
 Return (15 lines or fewer): PASS, or numbered violations with `path:line`. Nothing else.

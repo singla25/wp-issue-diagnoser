@@ -9,7 +9,7 @@ How work on this repository is organised. The owner talks to ONE agent, the Code
 | Coder | the only agent that talks to the owner; plans, writes briefs, reads summaries and diffs, decides minor things, asks about major ones, commits (explicit staging only) | all | the session model |
 | explorer | answers ONE read-only question about the repo (15 lines or fewer) | Read, Grep, Glob, read-only Bash | haiku |
 | builder | ONE task: code plus its tests, inside the files the brief allows; runs only the named suites; never a full run, never a commit | Read, Grep, Glob, Edit, Write, Bash | sonnet; **opus** for `validate.js`, any verdict rule or any safety rule |
-| runner | the ONLY role that runs the full test chain, via `scripts/run-full.sh <label>` (added in C2); one run at a time (Docker suites cannot overlap); returns counts | Bash, Read | haiku |
+| runner | the ONLY role that runs the full test chain, via `scripts/run-full.sh <label>`; one run at a time (Docker suites cannot overlap); returns counts | Bash, Read | haiku |
 | reviewer | checks EVERY diff before it is committed (read-only) | Read, Grep, Glob, read-only Bash | **opus** |
 | docs writer | documentation files only | Read, Grep, Glob, Edit, Write | haiku (the reviewer checks safety text word for word) |
 
@@ -64,6 +64,6 @@ Minor choices the Coder decides alone and records in the Decisions log in `docs/
 1. The Coder writes the brief (and, for a major decision, asks first).
 2. The builder builds; the Coder reads the summary and the diff stat.
 3. The reviewer (opus) checks the diff.
-4. The runner does the one full run once `scripts/run-full.sh` exists; the Coder reads the counts.
+4. The runner does the one full run with `scripts/run-full.sh`; the Coder reads the counts.
 5. The Coder commits with EXPLICIT staging (never `state/`, `reports/`, `plugin-guard-reports/`, `issues/`, `sandboxes/`, the contents of `projects/` except `.gitkeep`, `.env*`, database files, `history/` or `data/ocr/`), updates `docs/HANDOFF.md` and, when the detection changed, `docs/COVERAGE.md`, adds the dated history entry and clears the session. Nothing is pushed unless the owner does it.
 6. The owner reviews the report of the step before the next step starts.
