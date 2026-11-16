@@ -8,7 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const SOURCE = path.join(__dirname, '..', '..', '..', 'docs', 'COVERAGE.md');
+const SOURCE = path.join(__dirname, '..', 'docs', 'COVERAGE.md');
 const OUT = path.join(__dirname, '..', 'data', 'checkpoints.json');
 
 // row number -> evaluator key. A row not listed here has no evaluator (see NO_EVALUATOR for the reason).

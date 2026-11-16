@@ -106,7 +106,7 @@ Types for step 7, in precedence order: compromise > environment/server > plugin-
 | C1 | Maintainer docs: `CLAUDE.md`, `docs/HANDOFF.md` and its archive, `WORKFLOW.md`, `REPORT-SPEC.md`, `TEST-COPY-SPEC.md`, `COVERAGE.md`, `ARCHITECTURE.md`, `.claude/agents/*.md` | docs only, no code; `docs/TESTING.md` is written in C2 |
 | C1b | `.gitignore` patterns and the nine hygiene `.gitignore` checks run here (`bb5df4e`, decision 71) | done |
 | C1c | Docs fixes after the reviews: literal flags, archive header, staging lists, decisions 70-72 | this commit |
-| C3a | Checkpoints: `scripts/gen-checkpoints.js` reads `../docs/COVERAGE.md` | `docs/COVERAGE.md` is shipped in C1 |
+| C3a | Checkpoints: `scripts/gen-checkpoints.js` reads `../docs/COVERAGE.md` | done: source path fixed |
 | C3b | issue-sandbox: the test reads `../CLAUDE.md`; its regex becomes `sandboxes/<issue-id>/` | assertion text change: the owner sees old and new first |
 | C3c | The "validate.js unmodified" git checks in case-file and 6d2 point to this repository root | assertion text change: the owner sees old and new first |
 | C2 | npm test (offline suites, then the Docker suites) and `scripts/run-full.sh`; `docs/TESTING.md`; the first full run must be GREEN and becomes the baseline | `isolated-copy` is left out of npm test until C7 (decision 69) |
