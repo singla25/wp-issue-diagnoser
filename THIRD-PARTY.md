@@ -1,8 +1,8 @@
 # Third-party components (Plugin Guard, issue mode)
 
-Everything below runs locally and offline (apart from the Docker sandbox containers, which are described below). Versions are exact and come from `package-lock.json` (run `npm run setup:guard` to install them).
+Everything below runs locally and offline (apart from the Docker sandbox containers, which are described below). Versions are exact and come from `package-lock.json` (run `npm ci` to install them).
 No component calls a network service at run time. Three explicit commands use the network, and only when you run them:
-`npm run guard:setup-ocr` (one OCR language file), `npm run guard:setup-sandbox` (pulls the three Docker images below, by digest; `-- --repin` only asks the registry for digests) and `npm run guard:verify-knowledge` (fetches the official pages and plugin source files the knowledge files cite).
+`npm run setup-ocr` (one OCR language file), `npm run setup-sandbox` (pulls the three Docker images below, by digest; `-- --repin` only asks the registry for digests) and `npm run verify-knowledge` (fetches the official pages and plugin source files the knowledge files cite).
 
 ## npm packages
 
@@ -17,7 +17,7 @@ No component calls a network service at run time. Three explicit commands use th
 | pngjs | 7.0.0 | MIT | direct |
 | postcss | 8.5.32 | MIT | direct |
 | semver | 7.8.5 | ISC | direct |
-| @playwright/test | 1.64.1 | Apache-2.0 | direct (PDF reports, the page probe, browser tests; Chromium is installed by `npm run setup:guard`) |
+| @playwright/test | 1.64.1 | Apache-2.0 | direct (PDF reports, the page probe, browser tests; Chromium is installed with `npm run setup-browser`) |
 | tesseract.js | 7.0.0 | Apache-2.0 | direct |
 | bmp-js | 0.1.0 | MIT | transitive |
 | idb-keyval | 6.3.0 | Apache-2.0 | transitive |
@@ -46,12 +46,12 @@ No component calls a network service at run time. Three explicit commands use th
 | `data/ocr/eng.traineddata` | `7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2` | 4113088 bytes | Apache-2.0 | https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/4.1.0/eng.traineddata |
 
 The hash was pinned on the first download (trust on first download); nothing independent confirms it. It lives in `data/ocr-pin.json` and here.
-The file itself is git-ignored; `npm run guard:setup-ocr` fetches it and refuses a download that does not match the pin.
+The file itself is git-ignored; `npm run setup-ocr` fetches it and refuses a download that does not match the pin.
 The npm package `@tesseract.js-data/eng` (MIT in its package.json, no LICENSE file, data originating from the Apache-2.0 Tesseract project) was evaluated and is NOT used; see the decision in the project notes.
 
 ## Docker images (sandbox)
 
-Official Docker Hub images, started only by `issue ... --sandbox`, referenced by content digest (a tag can move, a digest cannot) and never pulled by anything except `npm run guard:setup-sandbox`. They are not bundled in this repository.
+Official Docker Hub images, started only by `issue ... --sandbox`, referenced by content digest (a tag can move, a digest cannot) and never pulled by anything except `npm run setup-sandbox`. They are not bundled in this repository.
 
 | Role | Image | Digest | Licence of the software |
 |---|---|---|---|
@@ -65,7 +65,7 @@ Official Docker Hub images, started only by `issue ... --sandbox`, referenced by
 | Database (mariadb) | `mariadb:11.8.9` | `sha256:c4124d1afa875e47f2892edf26b482fa54f796e2f342d3717a04ca091a22a9bd` | MariaDB Server GPL-2.0 |
 | Database (mysql) | `mysql:8.0.46` | `sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b` | MySQL Community Server GPL-2.0 |
 
-The digests are in `data/sandbox-images.json` (written by `guard:setup-sandbox -- --repin`). The tags and licences above are as listed on Docker Hub when they were resolved; the images contain further components with their own licences, which Docker Hub lists per image.
+The digests are in `data/sandbox-images.json` (written by `npm run setup-sandbox -- --repin`). The tags and licences above are as listed on Docker Hub when they were resolved; the images contain further components with their own licences, which Docker Hub lists per image.
 
 Docker Engine / Compose are tools you install yourself (Apache-2.0); rootless mode is recommended.
 
