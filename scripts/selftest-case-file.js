@@ -168,11 +168,11 @@ const OLD_HEAD = /^#{1,3} (Findings|Verdict|What is wrong|Summary)\b/m;
     const again = await run('ews-again', { probe: true });
     const strip = o => JSON.stringify(o).replace(/iss-\d{8}-\d{6}-[0-9a-f]{6}/g, 'ID').replace(/\/ews[-a-z]*\//g, '/X/');
     ok(strip(again.f.case_file) === strip(r.f.case_file), 'the case file is deterministic (two runs, same bytes)');
-    const repo = path.resolve(__dirname, '..', '..', '..');
+    const repo = path.resolve(__dirname, '..');
     const inTree = spawnSync('git', ['rev-parse', '--is-inside-work-tree'], { cwd: repo });
     if (inTree.error || inTree.status !== 0) { console.log('SKIP  not inside a git work tree: the validate.js unmodified check did not run'); skipped++; }
     else {
-        const git = spawnSync('git', ['diff', '--quiet', '--', 'src/plugin-guard/issue/validate.js', 'src/plugin-guard/issue/retest.js', 'src/plugin-guard/issue/fatal-recheck.js'], { cwd: repo });
+        const git = spawnSync('git', ['diff', '--quiet', '--', 'issue/validate.js', 'issue/retest.js', 'issue/fatal-recheck.js'], { cwd: repo });
         if (git.error) { console.log('SKIP  git is not available: the validate.js check did not run'); skipped++; } else ok(git.status === 0, 'validate.js, retest.js and fatal-recheck.js are unmodified (git diff --quiet)');
     }
     ok(!/case-file/.test(fs.readFileSync(path.join(__dirname, '..', 'issue', 'validate.js'), 'utf8')) && !/status\s*=/.test(fs.readFileSync(path.join(__dirname, '..', 'issue', 'case-file.js'), 'utf8')), 'case-file.js assigns no status and validate.js does not know it');
