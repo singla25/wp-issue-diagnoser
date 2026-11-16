@@ -204,5 +204,30 @@ function readmeProblems(text) {
     ok(p.bad.length === 7 && p.diagrams === 1, `the README check catches a planted bad README (${p.bad.length} problems)`);
 }
 
+group('8. docs/README.md maps every .md file of the repository, and every file it names exists');
+// every .md file of the package (the folders that .gitignore keeps out are not walked), as paths relative to the package root
+const MD_SKIP = new Set(['node_modules', '.git', 'issues', 'sandboxes', 'reports', 'plugin-guard-reports', 'state', 'projects', 'coverage', 'dist', 'build', 'playwright-report', 'test-results']);
+function allMd(dir = PG, rel = '') {
+    const out = [];
+    for (const e of fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+        if (e.isSymbolicLink()) continue;
+        if (e.isDirectory()) { if (!MD_SKIP.has(e.name)) out.push(...allMd(path.join(dir, e.name), rel ? `${rel}/${e.name}` : e.name)); }
+        else if (e.name.endsWith('.md')) out.push(rel ? `${rel}/${e.name}` : e.name);
+    }
+    return out;
+}
+// the .md files a map text links to (relative links, resolved from docs/), as paths relative to the package root
+const mapped = text => new Set([...text.replace(/```[\s\S]*?```/g, '').matchAll(/\]\(([^)\s#]+\.md)(?:#[^)]*)?\)/g)].filter(m => !/^https?:/.test(m[1])).map(m => path.relative(PG, path.resolve(path.join(PG, 'docs'), m[1])).split(path.sep).join('/')));
+{
+    const all = allMd(), listed = mapped(doc['docs/README.md'] || '');
+    const missing = all.filter(f => !listed.has(f)), absent = [...listed].filter(f => !fs.existsSync(path.join(PG, f)));
+    ok(all.length > 15 && missing.length === 0, `docs/README.md lists every .md file of the repository (${all.length} files)${list(missing)}`);
+    ok(absent.length === 0, `every file docs/README.md names exists (${listed.size} files)${list(absent)}`);
+    const planted = allMd().filter(f => !mapped((doc['docs/README.md'] || '').replace(/\[TESTING\.md\]\(\.\/TESTING\.md\)/, 'TESTING.md')).has(f));
+    ok(planted.length === 1 && planted[0] === 'docs/TESTING.md', 'the map check catches a planted missing entry (one link removed in memory)');
+    const ghost = [...mapped((doc['docs/README.md'] || '') + '\n[Ghost](./NO-SUCH-FILE.md)')].filter(f => !fs.existsSync(path.join(PG, f)));
+    ok(ghost.length === 1 && ghost[0] === 'docs/NO-SUCH-FILE.md', 'the map check catches a planted entry for a file that does not exist (in memory)');
+}
+
 console.log(failures ? `\n${failures} check(s) FAILED` : '\nAll docs checks passed');
 process.exit(failures ? 1 : 0);

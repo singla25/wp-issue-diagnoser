@@ -8,7 +8,7 @@ One tool: **Plugin Guard** (repository name `wp-issue-diagnoser`, command `plugi
 
 The package is the repository root: `package.json`, `scripts/`, `lib/`, `issue/`, `probe/`, `checks/`, `agents/`, `data/`.
 
-Read these first: [README.md](README.md) (what it does and how to use it; the detailed guide is [docs/GUIDE.md](docs/GUIDE.md)), [docs/HANDOFF.md](docs/HANDOFF.md) (memory between sessions: start there), [docs/WORKFLOW.md](docs/WORKFLOW.md) (the working model), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/SAFETY.md](docs/SAFETY.md) (how it is built and what it may touch), [docs/COVERAGE.md](docs/COVERAGE.md) (what is detected). The designs the code follows are [docs/REPORT-SPEC.md](docs/REPORT-SPEC.md) and [docs/TEST-COPY-SPEC.md](docs/TEST-COPY-SPEC.md).
+Read these first (the map of every document is [docs/README.md](docs/README.md)): [README.md](README.md) (what it does and how to use it; the detailed guide is [docs/GUIDE.md](docs/GUIDE.md)), [docs/HANDOFF.md](docs/HANDOFF.md) (memory between sessions: start there), [docs/WORKFLOW.md](docs/WORKFLOW.md) (the working model), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/SAFETY.md](docs/SAFETY.md) (how it is built and what it may touch), [docs/COVERAGE.md](docs/COVERAGE.md) (what is detected). The designs the code follows are [docs/REPORT-SPEC.md](docs/REPORT-SPEC.md) and [docs/TEST-COPY-SPEC.md](docs/TEST-COPY-SPEC.md).
 
 ## Commands
 

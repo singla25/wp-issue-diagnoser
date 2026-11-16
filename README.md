@@ -67,7 +67,7 @@ A heading then says how far the testing went. There are four levels:
 
 | Level (heading in the report) | What it means |
 |---|---|
-| Tested on a copy of your site | A test copy built from your database showed the same problem as your site (or, as a weaker result, the same kind of page failure; the report words it more carefully). The strongest result. |
+| Tested on a copy of your site | A test copy built from your database showed the same problem as your site: the same page, the same kind of failure and the same error. This is the strongest result. In a weaker case ("status only") the copy showed only the same kind of failure on the same page, with no error message to compare; the report then says "this is weaker evidence". |
 | Tested on a test site built from your files | A test copy built from your files only (no database file) was tried and gave an answer (yes or no). It has none of your site's data, so it is weaker. If it gave no answer, or your site's own error is a database-connection error, the report says "Not tested on a copy" instead. |
 | Not tested on a copy | No test copy was used, or one was built but your site had no failing page to compare it with (then the label NOT CONFIRMED is shown). The report lists what was missing (a database export file, Docker, the site's code, or a page that fails on your site to compare with), or says "You chose not to build a test copy." What it says then comes from reading your log and the code, and is labelled NOT TESTED. |
 | The test copy could not confirm this | A test copy was tried, but it could not run, or it did not show the same problem. |
@@ -287,7 +287,7 @@ data/       pinned data: sandbox images, checkpoints, knowledge files
 docs/       documentation (below)
 ```
 
-More documentation: [technical guide](./docs/GUIDE.md) · [safety rules](./docs/SAFETY.md) · [what is detected](./docs/COVERAGE.md) · [architecture](./docs/ARCHITECTURE.md) · [report design](./docs/REPORT-SPEC.md) · [test copy design](./docs/TEST-COPY-SPEC.md) · [testing](./docs/TESTING.md) · [third-party notices](./THIRD-PARTY.md)
+More documentation (the full map of every document is [docs/README.md](./docs/README.md)): [technical guide](./docs/GUIDE.md) · [safety rules](./docs/SAFETY.md) · [what is detected](./docs/COVERAGE.md) · [architecture](./docs/ARCHITECTURE.md) · [report design](./docs/REPORT-SPEC.md) · [test copy design](./docs/TEST-COPY-SPEC.md) · [testing](./docs/TESTING.md) · [third-party notices](./THIRD-PARTY.md)
 
 ## Licence
 
