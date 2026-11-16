@@ -28,10 +28,10 @@ ok(by(r, 'Docker (rootless)').ok === false && /NOT a local socket/.test(by(r, 'D
 r = dc.dockerChecks({ bin: path.join(tmp, 'nope'), env: {} });
 ok(by(r, 'Docker CLI').ok === false && /not installed/.test(by(r, 'Docker CLI').detail) && r.length === 3 && r.every(c => c.required === false), 'no docker command: reported, and Docker is never "required" (static analysis still works)');
 
-console.log('\n== the user Docker service (used by guard:auto)');
+console.log('\n== the user Docker service (used by the sandbox)');
 const sc = (code, active = 'active') => { const f = path.join(tmp, `sc-${code}`); fs.writeFileSync(f, `#!/bin/sh\ncase "$*" in\n  "--user cat docker.service") exit ${code};;\n  "--user is-active docker.service") echo ${active}; exit 0;;\nesac\nexit 9\n`); fs.chmodSync(f, 0o755); return f; };
 let sv = dc.dockerServiceCheck({ systemctlBin: sc(0, 'inactive') });
-ok(sv.ok && /is inactive/.test(sv.detail) && /systemctl --user start docker\.service/.test(sv.detail) && /never sudo/.test(sv.detail), 'the user service exists: reported, with what guard:auto would do (and that it never uses sudo)');
+ok(sv.ok && /is inactive/.test(sv.detail) && /systemctl --user start docker\.service/.test(sv.detail) && /never sudo/.test(sv.detail), 'the user service exists: reported, with the command that starts it (and that it never uses sudo)');
 sv = dc.dockerServiceCheck({ systemctlBin: sc(1) }); ok(!sv.ok && /no user service/.test(sv.detail) && /static-only/.test(sv.detail), 'no user service: reported, with the consequence');
 sv = dc.dockerServiceCheck({ systemctlBin: path.join(tmp, 'none') }); ok(!sv.ok && /systemctl is not available/.test(sv.detail), 'no systemctl: reported');
 
@@ -46,7 +46,7 @@ ok(dc.packageCheck(pkgDir, 'x').ok === true && dc.packageCheck(path.join(tmp, 'n
 
 console.log('\n== the doctor lists all of them');
 const names = workflow.doctorChecks(null).map(c => c.name);
-for (const want of ['PHP CLI', 'Chromium browser', 'Docker CLI', 'Docker Compose', 'Docker (rootless)', 'Docker sandbox images', 'Rootless Docker user service (guard:auto)', 'OCR language data', 'Packages: issue mode (this package)']) ok(names.includes(want), `doctor reports: ${want}`);
+for (const want of ['PHP CLI', 'Chromium browser', 'Docker CLI', 'Docker Compose', 'Docker (rootless)', 'Docker sandbox images', 'Rootless Docker user service (sandbox)', 'OCR language data', 'Packages: issue mode (this package)']) ok(names.includes(want), `doctor reports: ${want}`);
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log(failures ? `\n${failures} FAILED` : '\nAll checks passed');
 process.exit(failures ? 1 : 0);
