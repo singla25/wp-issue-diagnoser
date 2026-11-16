@@ -67,8 +67,8 @@ A heading then says how far the testing went. There are four levels:
 
 | Level (heading in the report) | What it means |
 |---|---|
-| Tested on a copy of your site | A test copy built from your database showed the same problem as your site. The strongest result. |
-| Tested on a test site built from your files | A test copy built from your files only (no database file) was tried. It has none of your site's data, so it is weaker. |
+| Tested on a copy of your site | A test copy built from your database showed the same problem as your site (or, as a weaker result, the same kind of page failure; the report words it more carefully). The strongest result. |
+| Tested on a test site built from your files | A test copy built from your files only (no database file) was tried and gave an answer (yes or no). It has none of your site's data, so it is weaker. If it gave no answer, or your site's own error is a database-connection error, the report says "Not tested on a copy" instead. |
 | Not tested on a copy | No test copy was used, or one was built but your site had no failing page to compare it with (then the label NOT CONFIRMED is shown). The report lists what was missing (a database export file, Docker, the site's code, or a page that fails on your site to compare with), or says "You chose not to build a test copy." What it says then comes from reading your log and the code, and is labelled NOT TESTED. |
 | The test copy could not confirm this | A test copy was tried, but it could not run, or it did not show the same problem. |
 
@@ -76,10 +76,13 @@ A heading then says how far the testing went. There are four levels:
 flowchart TD
     S["A problem was reported"] --> Q{"Test copy built?"}
     Q -- "no" --> L3["Not tested on a copy"]
-    Q -- "from your files only" --> L2["Tested on a test site built from your files"]
+    Q -- "from your files only" --> F{"Docker worked and the copy gave a yes or no answer?"}
+    F -- "yes" --> L2["Tested on a test site built from your files"]
+    F -- "no answer, or your site's own error is a database-connection error" --> L3
     Q -- "from your database file" --> M{"Same problem as your site?"}
     M -- "yes" --> L1["Tested on a copy of your site"]
     M -- "no, or it could not run" --> L4["The test copy could not confirm this"]
+    M -- "Docker not working, or the code is missing" --> L3
     M -- "your site had no failing page to compare" --> L3
 ```
 
@@ -138,7 +141,7 @@ More limits, with their reasons, are in the [technical guide](./docs/GUIDE.md).
 | Node.js 20.12 or newer, and npm | Everything | Required. |
 | Chromium browser for Playwright | The live page probe and the PDF report | Installed with `npm run setup-browser`. |
 | PHP command line | The `php -l` syntax check | Optional; without it that check says "NOT RUN". |
-| Docker (rootless is best) | The throwaway test copy | Optional; without it only the static analysis and the page probe run. Images are pulled by `npm run setup-sandbox`. |
+| Docker (rootless is best) | The throwaway test copy | Optional; without it only the static analysis and the page probe run. Images are pulled by `npm run setup-sandbox` (not tested here by hand). |
 | Tesseract language data (one file) | Reading text in screenshots | Optional; downloaded by `npm run setup-ocr`. |
 
 It was developed and tested on Linux. Other systems are not tested.
@@ -153,7 +156,7 @@ cd wp-issue-diagnoser
 npm ci                      # install the packages
 npm run setup-browser       # download Chromium for the page probe and the PDF
 npm run setup-ocr           # optional: the language file for reading screenshots
-npm run setup-sandbox       # optional: pull the Docker images (needs Docker)
+npm run setup-sandbox       # optional: pull the Docker images (needs Docker; not tested here by hand)
 npm run guard -- doctor     # check what is installed
 ```
 
@@ -180,13 +183,13 @@ npm run guard -- doctor     # check what is installed
 3. **Or let it ask you.** With no options it asks one question at a time (the problem, screenshots, the address, the folder from a numbered list):
 
    ```bash
-   npm run plugin-guard
+   npm run plugin-guard        # not tested here: it needs a terminal to answer in
    ```
 
-4. **Try the problem in a throwaway copy** (needs Docker and `npm run setup-sandbox`): add a database export of the site and a test copy is built for you when the site is not marked live:
+4. **Try the problem in a throwaway copy** (needs Docker and `npm run setup-sandbox`; the commands in this step are not tested here by hand, the Docker test suites cover the database copy): add a database export of the site and a test copy is built for you when the site is not marked live:
 
    ```bash
-   npm run plugin-guard -- --description "Checkout is blank" --root /path/to/wordpress --db-dump /path/to/site.sql
+   npm run plugin-guard -- --description "Checkout is blank" --root /path/to/wordpress --db-dump /path/to/site.sql   # not tested here by hand
    ```
 
 All options of `plugin-guard`:
@@ -201,8 +204,8 @@ All options of `plugin-guard`:
 | `--php <version>` | For example 8.1. |
 | `--images <paths>` | Screenshots: files or folders, separated by commas. |
 | `--log <file>` | A log file instead of the one found in your site. |
-| `--sandbox` | Also test in a throwaway copy built from your files. |
-| `--db-dump <file>` | A database export (`.sql` or `.sql.gz`): a test copy is built from it. |
+| `--sandbox` | Also test in a throwaway copy built from your files (not tested here by hand). |
+| `--db-dump <file>` | A database export (`.sql` or `.sql.gz`): a test copy is built from it (not tested here by hand). |
 | `--max-size-mb <n>` | Size cap for the site copy and the unpacked database file. |
 | `--no-replica` | Never build a test copy. |
 | `--out <folder>` | Where the reports go. |
@@ -229,7 +232,7 @@ Start Docker, or add your user to the `docker` group (or use rootless Docker), a
 
 `The pinned sandbox image(s) ... are not present locally. Plugin Guard never pulls on its own: run  npm run setup-sandbox`
 
-Run `npm run setup-sandbox` once (it needs the Docker daemon and downloads the images by their digest).
+Run `npm run setup-sandbox` once (it needs the Docker daemon and downloads the images by their digest; not tested here by hand).
 
 </details>
 
@@ -254,7 +257,7 @@ If Playwright itself is missing, the message says `Run once in this folder: npm 
 
 The report says which PHP version the copy used and where the version came from, for example `PHP 8.1 (from Site Health): PHP 8.1 requested, 8.2 used (nearest available; the PHP 8.1 image is not pinned yet)`, or `... used (not matched; ...)`.
 
-A test copy uses one PHP version. Images are pinned for 8.2, 8.3 and 8.4. If the version you need is pinned but not on this computer, the report names the command, for example `npm run setup-sandbox -- --php 8.2`. For 8.0 and 8.1 there is no pinned image yet, so the nearest 8.x version is used; for 7.4 the default (8.3) is used and the report says "not matched".
+A test copy uses one PHP version. Images are pinned for 8.2, 8.3 and 8.4. If the version you need is pinned but not on this computer, the report names the command, for example `npm run setup-sandbox -- --php 8.2` (not tested here by hand). For 8.0 and 8.1 there is no pinned image yet, so the nearest 8.x version is used; for 7.4 the default (8.3) is used and the report says "not matched".
 
 </details>
 
