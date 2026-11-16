@@ -65,5 +65,5 @@ Minor choices the Coder decides alone and records in the Decisions log in `docs/
 2. The builder builds; the Coder reads the summary and the diff stat.
 3. The reviewer (opus) checks the diff.
 4. The runner does the one full run once `scripts/run-full.sh` exists; the Coder reads the counts.
-5. The Coder commits with EXPLICIT staging (never `state/`, `reports/`, `plugin-guard-reports/`, `issues/`, `sandboxes/`, `projects/`, `.env*`), updates `docs/HANDOFF.md` and, when the detection changed, `docs/COVERAGE.md`, adds the dated history entry and clears the session. Nothing is pushed unless the owner does it.
+5. The Coder commits with EXPLICIT staging (never `state/`, `reports/`, `plugin-guard-reports/`, `issues/`, `sandboxes/`, the contents of `projects/` except `.gitkeep`, `.env*`, database files, `history/` or `data/ocr/`), updates `docs/HANDOFF.md` and, when the detection changed, `docs/COVERAGE.md`, adds the dated history entry and clears the session. Nothing is pushed unless the owner does it.
 6. The owner reviews the report of the step before the next step starts.

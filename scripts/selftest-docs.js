@@ -48,6 +48,12 @@ const OTHER_FLAGS = {
     // the retired flag's name is assembled from pieces: selftest-6c2.js requires it to appear only in the refusal in scripts/guard.js
     [RETIRED]: ['retired: the docs say it exits 2; guard.js refuses it with KEEP_REAL_DATA_RETIRED', () => !(RETIRED in FLAGS) && typeof KEEP_REAL_DATA_RETIRED === 'string'],
     apply: ['SAFETY.md says there is NO --apply: guard.js must not know it', () => !('apply' in FLAGS)],
+    // options of other tools or of single scripts, named in the HANDOFF history (C1c); none is an option of guard.js / plugin-guard.js
+    db: ['setup-sandbox.js option --db mysql|mariadb', () => has('scripts/setup-sandbox.js', '--db mysql')],
+    check: ['--check of scripts/gen-checkpoints.js and of scripts/setup-sandbox.js', () => has('scripts/gen-checkpoints.js', "'--check'") && has('scripts/setup-sandbox.js', "'--check'")],
+    'default-authentication-plugin': ['MySQL server option set in issue/sandbox-policy.js', () => has('issue/sandbox-policy.js', '--default-authentication-plugin=mysql_native_password')],
+    'exclude-standard': ['git ls-files option (git itself); the suite selftest-isolated-copy.js passes it to git', () => has('scripts/selftest-isolated-copy.js', "'--exclude-standard'")],
+    quiet: ['git diff option (git itself); selftest-case-file.js passes it to git', () => has('scripts/selftest-case-file.js', "'--quiet'")],
 };
 
 // ---------------------------------------------------------------- the docs

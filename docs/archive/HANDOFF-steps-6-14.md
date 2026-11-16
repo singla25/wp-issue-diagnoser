@@ -1,6 +1,6 @@
 # Archive: HANDOFF step logs 6-14 (moved from docs/HANDOFF.md)
 
-These are the old sections 6 to 14 of the HANDOFF file of the source repository, moved here unchanged except for three clean-ups: the prefix `src/plugin-guard/` was removed from paths, command names lost the `guard:` prefix where the command exists here, and real site names became "a real site". They are a record of what was built and why; they are not the plan. This folder is not read by `selftest:docs`, so old commands named here may no longer exist. The current plan is in [../HANDOFF.md](../HANDOFF.md).
+These are the old sections 6 to 14 of the HANDOFF file of the source repository, moved here with one clean-up: real site names became "a real site". Paths and commands are otherwise as they were. Some historical `guard:` command names remain, for example `guard:verify-knowledge` (line 36) and `guard:setup-ocr` (line 86); here the commands are `npm run verify-knowledge` and `npm run setup-ocr`. Old `src/plugin-guard/` paths, if any, are the repository root now. They are a record of what was built and why; they are not the plan. This folder is not read by `selftest:docs`, so old commands named here may no longer exist. The current plan is in [../HANDOFF.md](../HANDOFF.md).
 
 ## 6. Step 5 status (detection gaps from `docs/COVERAGE.md`)
 
