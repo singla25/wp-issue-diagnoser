@@ -19,7 +19,7 @@ const sandbox = require('../issue/sandbox');
 const pf = sandbox.preflight({});
 if (!pf.ok) { console.log(`SKIP  selftest-6d2-docker was NOT run: it needs a usable Docker daemon and the pinned sandbox images.\n  reason: ${pf.reason}\n  Nothing in this suite is claimed as verified in this environment.`); process.exit(0); }
 const br = (() => { try { return require('../issue/probe').browserReady ? require('../issue/probe').browserReady() : { ok: true }; } catch (e) { return { ok: false, reason: e.message }; } })();
-if (br && br.ok === false) { console.log(`SKIP  selftest-6d2-docker was NOT run: the sandbox probe needs Chromium (npm run setup:frontend).\n  reason: ${br.reason}\n  Nothing in this suite is claimed as verified in this environment.`); process.exit(0); }
+if (br && br.ok === false) { console.log(`SKIP  selftest-6d2-docker was NOT run: the sandbox probe needs Chromium (npm run setup-browser).\n  reason: ${br.reason}\n  Nothing in this suite is claimed as verified in this environment.`); process.exit(0); }
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pg-6d2-dk-'));
 process.env.PLUGIN_GUARD_ISSUES = path.join(tmp, 'issues');

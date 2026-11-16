@@ -41,7 +41,7 @@ const pgRoot = path.join(__dirname, '..');
     const emptyDir = path.join(tmp, 'no-ocr'); fs.mkdirSync(emptyDir);
     const badDir = path.join(tmp, 'bad-ocr'); write(badDir, 'eng.traineddata', 'tampered');
     const run = dir => spawnSync(process.execPath, ['-e', "require('./lib/ocr-data').verified()"], { cwd: pgRoot, env: { ...process.env, PLUGIN_GUARD_OCR_DIR: dir }, encoding: 'utf8' });
-    ok(/guard:setup-ocr/.test(run(emptyDir).stderr), 'missing language data: the error names npm run guard:setup-ocr');
+    ok(/npm run setup-ocr/.test(run(emptyDir).stderr), 'missing language data: the error names npm run setup-ocr');
     ok(/does not match the pinned SHA-256/.test(run(badDir).stderr), 'tampered language data is refused');
     const dirEnv = process.env.PLUGIN_GUARD_OCR_DIR;
     const tamperedRun = spawnSync(process.execPath, ['-e', "require('./issue/ocr').recognize([process.argv[1]]).then(()=>process.exit(0),e=>{console.log(e.message.split('\\n')[0]);process.exit(2)})", SHOT], { cwd: pgRoot, env: { ...process.env, PLUGIN_GUARD_OCR_DIR: badDir }, encoding: 'utf8' });

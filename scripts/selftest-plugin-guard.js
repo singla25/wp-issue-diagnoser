@@ -173,7 +173,7 @@ async function wiz(answers, flags, extra = {}) {
     const realStatus = ocrData.status; ocrData.status = () => ({ ok: false, reason: 'missing' });
     const ocr = await wiz(['Layout broken', path.join(tmp, 'shot.png'), '', siteE], { out: path.join(tmp, 'outI'), 'no-probe': true, 'no-questions': true });
     ocrData.status = realStatus;
-    ok(/text in screenshots cannot be read yet/.test(ocr.text) && /npm run guard:setup-ocr/.test(ocr.text), 'without OCR data it says so plainly and names npm run guard:setup-ocr');
+    ok(/text in screenshots cannot be read yet/.test(ocr.text) && /npm run setup-ocr/.test(ocr.text), 'without OCR data it says so plainly and names npm run setup-ocr');
     ok(/1 screenshot\(s\) kept/.test(ocr.text), 'the screenshot is still kept');
 
     group('a site above the size cap');

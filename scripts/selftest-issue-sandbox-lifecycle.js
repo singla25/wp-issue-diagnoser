@@ -134,7 +134,7 @@ const payRule = rows => ({ match: 'db query', stdin: "'woocommerce", out: rows }
     const ed = await rejects(() => sandbox.create(newId(), D.opts()), /SandboxUnavailable.*permission denied/s);
     ok(ed && /docker" group/.test(ed.message) && fs.readdirSync(D.sandboxesRoot).length === 0, 'permission denied on the daemon -> clear message, nothing created');
     const M = fakeEnv('noimg', { images: { missing: ['mariadb'] } });
-    ok(await rejects(() => sandbox.create(newId(), M.opts()), /not present locally.*guard:setup-sandbox/s) && !M.log().some(l => l.args[0] === 'pull'), 'a missing pinned image -> tells the user to run guard:setup-sandbox, and does NOT pull');
+    ok(await rejects(() => sandbox.create(newId(), M.opts()), /not present locally.*npm run setup-sandbox/s) && !M.log().some(l => l.args[0] === 'pull'), 'a missing pinned image -> tells the user to run npm run setup-sandbox, and does NOT pull');
     const R = fakeEnv('remote');
     ok(await rejects(() => sandbox.create(newId(), R.opts({ env: { PATH: process.env.PATH, DOCKER_HOST: 'tcp://10.0.0.5:2375' } })), /DOCKER_HOST|remote/i) && R.log().length === 0, 'a remote DOCKER_HOST is refused before any docker call');
     ok(await rejects(() => sandbox.create(newId(), { ...R.opts(), dockerBin: path.join(tmp, 'no-such-docker') }), /not installed/), 'no docker binary -> "Docker is not installed"');

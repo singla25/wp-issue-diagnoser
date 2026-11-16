@@ -56,7 +56,7 @@ const wpHash = hashTree(wp);
 
 group('packages');
 ok(deps.missing().length === 0, 'all issue-mode packages are installed (npm run setup:guard)');
-ok(deps.missing(['definitely-not-installed-pkg']).length === 1 && /npm run setup:guard/.test(throws(() => deps.need(['definitely-not-installed-pkg'])).message), 'a missing package gives one clear instruction');
+ok(deps.missing(['definitely-not-installed-pkg']).length === 1 && /npm ci/.test(throws(() => deps.need(['definitely-not-installed-pkg'])).message), 'a missing package gives one clear instruction');
 ok(throws(() => deps.need(['definitely-not-installed-pkg'])).exitCode === 2, 'missing packages exit 2');
 
 group('validation');
@@ -204,7 +204,7 @@ try {
 } finally { restore(); }
 ok(fs.existsSync(nm) && !fs.existsSync(hidden), 'node_modules was put back');
 ok([0, 1].includes(sc.status) && /report\.html/.test(sc.stdout), `classic "scan --root" still works without node_modules (exit ${sc.status}) ${sc.stderr.slice(0, 200)}`);
-ok(ic.status === 2 && /npm run setup:guard/.test(ic.stderr), 'while issue mode says exactly what to install (exit 2)');
+ok(ic.status === 2 && /npm ci/.test(ic.stderr), 'while issue mode says exactly what to install (exit 2)');
 ok(hashTree(wp) === wpHash, 'the WordPress tree is still byte-identical');
 
 console.log(failures ? `\n${failures} check(s) FAILED` : '\nAll checks passed');

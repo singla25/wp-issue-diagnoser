@@ -79,8 +79,8 @@ const newId = () => `iss-20261105-6100${String(seq++).padStart(2, "0")}-${crypto
     // ================================================================ 3
     group('MySQL 8.0: the WP-CLI container connects to and imports into MySQL');
     const my = M.db.mysql;
-    if (!policy.usable(my)) skip(`TO VERIFY AFTER PULL: the mysql entry (${my ? `${my.repo}:${my.tag}` : 'none'}) is not pinned yet. Run  npm run guard:setup-sandbox -- --repin  then  npm run guard:setup-sandbox -- --db mysql  and re-run this suite. NOT verified here: the MySQL service starts with the same capability allow-list, the mysql_native_password server flag lets the WP-CLI (MariaDB) client log in, wp db import works against MySQL 8.0, and the real mysqldump header parses.`);
-    else if (!present(my)) skip(`TO VERIFY AFTER PULL: ${my.repo}:${my.tag} is pinned but not on this computer. Run  npm run guard:setup-sandbox -- --db mysql  and re-run this suite.`);
+    if (!policy.usable(my)) skip(`TO VERIFY AFTER PULL: the mysql entry (${my ? `${my.repo}:${my.tag}` : 'none'}) is not pinned yet. Run  npm run setup-sandbox -- --repin  then  npm run setup-sandbox -- --db mysql  and re-run this suite. NOT verified here: the MySQL service starts with the same capability allow-list, the mysql_native_password server flag lets the WP-CLI (MariaDB) client log in, wp db import works against MySQL 8.0, and the real mysqldump header parses.`);
+    else if (!present(my)) skip(`TO VERIFY AFTER PULL: ${my.repo}:${my.tag} is pinned but not on this computer. Run  npm run setup-sandbox -- --db mysql  and re-run this suite.`);
     else {
         const mysqlSql = '-- MySQL dump 10.13  Distrib 8.0.46, for Linux (x86_64)\n--\n-- Host: localhost    Database: wordpress\n-- ------------------------------------------------------\n-- Server version\t8.0.46\n\n'
             + mariaSql.split('\n').filter(l => !/^\/\*M!|^-- MariaDB dump|^-- Server version/.test(l)).join('\n');
@@ -113,7 +113,7 @@ const newId = () => `iss-20261105-6100${String(seq++).padStart(2, "0")}-${crypto
     group('PHP images of the matrix run the version they claim');
     let checked = 0;
     for (const [minor, e] of Object.entries(M.php).sort()) {
-        if (!policy.usable(e.wordpress) || !present(e.wordpress)) { if (minor !== M.default_php) skip(`PHP ${minor}: ${policy.usable(e.wordpress) ? `pinned but not pulled (npm run guard:setup-sandbox -- --php ${minor})` : !e.wordpress.tag ? 'no image tag chosen: name one that exists on Docker Hub in WANT_PHP in scripts/setup-sandbox.js first, then --repin and --php ' + minor : `not pinned: ${e.wordpress.tag} ${e.wordpress.note || 'is not confirmed by the registry'}`}`); continue; }
+        if (!policy.usable(e.wordpress) || !present(e.wordpress)) { if (minor !== M.default_php) skip(`PHP ${minor}: ${policy.usable(e.wordpress) ? `pinned but not pulled (npm run setup-sandbox -- --php ${minor})` : !e.wordpress.tag ? 'no image tag chosen: name one that exists on Docker Hub in WANT_PHP in scripts/setup-sandbox.js first, then --repin and --php ' + minor : `not pinned: ${e.wordpress.tag} ${e.wordpress.note || 'is not confirmed by the registry'}`}`); continue; }
         const r = dk(['run', '--rm', '--network', 'none', '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges:true', '--entrypoint', 'php', e.wordpress.ref, '-r', 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;']);
         ok(r.status === 0 && r.stdout.trim() === minor, `${e.wordpress.repo}:${e.wordpress.tag} runs PHP ${r.stdout.trim() || '?'} (claims ${minor})`);
         checked++;

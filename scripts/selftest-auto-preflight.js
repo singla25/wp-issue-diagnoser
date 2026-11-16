@@ -54,7 +54,7 @@ ok(!r.ok && r.mode === 'static-only' && sc().join('|') === '--user cat docker.se
 reset({ down: true }); r = go({ systemctlBin: path.join(tmp, 'no-such-systemctl') });
 ok(!r.ok && r.mode === 'static-only' && /systemctl is not available|No rootless Docker service/.test(JSON.stringify(r.attempts) + r.reason), 'no systemctl: static-only');
 reset({ down: false, missingImage: true }); r = go();
-ok(!r.ok && r.mode === 'static-only' && /guard:setup-sandbox/.test(r.reason) && sc().length === 0, 'the daemon is up but an image is missing: static-only with the setup command; the service is not touched');
+ok(!r.ok && r.mode === 'static-only' && /npm run setup-sandbox/.test(r.reason) && sc().length === 0, 'the daemon is up but an image is missing: static-only with the setup command; the service is not touched');
 reset({ down: true }); fs.writeFileSync(path.join(FD, 'fake.json'), JSON.stringify({ info: { fail: true, stderr: 'permission denied while trying to connect to the docker API at unix:///var/run/docker.sock\n' } }));
 r = go(); ok(!r.ok && /permission denied/.test(r.reason) && sc().length === 0, 'permission denied on the system socket: the user service is not started (it would not help), static-only');
 r = go({ dockerBin: path.join(tmp, 'no-docker') }); ok(!r.ok && /not installed/.test(r.reason) && sc().length === 0, 'Docker not installed: static-only, nothing started');

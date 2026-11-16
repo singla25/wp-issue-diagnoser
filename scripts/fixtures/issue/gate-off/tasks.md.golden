@@ -25,7 +25,7 @@ From issue `<ISSUE>` (Gate output fixture). Plugin Guard did not change any code
 - **Validation commands:**
   ```bash
   php -l wp-content/plugins/plugin-b/plugin-b.php
-  node src/plugin-guard/scripts/guard.js issue retest <ISSUE> --root <fixed-copy>
+  node scripts/guard.js issue retest <ISSUE> --root <fixed-copy>
   ```
 - **Acceptance criteria:**
     - `php -l` passes for the changed file
