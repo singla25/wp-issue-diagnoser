@@ -1,6 +1,6 @@
 # Roadmap: wp-issue-diagnoser
 
-Last updated: 2026-11-17, after task 2 (D1, commit 566d1e1). Update the status columns after every step.
+Last updated: 2026-11-17, after task 3a-S0 (commit f1a794c) and the roadmap update. Update the status columns after every step.
 
 ## How to use this file
 
@@ -36,6 +36,8 @@ Last green full run: p-h1 on 2026-11-17. 75 suites (65 offline and 10 Docker), 4
 | 1b: probe counts one connection error once (P1) | 24e0a0e |
 | 1c: this roadmap added to the repository and the docs map | 786646a |
 | 2 (D1): design of input modes and question phases, `docs/INPUT-MODES.md` (a proposal, nothing built) | 566d1e1 |
+| Roadmap status after D1 | 90c09cc |
+| 3a-S0: recovery-mode keys masked in `lib/redact.js`, new suite `selftest-redact.js` | f1a794c |
 
 Push status: check with `git log origin/main..HEAD`. The owner pushes only a green state.
 
@@ -47,8 +49,9 @@ Push status: check with `git log origin/main..HEAD`. The owner pushes only a gre
 | 1b | P1: probe counts one connection error twice (`probe/safety.js`); remove the two extra `recordOutcome` calls, add a mock-page test | 45 min | A real bug in a safety rule. Small and low risk. | done (24e0a0e) |
 | 1c | Add this roadmap to the repository and to the docs map | 20 min | The plan must survive a compacted chat. | done (786646a) |
 | 2 | D1: design of input modes and question phases (`docs/INPUT-MODES.md`, no code) | 1 to 2 h | Cheap, no code. It decides what we build and in which order. | done (566d1e1) |
-| 3 | Build the no-code mode in small steps with tests: (a) question phases in the terminal, (b) live observations (console, network, debug log if exposed), (c) plugin and theme detection from the public page, (d) Site Health text reader, (e) report layout with "possible, not confirmed" | 1.5 to 2.5 days | Most WordPress users cannot give files or a database. This is the widest audience. The exact order comes from D1. | next (the exact order comes from `docs/INPUT-MODES.md`, section 7: S1 to S7, owner to approve) |
-| 4 | Real-site runs by the owner on 2 or 3 real sites, then review of the reports | 1 to 2 h | Tests use made-up sites. Real sites find what tests miss. After 3, so the new mode is tested too. | waiting for 3 |
+| 3a | Build the no-code mode, part 1, in small steps with tests (order from `docs/INPUT-MODES.md`, section 7; S0 was added by the owner): **S0** redact fix for `rm_token` and `rm_key` (done, f1a794c); **S1** run without a folder and honest labels (includes the crash at `lib/issue-cli.js:289` and the label that says "reading your log" only), 0.5 day; **S2** question phases, 0.5 to 1 day; **S3** live observations, plugin versions, feed known conflicts (must handle a 500 answer where the probe stops early and only 3 of 7 live checks gave a result), 1 day; **S4** report layout for modes D and E, 0.5 to 1 day; then ONE full run | 2.5 to 3.5 days | Most WordPress users cannot give files or a database. This is the widest audience. | S0 done (f1a794c); S1 next |
+| 3b | Build the no-code mode, part 2: **S5** Site Health text and pasted plugin list, 0.5 day; **S6** public `debug.log` check, 0.5 day; **S7** error e-mail text (after the masks of S0) and Plugins-page screenshot, 0.5 day each | about 2 days | Extra inputs for people who can copy a text but not give files. | waiting for 3a |
+| 4 | Real-site runs by the owner on 2 or 3 real sites, then review of the reports | 1 to 2 h | Tests use made-up sites. Real sites find what tests miss. After 3, so the new mode is tested too. | waiting for 3a and 3b |
 | 5a | C6: docs leftovers, naming, GET-only wording, git-skip message, comments, `.claude/scheduled_tasks.lock` line in `.gitignore`, case-file versus HEAD comparison | 1 to 1.5 h | Small and safe. | waiting |
 | 5b | C7: clean-checkout test replaces the isolated-copy test, rewrite `selftest:hints` for standalone mode, fix the Stage 2 messages that tests still pin | 1.5 to 2.5 h | Proves that a fresh clone works. | waiting |
 | 5c | C8: remove the local project name from tests, check files and history for real client names or domains | 1 to 1.5 h | Needed only before the repository can be public. | waiting |
