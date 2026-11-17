@@ -28,11 +28,11 @@ A run is **valid** only if `test.exit` says `test exit 0` AND the Docker state a
 
 ## The baseline (latest valid full run)
 
-Run `p-n1`, 2026-11-16, on the working tree of the rename step (HEAD `b4470a2` plus the Stage 1 rename; snapshot tree `29147eb`), valid: `test exit 0` and Docker back at 5/0/11 (5 containers, 0 labelled, 11 volumes, before and after). The machine was not restarted during the run (up since 10:01).
+Run `p-h1`, 2026-11-17, on the working tree of the honest-wording step (HEAD `b94f39c` plus the H1 changes; snapshot tree `58910d8`), valid: `test exit 0` and Docker back at 5/0/11 (5 containers, 0 labelled, 11 volumes, before and after). The machine was not restarted during the run (up since 2026-11-17 10:09, after an earlier restart, before the run started).
 
-- Suites: 75 (65 offline + 10 Docker). Duration: 38 min 12 s (18:13:17 to 18:51:29).
-- Checks: **4478 PASS, 0 FAIL, 7 SKIP**.
-- History: the first valid run was `p-c2b` (4468 PASS, 0 FAIL, 7 SKIP, 38 min 43 s, on HEAD `8909198`). The run before it, `p-c2`, was not valid. The 10 more checks now come from the docs checks added since (README commands and diagrams, the docs map, the old-name check).
+- Suites: 75 (65 offline + 10 Docker). Duration: 43 min 34 s (11:37:18 to 12:20:52).
+- Checks: **4489 PASS, 0 FAIL, 7 SKIP**.
+- History: `p-n1` (2026-11-16, the rename): 4478 PASS, 0 FAIL, 7 SKIP, 38 min 12 s. `p-c2b` (the first valid run): 4468 PASS, 0 FAIL, 7 SKIP, 38 min 43 s. `p-c2` was not valid. The 11 more checks than `p-n1` are the new no-code tests (7 in `selftest-case-file.js`, 4 in `selftest-checkpoints.js`).
 
 Every SKIP, with its reason (all are loud skips that name their reason):
 

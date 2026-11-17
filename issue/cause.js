@@ -29,7 +29,7 @@ const ENV_SENTENCE = {
 
 const T = {
     'syntax-error': h => `a PHP syntax error in ${where(h)}`,
-    'duplicate-declaration': (h, o) => `${o.declaration ? `the ${o.declaration.kind} ${o.declaration.name}() is defined twice` : 'the same function or class is defined twice'} (${(h.evidence || []).map(e => e.file).filter(Boolean).slice(0, 2).join(' and ')}), and PHP stops when both load`,
+    'duplicate-declaration': (h, o) => { const files = (h.evidence || []).map(e => e.file).filter(Boolean).slice(0, 2).join(' and '); return `${o.declaration ? `the ${o.declaration.kind} ${o.declaration.name}() is defined twice` : 'the same function or class is defined twice'}${files ? ` (${files})` : ' (the log says so; no code file was read to show where)'}, and PHP stops when both load`; },
     'missing-function': (h, o, c) => { const log = (h.supports || []).find(s => s.kind === 'log'), cl = log && c.clueById ? c.clueById(log.ref) : null; return `${joined(h, c)} calls ${cl && cl.value ? `${clip(cl.value, 60)}()` : 'a function or class'} that does not exist at that moment`; },
     'error-in-component': (h, o, c) => `a PHP error raised by ${joined(h, c)} in ${where(h)}`,
     'removed-function-call': (h, o) => o.message || `a call to a PHP function that no longer exists, in ${where(h)}`,

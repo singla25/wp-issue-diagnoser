@@ -299,6 +299,8 @@ const LEVEL_HEADING = { 1: 'Tested on a copy of your site', 2: 'Not tested on a 
 const MISSING_TEXT = { database: 'a database export file of your site (.sql or .sql.gz)', docker: 'Docker on this computer, to build the test copy', code: 'the code of your site (its wp-content folder)', page: 'a page that fails on your site, to compare with the test copy', live: 'a copy built from your database is never made for a live site (try it on a local or staging copy of the site)' };
 const MISSING_INTRO = 'What a test on a copy of your site needs, and was missing:';
 const NOT_TESTED_LABEL = 'NOT TESTED: what this report says comes from reading your log and the code. It was not tried on a copy of your site.';
+// what the report was really built from: the label never says the code (or the log) was read when it was not (H1)
+const notTestedLabel = f => { const hasLog = f.hasLog !== false, hasCode = f.hasCode !== false; return hasLog && hasCode ? NOT_TESTED_LABEL : `NOT TESTED: what this report says comes from ${hasLog ? 'reading your log' : hasCode ? 'reading the code' : 'your description only'}. It was not tried on a copy of your site.`; };
 // a copy WAS built and logged the reported error, but your site had no failing page to compare (level 2): not "not tried on a copy"
 const NOT_CONFIRMED_LABEL = 'NOT CONFIRMED: a test copy of your site was built and logged the reported error, but your site had no failing page to compare with, so the copy does not confirm this report. What this report says comes from reading your log and the code.';
 const MATCHED_LINE = 'A test copy of your site, built from your database, showed the same problem as your site: the same page, the same kind of failure and the same error.';
@@ -316,11 +318,11 @@ const FILES_ONLY_NO = 'A test site built from your files, without your database,
 // fd: issue/fidelity.js clean() or null; rp: sandbox.json `replica` ({ requested, database_file, docker }) plus copy_built, or null (older runs)
 function copyLevel(fd, rp, facts = {}) {
     const r = rp || {};
-    const two = keys => ({ n: 2, heading: LEVEL_HEADING[2], missing: [...new Set(keys)].map(k => MISSING_TEXT[k]), lines: [NOT_TESTED_LABEL] });
+    const two = keys => ({ n: 2, heading: LEVEL_HEADING[2], missing: [...new Set(keys)].map(k => MISSING_TEXT[k]), lines: [notTestedLabel(facts)] });
     // a database file given for a LIVE site was dropped (sandbox.json replica.db_dropped_live): it is not "missing", it is never used for live
     // an explicit choice not to build a copy beats the other gaps (no file, no Docker, no code): the sentence, nothing listed. It never beats the
     // live-site reason (owner): on a live site (replica.live or db_dropped_live) the "never made for a live site" item is shown instead
-    if (r.skipped === true && !r.copy_built && !(fd && fd.counts)) return r.live === true || r.db_dropped_live ? two(['live']) : { n: 2, heading: LEVEL_HEADING[2], missing: [], lines: [CHOSE_NO_COPY, NOT_TESTED_LABEL] };
+    if (r.skipped === true && !r.copy_built && !(fd && fd.counts)) return r.live === true || r.db_dropped_live ? two(['live']) : { n: 2, heading: LEVEL_HEADING[2], missing: [], lines: [CHOSE_NO_COPY, notTestedLabel(facts)] };
     // a copy WAS built from the files only (no database file, so no fidelity result), Docker worked, not skipped, not live, and it gave an answer
     const sbr = facts.sandboxReproduced === true ? 'yes' : facts.sandboxReproduced === false ? 'no' : facts.sandboxReproduced;
     // owner (2026-11-12): NOT when the real site's own evidence is a database-connection error (a clue, facts.dbError): a copy never gets the
@@ -444,7 +446,7 @@ function markdown(cf, esc) {
         L.push(`## ${cf.level.heading}`, '');
         if (cf.status.fidelity) { L.push(e(cf.status.fidelity.line), ''); if (cf.status.fidelity.reasons.length) L.push('Likely reasons:', '', ...cf.status.fidelity.reasons.map(r => `- ${e(r)}`), ''); }
         if (cf.level.missing.length) L.push(MISSING_INTRO, '', ...cf.level.missing.map(m => `- ${e(m)}`), '');
-        for (const t of cf.level.lines) L.push(t === NOT_TESTED_LABEL || t === NOT_CONFIRMED_LABEL ? `**${e(t)}**` : e(t), '');
+        for (const t of cf.level.lines) L.push(/^NOT TESTED: /.test(t) || t === NOT_CONFIRMED_LABEL ? `**${e(t)}**` : e(t), '');
         if (cf.close) {
             L.push(`### ${cf.close.title}`, '');
             for (const [k, word] of CLOSE_GROUPS) if ((cf.close[k] || []).length) { L.push(`- ${word}:`); for (const x of cf.close[k]) L.push(`    - ${e(x)}`); }

@@ -127,6 +127,7 @@ CASE 1  CONFIRMED CAUSE
 - **The page probe sends GET requests only.** It never logs in, so a problem that needs a logged-in user is "could not test" until a test copy exists. A page that answers 5xx is asked once more after a pause (5 seconds by default), and a second broken page stops the probe.
 - **A test copy shows only what a copy can show.** Outside services, the web server's own rules, file permissions and cron jobs are listed as "Not covered in this version".
 - **Without a database file** a test site is built from your files only, with no real data.
+- **The tool needs a site folder (`--root`).** Without it the tool stops with exit code 2. An empty site folder, with no plugin or theme files, gives only a weak result: the report then says "Not looked at: the code".
 - **With only a log and no code**, the tool can name plugins from paths in the log, but it cannot check their code. "Pass" counts then mean that nothing was found, not that the code is fine.
 - **A test site built from your files can fail to start** when a plugin crashes WordPress at activation. The report then says "the sandbox test could not run, and this is no evidence either way" and shows "Not tested on a copy".
 - **The database scrub rewrites only the tables it knows** (users, some profile fields, comment author fields, the admin e-mail, WooCommerce customer and order data, and options whose names look like secrets). Post and comment text, order notes, other option values and other plugins' tables are copied as they are. Build copies only of sites you own.
@@ -274,7 +275,7 @@ A test copy uses one PHP version. Images are pinned for 8.2, 8.3 and 8.4. If the
 
 The checks are plain scripts, run with `npm test` (the offline suites, then the Docker suites), or one at a time with `npm run selftest:docs` and so on. The details, the full-run script and every skipped check are in [docs/TESTING.md](./docs/TESTING.md).
 
-Latest full run (valid): 75 suites, 4478 PASS, 0 FAIL, 7 SKIP, on one machine, on 2026-11-16. The skips are listed with their reasons in the testing document; they include PHP 7.4, 8.0 and 8.1 (no pinned image) and the git checks that cannot run in a snapshot.
+Latest full run (valid): 75 suites, 4489 PASS, 0 FAIL, 7 SKIP, on one machine, on 2026-11-17. The skips are listed with their reasons in the testing document; they include PHP 7.4, 8.0 and 8.1 (no pinned image) and the git checks that cannot run in a snapshot.
 
 ## Project structure
 

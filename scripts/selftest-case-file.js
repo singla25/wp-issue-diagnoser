@@ -27,7 +27,12 @@ const EWS = 'http://localhost82.local.com/ews/';
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const stamp = d => `${String(d.getUTCDate()).padStart(2, '0')}-${MON[d.getUTCMonth()]}-${d.getUTCFullYear()} ${d.toISOString().slice(11, 19)}`;
 
-function build(root, { log = true, templates = 5, plugins = true } = {}) {
+function build(root, { log = true, templates = 5, plugins = true, noCode = false } = {}) {
+    if (noCode) {   // H1: only a description and an error log; the site folder holds NO code file (empty plugins and themes folders)
+        fs.mkdirSync(path.join(root, 'wp-content', 'plugins'), { recursive: true }); fs.mkdirSync(path.join(root, 'wp-content', 'themes'), { recursive: true });
+        w(root, 'wp-content/debug.log', `[27-Oct-2026 10:00:01 UTC] PHP Fatal error:  Cannot redeclare my_helper() (previously declared in ${root}/wp-content/plugins/plugin-a/plugin-a.php:5) in ${root}/wp-content/plugins/plugin-b/plugin-b.php on line 8\n`);
+        return;
+    }
     w(root, 'wp-includes/version.php', "<?php\n$wp_version = '6.8.1';\n"); w(root, 'wp-config.php', '<?php\n');
     if (!plugins) { fs.mkdirSync(path.join(root, 'wp-content', 'plugins'), { recursive: true }); return; }
     w(root, 'wp-content/plugins/elementor/elementor.php', '<?php\n/**\n * Plugin Name: Elementor\n * Version: 3.35.7\n */\nnamespace Elementor;\nclass Plugin {}\n');
@@ -176,6 +181,21 @@ const OLD_HEAD = /^#{1,3} (Findings|Verdict|What is wrong|Summary)\b/m;
         if (git.error) { console.log('SKIP  git is not available: the validate.js check did not run'); skipped++; } else ok(git.status === 0, 'validate.js, retest.js and fatal-recheck.js are unmodified (git diff --quiet)');
     }
     ok(!/case-file/.test(fs.readFileSync(path.join(__dirname, '..', 'issue', 'validate.js'), 'utf8')) && !/status\s*=/.test(fs.readFileSync(path.join(__dirname, '..', 'issue', 'case-file.js'), 'utf8')), 'case-file.js assigns no status and validate.js does not know it');
+
+    group('H1: no code file was read (only a description and a log): nothing says the code was looked at or checked');
+    {
+        const nc = await run('nocode', { noCode: true }), c = nc.f.case_file, all = strings(c);
+        ok(c.status.looked === 'Looked at: your log. Not looked at: the live page, the code, a throwaway test copy.', `Looked at: ${c.status.looked}`);
+        ok(!/Looked at:[^.]*the code/.test(c.status.looked) && /Not looked at:[^.]*the code/.test(c.status.looked), 'the code is under "Not looked at", never under "Looked at"');
+        const cnt = nc.f.checkpoints.counts, items = nc.f.checkpoints.items, noCodeRows = items.filter(i => /the site folder holds no code files, so no code was read/.test(i.reason || ''));
+        ok(cnt.pass === 2 && cnt.fail === 0 && cnt.not_checked === 51, `2 pass, 0 fail, 51 not checked (${cnt.pass}, ${cnt.fail}, ${cnt.not_checked})`);
+        ok(noCodeRows.length >= 20 && noCodeRows.every(i => i.result === 'NOT CHECKED'), `${noCodeRows.length} checkpoints say "the site folder holds no code files, so no code was read" and each is NOT CHECKED`);
+        ok(/defined twice/.test(all) && !/defined twice \(\)/.test(all) && !/\(\)[ ,]/.test(all.split('\n').find(l => /defined twice/.test(l)) || '') && /no code file was read to show where/.test(all), 'the cause line has no empty parentheses and says that no code file was read');
+        const lab = c.level.lines.join('\n');
+        ok(/^NOT TESTED: what this report says comes from reading your log\. It was not tried on a copy of your site\.$/m.test(lab) && !/the code/.test(lab), 'the NOT TESTED label does not claim that the code was read');
+        const plain = await run('withcode', { probe: false });
+        ok(/Looked at: your log, the code\./.test(plain.f.case_file.status.looked) && plain.f.case_file.level.lines.join('\n').includes('reading your log and the code'), 'with code files the old words stay (control)');
+    }
 
     fs.rmSync(tmp, { recursive: true, force: true });
     console.log(failures ? `\n${failures} FAILED` : `\nAll case-file checks passed${skipped ? ` (${skipped} part(s) skipped)` : ''}.`);

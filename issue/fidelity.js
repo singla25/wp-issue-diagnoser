@@ -189,7 +189,7 @@ function clean(fd) {
 }
 
 // ---- the reader's words (gate report only; owner wording) ----
-const MISMATCH = 'The test copy did not show the same problem as your site, so nothing from it is used. The cause stays not confirmed.';
+const MISMATCH = 'The test copy did not show the same problem as your site, so nothing from it is used. The confirmation above comes from your log and your code only.';
 const NOT_TESTED = 'The test copy could not be compared with your site, because no failing page or error message was available to compare. Nothing from it is used.';
 const statusOnlyText = c => `The test copy showed the same kind of failure (${c === 'white' ? 'a blank page' : `HTTP ${c || '5xx'}`} on the same page). No error message was available on either side to compare, so this is weaker evidence.`;
 // absolute host paths out of a reason (findings.json and the reader alike): a wp-content path becomes relative, any other one 'a folder on this computer'

@@ -125,6 +125,12 @@ const T = rows => cpMod.tally(rows);
     // the guard: the work files of the ews run are still there, but the caller says there was no root and no probe: nothing may turn into a PASS
     const guard = cpMod.evaluate({ work: cpMod.loadWork(ews.dir), validation: ews.val, ran: { probe: false, sandbox: false }, hasRoot: false });
     ok(T(guard).pass === 0 && T(guard).fail === 0, 'hasRoot false with leftover work files: still no PASS and no FAIL from a missing source');
+    // H1: a site folder was given but no code file was read: every checkpoint that needs code is NOT CHECKED, never PASS (the log rows still count)
+    const rNoCode = cpMod.evaluate({ work: cpMod.loadWork(ews.dir), validation: ews.val, ran: { probe: false, sandbox: false }, hasRoot: true, hasCode: false }), tnc = T(rNoCode), bnc = by(rNoCode);
+    ok(rNoCode.length === 53 && tnc.fail === 0 && tnc.pass < te.pass, `hasCode false: no FAIL and fewer PASS than with code (${tnc.pass} < ${te.pass})`);
+    ok(bnc['cp-02'].result === 'NOT CHECKED' && /the site folder holds no code files, so no code was read/.test(bnc['cp-02'].reason) && bnc['cp-14'].result === 'NOT CHECKED', 'hasCode false: a code row (cp-02) and the template-copies row (cp-14) are NOT CHECKED with the reason');
+    ok(rNoCode.filter(r => /holds no code files/.test(r.reason)).every(r => r.result === 'NOT CHECKED') && bnc['cp-30'].result === 'PASS', 'hasCode false: every row with that reason is NOT CHECKED; the log row (cp-30) still passes');
+    ok(by(cpMod.evaluate({ work: cpMod.loadWork(ews.dir), validation: ews.val, ran: { probe: false, sandbox: false }, hasRoot: true }))['cp-02'].result === 'PASS', 'hasCode left out (default) behaves as before: cp-02 PASS');
     const fakeProbe = { planned: 2, protection: null, pages: [{ url: 'http://127.0.0.1:9/', viewport: { name: 'desktop', width: 1280 }, loaded: true, status: 200, console_errors: [], page_errors: [], error_responses: [], failed_requests: [], redirects: [], text_flags: { blank: false, critical: false } }] };
     const withFake = (probe, ran) => cpMod.evaluate({ work: { ...cpMod.loadWork(ews.dir), probe }, validation: ews.val, ran, hasRoot: true });
     ok(by(withFake(fakeProbe, { probe: false }))['cp-39'].result === 'NOT CHECKED', 'probe.json holds a page but ran.probe is false: NOT CHECKED (the ran guard)');
