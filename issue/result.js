@@ -6,6 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 const store = require('../lib/issue-store');
+const redact = require('../lib/redact');
 const plainNames = require('../lib/plain-names');
 const schema = require('../lib/schema');
 
@@ -480,14 +481,16 @@ function write(id, { validation, plans, dir, root, policy, gate = false, verbose
     }
     // with the gate on (and no --verbose) tasks are written only for what is shown: nobody is asked to patch an unconfirmed possibility
     const t = tasks(gate && !verbose ? { ...f, resolution: f.resolution.filter(r => shown(f).has(r.hypothesis)) } : f, { root, policy });
-    fs.writeFileSync(R('findings.json'), JSON.stringify(f, null, 2) + '\n', { mode: 0o600 });
+    // the last pass (lib/redact.js): findings.json, issue.html, ISSUE-REPORT.md, tasks.md and FIX-PLAN.md are written from a copy in which every string is masked (the Markdown files are masked once more as text); with no secret in them the files are byte for byte what they were
+    const safe = redact.deep(f), keepClean = redact.text;
+    fs.writeFileSync(R('findings.json'), JSON.stringify(safe, null, 2) + '\n', { mode: 0o600 });
     const issueHtml = require('../lib/issue-html');
-    fs.writeFileSync(R('issue.html'), issueHtml.build(f, issueHtml.embedImages(dir, store.load(id).images)), { mode: 0o600 });
+    fs.writeFileSync(R('issue.html'), issueHtml.build(safe, issueHtml.embedImages(dir, store.load(id).images)), { mode: 0o600 });   // built from the masked copy; no text pass over the HTML (it would meet the JSON escapes of the embedded data)
     try { require('./index-page').write(); } catch { /* the index is a convenience; the issue's own files are written */ }
-    fs.writeFileSync(R('ISSUE-REPORT.md'), gate ? gateMarkdown(f) : markdown(f), { mode: 0o600 });
-    fs.writeFileSync(R('tasks.md'), t.markdown, { mode: 0o600 });
+    fs.writeFileSync(R('ISSUE-REPORT.md'), keepClean(gate ? gateMarkdown(safe) : markdown(safe)), { mode: 0o600 });
+    fs.writeFileSync(R('tasks.md'), keepClean(t.markdown), { mode: 0o600 });
     // FIX-PLAN.md (gate on only; issue/fix-plan.js): written when there is a cause or a sign to plan for, from findings.json and the saved plan answers; no file otherwise
-    if (gate) require('./fix-plan').writeFor(id, dir, f);
+    if (gate) require('./fix-plan').writeFor(id, dir, safe);
     return { findings: f, tasks: t.count, dir: R() };
 }
 

@@ -43,7 +43,7 @@ function pathOf(u) {
 }
 // 6d-3: what two pages are COMPARED by: the normalised path and the query as written (no fragment). Never stored; never a bare path suffix.
 function pageKeyOf(u) {
-    let x; try { x = new URL(String(u), 'http://x/'); } catch { return null; }
+    let x; try { x = new URL(require('../lib/redact').text(String(u)), 'http://x/'); } catch { return null; }   // the stored page addresses are masked: both sides are compared masked
     return `${x.pathname.replace(/\/+$/, '') || '/'}${x.search}`.slice(0, 600);
 }
 // the kind of failure of one observed page: '5xx', '4xx', 'white' (a success status with a blank or critical-error page), or null (it loaded fine)

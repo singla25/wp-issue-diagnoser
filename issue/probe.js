@@ -21,6 +21,13 @@ const VIEWPORTS = { desktop: [1440, 900], laptop: [1280, 800], tablet: [768, 102
 const DEFAULTS = { probePages: 3, viewports: ['laptop', 'mobile'], maxLoads: 8, timeoutMs: 10 * 60 * 1000 };
 const STRIP_ENV = /^(PSI_API_KEY|WPSCAN_API_TOKEN|PG_TEST_.*)$/;
 const cooldownFile = env => env.PG_PROBE_COOLDOWN_FILE || path.join(__dirname, '..', 'state', 'probe-cooldown.json');
+// the worker's raw result (probe/worker.js `cut` does not redact): every string goes through lib/redact.js (only secret-looking values change, the rest of an address and its path stay); the stored result.json is rewritten with the masked copy; the caller keeps using the raw data for matching and the oracle
+function maskRaw(raw, outFile) {
+    if (!raw) return raw;
+    const clean = redact.deep(raw);
+    try { fs.writeFileSync(outFile, JSON.stringify(clean), { mode: 0o600 }); } catch { /* the in-memory copy is clean; the stored file is the worker's */ }
+    return clean;
+}
 const cut = (s, n = 200) => redact.text(String(s ?? '').replace(/\s+/g, ' ').trim()).slice(0, n);
 const step = (id, label, status, reason = null, extra = {}) => ({ ...extra, id, label, status, reason }); // the fixed fields win: an extra field can never overwrite the status
 
@@ -176,6 +183,7 @@ async function run(id, { root = null, options = {}, env = process.env, imageFile
     const w = await runWorker({ file: jobFile }, env, options.timeoutMs || DEFAULTS.timeoutMs);
     const growth = logGrowth(mark);
     let raw = null; try { raw = JSON.parse(fs.readFileSync(outFile, 'utf8')); } catch { /* worker died */ }
+    maskRaw(raw, outFile);   // the worker writes addresses, console texts and stacks as they are: the STORED result.json is rewritten masked (the raw data stays in memory: the oracle and the page matching read it)
 
     if (!raw || raw.error) {
         const why = w.killed ? `the probe worker ran longer than ${Math.round((options.timeoutMs || DEFAULTS.timeoutMs) / 60000)} minutes and was stopped` : `the probe worker failed: ${cut((raw && raw.error) || w.err || `exit ${w.code}`, 240)}`;
@@ -190,8 +198,8 @@ async function run(id, { root = null, options = {}, env = process.env, imageFile
     // keep the screenshots and diff image with the issue; strip raw page text before anything is written
     const keep = f => { if (!f || !fs.existsSync(f)) return null; const dest = path.join('work', 'probe', 'screenshots', path.basename(f)); return path.relative(dir, f) === dest ? dest : dest; };
     const pagesFull = raw.pages.map(norm);
-    result.pages = pagesFull.map(({ text, ...p }) => ({ ...p, text_chars: (text || '').length, text_flags: oracleMod.textFlags(text), text_preview: cut(text, 300), screenshot: keep(p.screenshot),
-        console_errors: p.console_errors.map(e => ({ ...e, text: cut(e.text, 400) })), page_errors: p.page_errors.map(e => ({ ...e, text: cut(e.text, 400) })) }));
+    result.pages = redact.deep(pagesFull.map(({ text, ...p }) => ({ ...p, text_chars: (text || '').length, text_flags: oracleMod.textFlags(text), text_preview: cut(text, 300), screenshot: keep(p.screenshot),
+        console_errors: p.console_errors.map(e => ({ ...e, text: cut(e.text, 400) })), page_errors: p.page_errors.map(e => ({ ...e, text: cut(e.text, 400) })) })));
     result.protection = raw.protection; result.governor = raw.governor; result.public_check = raw.public_check; result.notes = [...pl.notes, ...(raw.layout_notes || [])];
     if (raw.image_diff) result.image_diff = { ...(result.image_diff || {}), ...(raw.image_diff.ok ? { mode: 'probe', ...raw.image_diff, diff_image: keep(raw.image_diff.diff_image) } : { mode: 'probe', ...raw.image_diff }) };
     if (pl.expected && !raw.image_diff && !raw.protection) result.image_diff = { ...(result.image_diff || {}), mode: 'probe', ok: false, reason: 'the page for the expected image was not loaded' };
@@ -254,6 +262,7 @@ async function observeSandbox({ base, pages, vp, measure = [], click = null, sta
     const childEnv = { ...env }; if (!login) { delete childEnv.PG_TEST_USER; delete childEnv.PG_TEST_PASSWORD; }
     const w = await new Promise(resolve => { const c = spawn(process.execPath, [WORKER, jobFile], { env: Object.fromEntries(Object.entries(childEnv).filter(([k]) => !/^(PSI_API_KEY|WPSCAN_API_TOKEN)$/.test(k) && (login || !/^PG_TEST_/.test(k)))), stdio: ['ignore', 'ignore', 'pipe'] }); let err = ''; c.stderr.on('data', d => { err = (err + d).slice(-1000); }); const t = setTimeout(() => c.kill('SIGKILL'), options.timeoutMs || 5 * 60 * 1000); c.on('close', code => { clearTimeout(t); resolve({ code, err }); }); });
     let raw = null; try { raw = JSON.parse(fs.readFileSync(outFile, 'utf8')); } catch { /* worker died */ }
+    maskRaw(raw, outFile);   // the worker writes addresses, console texts and stacks as they are: the STORED result.json is rewritten masked (the raw data stays in memory: the oracle and the page matching read it)
     if (!raw || raw.error) return { ok: false, reason: `the sandbox probe failed: ${cut((raw && raw.error) || w.err || `exit ${w.code}`, 200)}` };
     return { ok: true, pagesFull: raw.pages.map(norm), planned: typeof raw.planned === 'number' ? raw.planned : pages.length * vp.length, protection: raw.protection, login: raw.login || null };
 }
@@ -279,4 +288,4 @@ async function runSandbox(id, { url, stateDir, options = {}, env = process.env, 
     return { ok: true, oracle, status_codes: pagesFull.map(p => p.reused_status || p.status), fatal_text: pagesFull.some(p => /There has been a critical error|Fatal error|Parse error/i.test(p.text || '')), login: o.login || null, pages: pagesFull.map(({ text, ...p }) => ({ ...p, text_chars: (text || '').length, text_flags: oracleMod.textFlags(text) })) };
 }
 
-module.exports = { runSandbox, observeSandbox, viewportsFor, sandboxBase, absPages, run, plan, cluesFrom, logMark, logGrowth, browserReady, VIEWPORTS, DEFAULTS, cooldownFile };
+module.exports = { maskRaw, runSandbox, observeSandbox, viewportsFor, sandboxBase, absPages, run, plan, cluesFrom, logMark, logGrowth, browserReady, VIEWPORTS, DEFAULTS, cooldownFile };
