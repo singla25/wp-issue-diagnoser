@@ -61,7 +61,7 @@ The test copy has limits on its network. Built from a database file, the WordPre
 
 The top of the report is plain sentences, so you can forward it. Technical detail (files, lines, the error text) is further down, under "For a developer".
 
-The STATUS line counts what was found, for example "1 likely cause (not confirmed) · 1 thing to check · 0 confirmed". A "Likely cause (not confirmed)" comes from your log and the code, but no second, independent test proved it. A "Confirmed cause" is backed by two independent checks. "Something else to check (probably not the crash)" is worth a look, but probably did not cause the problem.
+The STATUS line counts what was found, for example "1 likely cause (not confirmed) · 1 thing to check · 0 confirmed". A "Likely cause (not confirmed)" comes from your log and the code, but no second, independent test proved it. A "Confirmed cause" is backed by two independent checks of your log and your code. It is not a test on a copy unless the level heading says so. "Something else to check (probably not the crash)" is worth a look, but probably did not cause the problem.
 
 A heading then says how far the testing went. There are four levels:
 
@@ -69,7 +69,7 @@ A heading then says how far the testing went. There are four levels:
 |---|---|
 | Tested on a copy of your site | A test copy built from your database showed the same problem as your site: the same page, the same kind of failure and the same error. This is the strongest result. In a weaker case ("status only") the copy showed only the same kind of failure on the same page, with no error message to compare; the report then says "this is weaker evidence". |
 | Tested on a test site built from your files | A test copy built from your files only (no database file) was tried and gave an answer (yes or no). It has none of your site's data, so it is weaker. If it gave no answer, or your site's own error is a database-connection error, the report says "Not tested on a copy" instead. |
-| Not tested on a copy | No test copy was used, or one was built but your site had no failing page to compare it with (then the label NOT CONFIRMED is shown). The report lists what was missing (a database export file, Docker, the site's code, or a page that fails on your site to compare with), or says "You chose not to build a test copy." What it says then comes from reading your log and the code, and is labelled NOT TESTED. |
+| Not tested on a copy | No test copy was used, or one was built from your files only and could not run or gave no answer, or your site had no failing page to compare it with (then the label NOT CONFIRMED is shown). The report lists what was missing (a database export file, Docker, the site's code, or a page that fails on your site to compare with), or says "You chose not to build a test copy." What it says then comes from reading your log and the code, and is labelled NOT TESTED. |
 | The test copy could not confirm this | A test copy was tried, but it could not run, or it did not show the same problem. |
 
 ```mermaid
@@ -124,9 +124,11 @@ CASE 1  CONFIRMED CAUSE
 
 - **Not proven on many real sites.** The tool is in active development. It is checked by an automated test suite on test fixtures, and passing tests show that the checks do what the tests describe, not that every WordPress site will be analysed correctly. How often the likely cause is right on a wide range of real sites is **not measured yet**.
 - **One PHP version per test copy.** The version is chosen once from the one you state or the tool detects. The default is PHP 8.3, and images are pinned for PHP 8.2, 8.3 and 8.4. PHP 7.4, 8.0 and 8.1 have no pinned image: the tests for them skip. For 8.0 and 8.1 a copy uses the nearest available 8.x version, and for 7.4 it uses the default (8.3); the report says which, and "not matched" when it is not the same version. The problem is not re-run on other PHP versions.
-- **The page probe sends GET requests only.** It never logs in, so a problem that needs a logged-in user is "could not test" until a test copy exists.
+- **The page probe sends GET requests only.** It never logs in, so a problem that needs a logged-in user is "could not test" until a test copy exists. A page that answers 5xx is asked once more after a pause (5 seconds by default), and a second broken page stops the probe.
 - **A test copy shows only what a copy can show.** Outside services, the web server's own rules, file permissions and cron jobs are listed as "Not covered in this version".
 - **Without a database file** a test site is built from your files only, with no real data.
+- **With only a log and no code**, the tool can name plugins from paths in the log, but it cannot check their code. "Pass" counts then mean that nothing was found, not that the code is fine.
+- **A test site built from your files can fail to start** when a plugin crashes WordPress at activation. The report then says "the sandbox test could not run, and this is no evidence either way" and shows "Not tested on a copy".
 - **The database scrub rewrites only the tables it knows** (users, some profile fields, comment author fields, the admin e-mail, WooCommerce customer and order data, and options whose names look like secrets). Post and comment text, order notes, other option values and other plugins' tables are copied as they are. Build copies only of sites you own.
 - **Patches cover four patterns** (a hook removed at the wrong priority, a missing `function_exists` or `class_exists` guard, a custom copy replacing a core script or style, a dependency on a handle nobody registers). Everything else is "needs a human".
 - **Bisection cannot explain a symptom that is present with no plugins at all.** The report then says so and blames no plugin.
