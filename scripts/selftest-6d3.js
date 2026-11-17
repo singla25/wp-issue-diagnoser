@@ -187,7 +187,8 @@ const noConclusion = r => r.status === 'inconclusive' && !r.causes.length && r.t
     ok(/^## Not tested on a copy$/m.test(md2) && md2.includes(caseFile.MISSING_INTRO) && md2.includes(`- ${caseFile.MISSING_TEXT.database}`) && md2.includes(`**${caseFile.NOT_TESTED_LABEL}**`) && !cf2.close, 'level 2 in Markdown: the heading, what is missing, the NOT TESTED label; no box without a copy');
     const cf3 = caseFile.build(mkF(), { comps: [], facts, fidelity: FD('did-not-match'), replica: RP() });
     const md3 = caseFile.markdown(cf3, t => String(t)).join('\n');
-    ok(/^## The test copy could not confirm this$/m.test(md3) && md3.indexOf(fid.MISMATCH) > md3.indexOf('## The test copy could not confirm this') && occurrences(md3, fid.MISMATCH) === 1, 'level 3: the existing owner-approved mismatch sentence, once, under the heading');
+    const MISMATCH_FULL = 'The test copy did not show the same problem as your site, so nothing from it is used. The cause stays not confirmed.';   // H2: the head (fid.MISMATCH) plus the variant for a report with no confirmed case
+    ok(/^## The test copy could not confirm this$/m.test(md3) && MISMATCH_FULL.startsWith(fid.MISMATCH) && cf3.status.fidelity.line === MISMATCH_FULL && md3.indexOf(MISMATCH_FULL) > md3.indexOf('## The test copy could not confirm this') && occurrences(md3, MISMATCH_FULL) === 1 && occurrences(md3, fid.MISMATCH) === 1, 'level 3: the owner-approved mismatch sentence (the head and the variant, here "The cause stays not confirmed."), once, under the heading');
     ok(cf3.close.did_not_match.some(x => /^The same error: your site shows class Elementor/.test(x)), 'the box says the same fatal did not match');
 
     const cfNP = caseFile.build(mkF(), { comps: [], facts, fidelity: FD('matched', { real_page: false }), replica: RP(), versions: VERS, activePlugins: { ...AP, missing_files: [] } });
