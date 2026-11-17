@@ -1,6 +1,6 @@
 # Roadmap: wp-issue-diagnoser
 
-Last updated: 2026-11-17, after tasks 1a, 1b and 1c (commits a14f3d3, 24e0a0e and the commit that adds this file). Update the status columns after every step.
+Last updated: 2026-11-17, after task 2 (D1, commit 566d1e1). Update the status columns after every step.
 
 ## How to use this file
 
@@ -32,6 +32,10 @@ Last green full run: p-h1 on 2026-11-17. 75 suites (65 offline and 10 Docker), 4
 | N1: command renamed to `wp-issue-diagnoser`, script `diagnose` (Stage 1) | 5e890ad |
 | H1: report wording, no code means not looked at, not checked | 0dfa3dc |
 | H2: true sentence for a mismatch, code files found but not read | 93659c0 |
+| 1a: the 6d3 mismatch check tightened | a14f3d3 |
+| 1b: probe counts one connection error once (P1) | 24e0a0e |
+| 1c: this roadmap added to the repository and the docs map | 786646a |
+| 2 (D1): design of input modes and question phases, `docs/INPUT-MODES.md` (a proposal, nothing built) | 566d1e1 |
 
 Push status: check with `git log origin/main..HEAD`. The owner pushes only a green state.
 
@@ -41,9 +45,9 @@ Push status: check with `git log origin/main..HEAD`. The owner pushes only a gre
 |---|---|---|---|---|
 | 1a | Tighten `selftest-6d3.js:190` (it now checks a shorter prefix than before) | 15 min | A test must never get weaker. | done (a14f3d3) |
 | 1b | P1: probe counts one connection error twice (`probe/safety.js`); remove the two extra `recordOutcome` calls, add a mock-page test | 45 min | A real bug in a safety rule. Small and low risk. | done (24e0a0e) |
-| 1c | Add this roadmap to the repository and to the docs map | 20 min | The plan must survive a compacted chat. | done (the commit that adds this file) |
-| 2 | D1: design of input modes and question phases (`docs/INPUT-MODES.md`, no code) | 1 to 2 h | Cheap, no code. It decides what we build and in which order. | waiting for 1a to 1c |
-| 3 | Build the no-code mode in small steps with tests: (a) question phases in the terminal, (b) live observations (console, network, debug log if exposed), (c) plugin and theme detection from the public page, (d) Site Health text reader, (e) report layout with "possible, not confirmed" | 1.5 to 2.5 days | Most WordPress users cannot give files or a database. This is the widest audience. The exact order comes from D1. | waiting for 2 |
+| 1c | Add this roadmap to the repository and to the docs map | 20 min | The plan must survive a compacted chat. | done (786646a) |
+| 2 | D1: design of input modes and question phases (`docs/INPUT-MODES.md`, no code) | 1 to 2 h | Cheap, no code. It decides what we build and in which order. | done (566d1e1) |
+| 3 | Build the no-code mode in small steps with tests: (a) question phases in the terminal, (b) live observations (console, network, debug log if exposed), (c) plugin and theme detection from the public page, (d) Site Health text reader, (e) report layout with "possible, not confirmed" | 1.5 to 2.5 days | Most WordPress users cannot give files or a database. This is the widest audience. The exact order comes from D1. | next (the exact order comes from `docs/INPUT-MODES.md`, section 7: S1 to S7, owner to approve) |
 | 4 | Real-site runs by the owner on 2 or 3 real sites, then review of the reports | 1 to 2 h | Tests use made-up sites. Real sites find what tests miss. After 3, so the new mode is tested too. | waiting for 3 |
 | 5a | C6: docs leftovers, naming, GET-only wording, git-skip message, comments, `.claude/scheduled_tasks.lock` line in `.gitignore`, case-file versus HEAD comparison | 1 to 1.5 h | Small and safe. | waiting |
 | 5b | C7: clean-checkout test replaces the isolated-copy test, rewrite `selftest:hints` for standalone mode, fix the Stage 2 messages that tests still pin | 1.5 to 2.5 h | Proves that a fresh clone works. | waiting |
