@@ -129,7 +129,7 @@ function lookedAt(facts, { box = false, copyBuilt = false, liveLoop = false } = 
     const yes = [], no = [];
     (facts.hasLog ? yes : no).push('your log');
     if (facts.probeRan) yes.push('the live page'); else if (liveLoop) yes.push(LOOP_LOOKED); else no.push('the live page');
-    if (facts.hasCode) yes.push(facts.phpSkipped ? `the code (${skippedText(facts.phpSkippedDetail)})` : 'the code'); else no.push('the code');
+    if (facts.hasCode) yes.push(facts.phpSkipped ? `the code (${skippedText(facts.phpSkippedDetail)})` : 'the code'); else no.push(facts.codeFound > 0 ? `the code (${facts.codeFound} PHP file${facts.codeFound === 1 ? ' was' : 's were'} found, but none was analysed)` : 'the code');
     if (facts.sandboxRan) yes.push('a throwaway test copy'); else if (copyBuilt) yes.push('a throwaway test copy (it was built)'); else no.push(facts.sandboxFailed ? 'a throwaway test copy (it could not run)' : 'a throwaway test copy');
     // the PHP version only as the reporter stated it; the host's PHP (or the sandbox image's) is never claimed as the site's
     if (facts.php) yes.push(`PHP ${facts.php} (${facts.phpSource === 'you confirmed' ? 'you confirmed' : 'you told us'})`);
@@ -176,6 +176,7 @@ function build(f, ctx) {
         const sure = bc.last_seen ? bc.sure.map(l => l.replace(`, last seen ${bc.last_seen}`, '')) : bc.sure;
         return [...sure, ...liveRows(sureLive), ...(bc.last_seen ? [`Last seen in your log on ${bc.last_seen}.`] : []), ...(facts.probeRan || loops.length ? [] : [NOT_LIVE_SENTENCE])];
     };
+    const confirmedIds = [];   // H2: the hypotheses behind the confirmed cases (what the mismatch sentence must be true about)
     const addBox = () => {
         const likely = box.tier === 'likely';
         const nChecks = checksOf(boxId);
@@ -189,6 +190,7 @@ function build(f, ctx) {
         else rows.push(['How sure', [...confirmedSure(), 'Marked as confirmed; the details for a developer show what it rests on.']]);
         if (box.note) rows.push(['Note', [box.note]]);
         rows.push(['What to do', bc.todo]);
+        if (!likely) confirmedIds.push(boxId);
         cases.push({ kind: likely ? 'likely' : 'confirmed', heading: likely ? (box.age === 'old' ? `${LIKELY}, old log entry` : LIKELY) : CONFIRMED, rows });
     };
     const addGeneric = (x, kind, heading) => {
@@ -205,6 +207,7 @@ function build(f, ctx) {
         for (const b of x.breaking_because || []) sure.push(`Seen: ${b.reason}`);
         if (kind === 'likely') sure.push(notConfirmedSentence(sbx));
         rows.push(['How sure', sure]);
+        if (kind === 'confirmed') confirmedIds.push(x.id);
         if (x.rollback) rows.push(['What to do', [x.rollback.intro, ...x.rollback.options.map(o => `${o.title}: ${o.undo}`)].filter(Boolean)]);
         cases.push({ kind, heading, rows });
     };
@@ -282,7 +285,7 @@ function build(f, ctx) {
     dev.push(...activePluginLines(ctx.activePlugins));
     return {
         title: f.issue_title_short || f.issue.title,
-        status: { ...n, line: statusLine(n), looked: looked.line, php: looked.php, note: f.log_note || null, sandbox_note: ctx.sandboxNote || null, ...(ctx.logHelp && ctx.logHelp.length ? { log_help: ctx.logHelp.slice() } : {}), ...(ctx.copyLogLines && ctx.copyLogLines.length ? { copy_log: ctx.copyLogLines.slice() } : {}), ...((ctx.cautions || []).length || address ? { cautions: [...(address ? [address] : []), ...(ctx.cautions || [])] } : {}), ...fidelityPart(ctx.fidelity, answers), empty: !n.likely && !n.confirmed && !n.check && !n.signs },
+        status: { ...n, line: statusLine(n), looked: looked.line, php: looked.php, note: f.log_note || null, sandbox_note: ctx.sandboxNote || null, ...(ctx.logHelp && ctx.logHelp.length ? { log_help: ctx.logHelp.slice() } : {}), ...(ctx.copyLogLines && ctx.copyLogLines.length ? { copy_log: ctx.copyLogLines.slice() } : {}), ...((ctx.cautions || []).length || address ? { cautions: [...(address ? [address] : []), ...(ctx.cautions || [])] } : {}), ...fidelityPart(ctx.fidelity, answers, confirmationBasis(f.hypotheses, confirmedIds, facts)), empty: !n.likely && !n.confirmed && !n.check && !n.signs },
         level, ...(close ? { close } : {}),
         see, no_cause_note: noCause ? NO_CAUSE_NOTE : null, cases, checked, developer: dev,
         excerpt: box && cd && cd.excerpt && cd.excerpt.available ? { title: `${cd.excerpt.file}, lines ${cd.excerpt.from} to ${cd.excerpt.to} (line ${cd.excerpt.cited} is marked with >)`, lines: causeDetail.excerptLines(cd.excerpt) } : null
@@ -296,7 +299,7 @@ function build(f, ctx) {
 //   4 Tested on a test site built from your files   a copy built from the files only (no database file) showed the problem, or did not (owner, 2026-11-12)
 // Wording only: no status and no verdict changes with the level.
 const LEVEL_HEADING = { 1: 'Tested on a copy of your site', 2: 'Not tested on a copy', 3: 'The test copy could not confirm this' };
-const MISSING_TEXT = { database: 'a database export file of your site (.sql or .sql.gz)', docker: 'Docker on this computer, to build the test copy', code: 'the code of your site (its wp-content folder)', page: 'a page that fails on your site, to compare with the test copy', live: 'a copy built from your database is never made for a live site (try it on a local or staging copy of the site)' };
+const MISSING_TEXT = { database: 'a database export file of your site (.sql or .sql.gz)', docker: 'Docker on this computer, to build the test copy', code: 'the code of your site (its wp-content folder)', codeUnread: 'the code of your site: PHP files were found, but none could be analysed (too large, not readable or protected)', page: 'a page that fails on your site, to compare with the test copy', live: 'a copy built from your database is never made for a live site (try it on a local or staging copy of the site)' };
 const MISSING_INTRO = 'What a test on a copy of your site needs, and was missing:';
 const NOT_TESTED_LABEL = 'NOT TESTED: what this report says comes from reading your log and the code. It was not tried on a copy of your site.';
 // what the report was really built from: the label never says the code (or the log) was read when it was not (H1)
@@ -329,12 +332,12 @@ function copyLevel(fd, rp, facts = {}) {
     // site's database settings, so it says nothing about that error; the old rule (level 2) stays for it
     if (!fd && !facts.dbError && r.copy_built === true && !r.database_file && r.docker === true && r.skipped !== true && r.live !== true && !r.db_dropped_live && facts.hasCode !== false && (sbr === 'yes' || sbr === 'no'))
         return { n: 4, heading: FILES_ONLY_HEADING, missing: [MISSING_TEXT.database], lines: [sbr === 'yes' ? FILES_ONLY_YES : FILES_ONLY_NO] };
-    const inputsMissing = () => [...(r.db_dropped_live ? ['live'] : r.database_file ? [] : ['database']), ...(r.docker === false ? ['docker'] : []), ...(facts.hasCode === false ? ['code'] : [])];
+    const inputsMissing = () => [...(r.db_dropped_live ? ['live'] : r.database_file ? [] : ['database']), ...(r.docker === false ? ['docker'] : []), ...(facts.hasCode === false ? [facts.codeFound > 0 ? 'codeUnread' : 'code'] : [])];
     if (fd && fd.counts) return fd.real_page === false ? { ...two(['page']), lines: [NOT_CONFIRMED_LABEL] } : { n: 1, heading: LEVEL_HEADING[1], missing: [], lines: fd.level === 'matched' ? [MATCHED_LINE] : [] };
     if (fd && fd.level === 'did-not-match') return { n: 3, heading: LEVEL_HEADING[3], missing: [], lines: [] };
     if (fd && fd.level === 'could-not-test') return r.docker === false ? two(['docker', ...inputsMissing()]) : { n: 3, heading: LEVEL_HEADING[3], missing: [], lines: [] };
     if (fd && fd.level === 'not-tested') {
-        if (facts.hasCode === false || (fd.reasons || []).includes('the test copy was not built')) return two(['code']);
+        if (facts.hasCode === false || (fd.reasons || []).includes('the test copy was not built')) return two([facts.codeFound > 0 ? 'codeUnread' : 'code']);
         if ((fd.reasons || []).some(x => x === NO_PAGE_REASON)) return two(['page']);
         return { n: 3, heading: LEVEL_HEADING[3], missing: [], lines: [] };
     }
@@ -376,9 +379,24 @@ function closeness({ versions, activePlugins, fidelity } = {}) {
 // 6d-2: the fidelity check of the test copy in the reader's words (issue/fidelity.js readerText): { line, reasons }, only when there is something to say
 // The page used for the comparison is THE ADDRESS PAGE and it answered 4xx: its sentence (wrong address, or protection) is the one likely reason and the
 // generic list is dropped. A 4xx on any other page does not change the list. answers: liveAnswers() of the case file.
-function fidelityPart(fd, answers = null) {
+// H2: what a confirmed cause rests on, in words, WITHOUT the test copy (it did not match): from the supports the validator counted (independent_kinds),
+// the fatal re-check rule (A: the log fatal and the live 5xx; B: the log fatal and no definition in the code of the copy) and the two declaration sites.
+// A confirmed hypothesis with no such data falls back to what was looked at (the same facts as the "Looked at" line).
+function confirmationBasis(hyps, ids, facts = {}) {
+    if (!ids.length) return { confirmed: false, words: [] };
+    const got = new Set();
+    for (const id of ids) {
+        const h = (hyps || []).find(x => x.id === id) || {}, k = h.independent_kinds || [], sup = (h.fatal_recheck && h.fatal_recheck.supports) || [];
+        if (k.includes('log') || sup.includes('fatal-site')) got.add('your log');
+        if (k.includes('probe') || sup.includes('probe-5xx')) got.add('the live page');
+        if (k.includes('observation') || k.includes('collision') || sup.includes('class-undefined') || (h.checks || []).some(c => c.id === 'declaration-sites' && 'PASSED' === c.status) || (h.evidence_checked || []).some(e => ['verified', 'verified-file-only'].includes(e.status))) got.add('your code');
+    }
+    if (!got.size) { if (facts.hasLog) got.add('your log'); if (facts.probeRan) got.add('the live page'); if (facts.hasCode) got.add('your code'); }
+    return { confirmed: true, words: ['your log', 'the live page', 'your code'].filter(w => got.has(w)) };
+}
+function fidelityPart(fd, answers = null, basis = null) {
     const fid = fd ? require('./fidelity') : null;
-    const t = fd ? fid.readerText(fd) : null;
+    const t = fd ? fid.readerText(fd, basis) : null;
     if (!t) return {};
     const c = fid.clean(fd);
     if (c && c.status_class === '4xx' && answers && answers.address && c.page && fid.pathOf(answers.addressPage.url) === c.page) return { fidelity: { line: t.line, reasons: [answers.address] } };

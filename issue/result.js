@@ -165,7 +165,7 @@ const TYPE_TEXT = {
     'plugin-core-php': 'a problem involving PHP or WordPress itself', 'environment-server': 'a limit or a setting of your hosting', compromise: 'possible compromise signs', unclassified: 'a single plugin, theme or file'
 };
 function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixed, issue, dir, policy }) {
-    const cc = W('custom-code.json') || { observations: [] }, codeFilesRead = ((W('custom-code.json') || {}).components || []).reduce((n, c) => n + (Number((c.files || {}).parsed) || 0), 0), comps = (W('components.json') || { components: [] }).components || [];
+    const cc = W('custom-code.json') || { observations: [] }, codeFilesRead = ((W('custom-code.json') || {}).components || []).reduce((n, c) => n + (Number((c.files || {}).parsed) || 0), 0), codeFilesFound = ((W('custom-code.json') || {}).components || []).reduce((n, c) => n + (Number((c.files || {}).total) || 0), 0), comps = (W('components.json') || { components: [] }).components || [];
     const obsById = new Map((cc.observations || []).map(o => [o.id, o]));
     const names = {}, kinds = {};
     for (const c of comps) { names[c.ref] = c.name || c.slug; if (c.slug) names[c.slug] = c.name || c.slug; kinds[c.ref] = c.kind === 'theme' ? 'theme' : c.kind === 'mu' ? 'mu' : 'plugin'; }
@@ -207,7 +207,7 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
             }
         }
     }
-    const cpMod = require('./checkpoints'), cpRows = cpMod.evaluate({ work: cpMod.loadWork(dir), validation, ran, hasRoot: !!issue.root, hasCode: !!issue.root && codeFilesRead > 0, issue, tie });
+    const cpMod = require('./checkpoints'), cpRows = cpMod.evaluate({ work: cpMod.loadWork(dir), validation, ran, hasRoot: !!issue.root, hasCode: !!issue.root && codeFilesRead > 0, codeFound: codeFilesFound, issue, tie });
     const cpCounts = cpMod.tally(cpRows);
     f.checkpoints = { counts: cpCounts, items: cpRows.map(r => ({ id: r.id, title: r.title, result: r.result, tied_to_crash: !!r.tied_to_crash, breaks_site: r.breaks_site, reason: r.reason, ...(r.same_as ? { same_as: r.same_as } : {}) })) };
     const cpText = plainNames.checkpointText(cpRows.map(r => ({ ...r, title: plainNames.plainText(r.title, comps), reason: plainNames.plainText(r.reason, comps) })), cpCounts);
@@ -334,7 +334,7 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
             activePlugins: sbx && sbx.sandbox ? cleanActivePlugins(W('active-plugins.json')) : null,
             // 6d-2: the fidelity check of a copy from a database file (the reader's sentence; and whether the copy may be named among the checks that counted)
             fidelity: fidelityOf(sbx, W),
-            facts: { hasLog: !!((lg.files || []).length || (lg.entries || []).length), hasCode: !!issue.root && codeFilesRead > 0, phpSkipped: phpSk.total > 0, phpSkippedDetail: phpSk, probeRan: ran.probe, sandboxRan: ran.sandbox, sandboxFailed: !!(sbx && sbx.could_not_run),
+            facts: { hasLog: !!((lg.files || []).length || (lg.entries || []).length), hasCode: !!issue.root && codeFilesRead > 0, codeFound: codeFilesFound, phpSkipped: phpSk.total > 0, phpSkippedDetail: phpSk, probeRan: ran.probe, sandboxRan: ran.sandbox, sandboxFailed: !!(sbx && sbx.could_not_run),
                 sandboxReproduced: sbx ? sbx.reproduced_in_sandbox : null, php: issue.php_version || null, phpSource: issue.php_source || null, crash }
         });
         f.summary.text_report = caseFileMod.cli(f.case_file);

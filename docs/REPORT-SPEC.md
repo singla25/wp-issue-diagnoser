@@ -39,7 +39,10 @@ STATUS     1 likely cause - 1 thing to check - 0 confirmed
            Looked at: your log, the live page, the code. Not looked at: a throwaway test copy.
            ("the code" is under "Looked at" only when at least one code file was read; a site folder without code
            files gives "Not looked at: the code", the checks that need code are NOT CHECKED "the site folder holds no
-           code files, so no code was read", and the NOT TESTED label says it comes from reading the log only.)
+           code files, so no code was read", and the NOT TESTED label says it comes from reading the log only. When PHP
+           files exist but none could be analysed (too large or not readable): "Not looked at: the code (N PHP files were
+           found, but none was analysed)" and the reason "the site folder holds N PHP files, but none could be analysed, so no
+           code was checked".)
 
 WHAT YOU SEE        screenshot (if any) and the live check: "The live page answered HTTP 500"
 

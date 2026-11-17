@@ -39,7 +39,8 @@ const THEME_FILE = 'wp-content/themes/unicamp/elementor/widgets/original/heading
 const REAL_ABS = '/var/www/example/82/shop/wp-content/themes/unicamp/elementor/widgets/original/heading.php';
 const COPY_ABS = '/var/www/html/wp-content/themes/unicamp/elementor/widgets/original/heading.php';
 const REL = 'themes/unicamp/elementor/widgets/original/heading.php';
-const MISMATCH = 'The test copy did not show the same problem as your site, so nothing from it is used. The confirmation above comes from your log and your code only.';
+const MISMATCH = 'The test copy did not show the same problem as your site, so nothing from it is used.';   // H2: the sentence that is always true; the case file adds what the confirmation rests on
+const MISMATCH_LOG_CODE = `${MISMATCH} The confirmation above comes from your log and your code only.`, MISMATCH_NOT_CONFIRMED = `${MISMATCH} The cause stays not confirmed.`;
 const STATUS_ONLY = 'The test copy showed the same kind of failure (HTTP 5xx on the same page). No error message was available on either side to compare, so this is weaker evidence.';
 const NOT_TESTED = 'The test copy could not be compared with your site, because no failing page or error message was available to compare. Nothing from it is used.';
 const REASONS = ['different versions', 'missing data', 'server settings', 'calls to outside services'];
@@ -173,11 +174,28 @@ const cls = (name, file, line = 48) => ({ kind: 'class', name, file, line });
     ok(sureOf(['bisect', 'log'], null)[0] === caseFile.confirmedSentence(2, 'yes'), 'no fidelity result (a build without a database file): the existing sentence, unchanged');
     ok(caseFile.countedChecks(['bisect'], M) === null && caseFile.countedChecks(['bisect', 'description'], M) === null, 'the copy alone is not "two independent checks": the existing sentence');
 
+    // ================================================================ H2: the mismatch sentence is true next to the verdict (what the confirmation rests on)
+    group('H2: the mismatch sentence says what the confirmation really rests on');
+    {
+        const fnd = (status, hyp) => ({ issue: { title: 't' }, findings: status ? [{ id: 'h1', label: 'plugin-plugin', status, cause: 'the cause', components: [], evidence: [] }] : [], hypotheses: [{ id: 'h1', ...hyp }], advisories: [] });
+        const lineOf = (status, hyp, facts = {}) => caseFile.build(fnd(status, hyp), { comps: [], facts, fidelity: D }).status.fidelity.line;
+        ok(lineOf('CONFIRMED', { independent_kinds: ['log', 'observation'] }) === MISMATCH_LOG_CODE, 'confirmed by the log and the code: "...comes from your log and your code only."');
+        ok(lineOf('CONFIRMED', { independent_kinds: ['log', 'probe'] }) === `${MISMATCH} The confirmation above comes from your log and the live page only.`, 'confirmed by the log and the live page (no code): says so, never "your code"');
+        ok(lineOf('CONFIRMED', { independent_kinds: ['log'], fatal_recheck: { rule: 'A', supports: ['fatal-site', 'probe-5xx'] } }) === `${MISMATCH} The confirmation above comes from your log and the live page only.`, 'fatal re-check rule A (the log fatal and a live 5xx): the log and the live page');
+        ok(lineOf('CONFIRMED', { independent_kinds: ['log'], fatal_recheck: { rule: 'B', supports: ['fatal-site', 'class-undefined'] } }) === MISMATCH_LOG_CODE, 'fatal re-check rule B (the log fatal and no definition in the code): the log and the code');
+        ok(lineOf('CONFIRMED', { independent_kinds: ['log'], checks: [{ id: 'declaration-sites', status: 'PASSED' }] }) === MISMATCH_LOG_CODE, 'two re-read declaration sites count as the code');
+        ok(lineOf('CONFIRMED', { independent_kinds: ['log', 'observation', 'probe'] }) === `${MISMATCH} The confirmation above comes from your log, the live page and your code only.`, 'three kinds: the list is joined in plain words');
+        ok(lineOf('CONFIRMED', { independent_kinds: ['log', 'probe'], evidence_checked: [{ file: 'wp-content/plugins/a/a.php', status: 'verified' }] }) === `${MISMATCH} The confirmation above comes from your log, the live page and your code only.`, 'log and live page, and the cited code file was re-read and verified: the code is named too (nothing the validation used is left out)');
+        ok(lineOf('CONFIRMED', { independent_kinds: [] }, { hasLog: true, hasCode: false, probeRan: true }) === `${MISMATCH} The confirmation above comes from your log and the live page only.`, 'no kinds in the data: it falls back to what was looked at (the "Looked at" facts), and never names the code that was not read');
+        ok(lineOf(null, { independent_kinds: ['log'] }) === MISMATCH_NOT_CONFIRMED, 'no confirmed case at all: "The cause stays not confirmed."');
+        ok(!/your code/.test(lineOf('CONFIRMED', { independent_kinds: ['log', 'probe'] }, { hasCode: false })), 'no code read: the sentence never says "your code"');
+    }
+
     // ================================================================ status block rendering + gate off
     group('the status block: Markdown, command line and page (gate on only)');
     const cfM = caseFile.build(mkF(['log']), { comps: [], facts: {}, fidelity: D });
     const md = caseFile.markdown(cfM, t => String(t)).join('\n'), cl = caseFile.cli({ ...cfM, checked: null });
-    ok(cfM.status.fidelity && cfM.status.fidelity.line === MISMATCH && md.includes(MISMATCH) && REASONS.every(x => md.includes(`- ${x}`)) && cl.includes(MISMATCH) && REASONS.every(x => cl.includes(`- ${x}`)), 'the mismatch sentence and the likely reasons as a short list, in Markdown and on the command line');
+    ok(cfM.status.fidelity && cfM.status.fidelity.line === `${MISMATCH} The confirmation above comes from your log only.` && md.includes(MISMATCH) && REASONS.every(x => md.includes(`- ${x}`)) && cl.includes(MISMATCH) && REASONS.every(x => cl.includes(`- ${x}`)), 'the mismatch sentence and the likely reasons as a short list, in Markdown and on the command line');
     ok(!caseFile.build(mkF(['log']), { comps: [], facts: {}, fidelity: M }).status.fidelity && !caseFile.build(mkF(['log']), { comps: [], facts: {} }).status.fidelity, 'matched, or no fidelity result: no status sentence');
     const gate = fs.readFileSync(path.join(__dirname, '..', 'lib', 'issue-html-gate.js'), 'utf8');
     ok(/CF\.status\.fidelity/.test(gate) && !/innerHTML/.test(gate.split('CF.status.fidelity')[1].split('\n')[0]), 'the page renders it through textContent (lib/issue-html-gate.js), no innerHTML');

@@ -189,7 +189,11 @@ function clean(fd) {
 }
 
 // ---- the reader's words (gate report only; owner wording) ----
-const MISMATCH = 'The test copy did not show the same problem as your site, so nothing from it is used. The confirmation above comes from your log and your code only.';
+const MISMATCH = 'The test copy did not show the same problem as your site, so nothing from it is used.';
+// H2: what is said next to the verdict must be true: when a cause is confirmed, what that confirmation rests on (basis.words, from case-file.js);
+// when none is confirmed, that the cause stays not confirmed; with no basis at all only the sentence that is always true
+const listOf = l => (l.length <= 1 ? l.join('') : `${l.slice(0, -1).join(', ')} and ${l[l.length - 1]}`);
+const mismatchLine = basis => (!basis ? MISMATCH : basis.confirmed ? `${MISMATCH} The confirmation above comes from ${basis.words && basis.words.length ? listOf(basis.words) : 'the checks above'} only.` : `${MISMATCH} The cause stays not confirmed.`);
 const NOT_TESTED = 'The test copy could not be compared with your site, because no failing page or error message was available to compare. Nothing from it is used.';
 const statusOnlyText = c => `The test copy showed the same kind of failure (${c === 'white' ? 'a blank page' : `HTTP ${c || '5xx'}`} on the same page). No error message was available on either side to compare, so this is weaker evidence.`;
 // absolute host paths out of a reason (findings.json and the reader alike): a wp-content path becomes relative, any other one 'a folder on this computer'
@@ -203,14 +207,14 @@ function plainReason(t) {
 }
 const couldNotTestText = reason => `The test copy could not be started (${plainReason(reason)}), so no test was done. This does not mean the problem is absent.`;
 // -> { line, reasons } for the report, or null when nothing is to be said (matched: the "How sure" sentence says it)
-function readerText(fd) {
+function readerText(fd, basis = null) {
     const c = clean(fd);
     if (!c) return null;
-    if (c.level === 'did-not-match') return { line: MISMATCH, reasons: c.likely_reasons.length ? c.likely_reasons : LIKELY_REASONS.slice() };
+    if (c.level === 'did-not-match') return { line: mismatchLine(basis), reasons: c.likely_reasons.length ? c.likely_reasons : LIKELY_REASONS.slice() };
     if (c.level === 'status-only') return { line: statusOnlyText(c.status_class), reasons: [] };
     if (c.level === 'not-tested') return { line: NOT_TESTED, reasons: [] };
     if (c.level === 'could-not-test') return { line: couldNotTestText(c.reasons[0] || ''), reasons: [] };
     return null;
 }
 
-module.exports = { samePage, pageKeyOf, stripPaths, compare, realFrom, copyFrom, causeFatal, fatalOf, sameFatal, normName, normFile, pathOf, statusClassOf, clean, readerText, plainReason, couldNotTestText, statusOnlyText, LEVELS, COUNTS, LIKELY_REASONS, MISMATCH, NOT_TESTED };
+module.exports = { mismatchLine, samePage, pageKeyOf, stripPaths, compare, realFrom, copyFrom, causeFatal, fatalOf, sameFatal, normName, normFile, pathOf, statusClassOf, clean, readerText, plainReason, couldNotTestText, statusOnlyText, LEVELS, COUNTS, LIKELY_REASONS, MISMATCH, NOT_TESTED };

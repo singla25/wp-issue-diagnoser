@@ -74,7 +74,7 @@ When the real site has no error log, the test copy switches logging on itself, i
 
 First test in the copy: does it show the SAME problem as the real site (same page, same kind of status, the same fatal in the copy's own log)? Three outcomes:
 - Same symptom: the copy is trusted. Switching a suspect off (default theme, plugins in halves) counts as a second independent check, worded "on a test copy of your site".
-- Different symptom or none: "The test copy did not show the same problem, so nothing from it is used", with likely reasons. The cause stays "not confirmed".
+- Different symptom or none: "The test copy did not show the same problem, so nothing from it is used", with likely reasons, then what is true next to the verdict: "The confirmation above comes from <what it rests on: your log, the live page, your code> only." when a cause is confirmed (what the confirmation rests on is named), or "The cause stays not confirmed." when none is.
 - The copy could not start or could not activate plugins: "Could not test". NEVER "not reproduced".
 The report adds a "How close the copy is" box: what matched (versions, active plugins, the same fatal) and what did not or is unknown. Not covered in this version (say so plainly): external services (outbound traffic is blocked), the web server layer (Apache or Nginx rules, CDN, caching), file permissions, PHP extensions of the real server, cron jobs, and the uploads folder unless included.
 

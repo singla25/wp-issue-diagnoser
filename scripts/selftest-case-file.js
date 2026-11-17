@@ -27,10 +27,12 @@ const EWS = 'http://localhost82.local.com/ews/';
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const stamp = d => `${String(d.getUTCDate()).padStart(2, '0')}-${MON[d.getUTCMonth()]}-${d.getUTCFullYear()} ${d.toISOString().slice(11, 19)}`;
 
-function build(root, { log = true, templates = 5, plugins = true, noCode = false } = {}) {
+function build(root, { log = true, templates = 5, plugins = true, noCode = false, bigFile = false } = {}) {
     if (noCode) {   // H1: only a description and an error log; the site folder holds NO code file (empty plugins and themes folders)
         fs.mkdirSync(path.join(root, 'wp-content', 'plugins'), { recursive: true }); fs.mkdirSync(path.join(root, 'wp-content', 'themes'), { recursive: true });
         w(root, 'wp-content/debug.log', `[27-Oct-2026 10:00:01 UTC] PHP Fatal error:  Cannot redeclare my_helper() (previously declared in ${root}/wp-content/plugins/plugin-a/plugin-a.php:5) in ${root}/wp-content/plugins/plugin-b/plugin-b.php on line 8\n`);
+        // H2: a code file IS there, but it is larger than the size cap of the code analysis (phpast.MAX_BYTES), so none could be analysed; the file is made here, not stored
+        if (bigFile) w(root, 'wp-content/plugins/big/big.php', '<?php\n/**\n * Plugin Name: Big\n * Version: 1.0.0\n */\n' + ' '.repeat(require('../issue/phpast').MAX_BYTES + 10) + '\n');
         return;
     }
     w(root, 'wp-includes/version.php', "<?php\n$wp_version = '6.8.1';\n"); w(root, 'wp-config.php', '<?php\n');
@@ -195,6 +197,18 @@ const OLD_HEAD = /^#{1,3} (Findings|Verdict|What is wrong|Summary)\b/m;
         ok(/^NOT TESTED: what this report says comes from reading your log\. It was not tried on a copy of your site\.$/m.test(lab) && !/the code/.test(lab), 'the NOT TESTED label does not claim that the code was read');
         const plain = await run('withcode', { probe: false });
         ok(/Looked at: your log, the code\./.test(plain.f.case_file.status.looked) && plain.f.case_file.level.lines.join('\n').includes('reading your log and the code'), 'with code files the old words stay (control)');
+    }
+
+    group('H2: code files were found but none could be analysed (too large) is not the same as no code files at all');
+    {
+        const big = await run('bigfile', { noCode: true, bigFile: true }), c = big.f.case_file, items = big.f.checkpoints.items, cnt = big.f.checkpoints.counts;
+        ok(c.status.looked === 'Looked at: your log. Not looked at: the live page, the code (1 PHP file was found, but none was analysed), a throwaway test copy.', `Looked at: ${c.status.looked}`);
+        const rows = items.filter(i => /but none could be analysed, so no code was checked/.test(i.reason || ''));
+        ok(rows.length >= 20 && rows.every(i => i.result === 'NOT CHECKED') && !items.some(i => /holds no code files/.test(i.reason || '')), `${rows.length} checkpoints say "the site folder holds 1 PHP file, but none could be analysed, so no code was checked" (NOT CHECKED), and none says "holds no code files"`);
+        ok(rows.some(i => /^the site folder holds 1 PHP file, but none could be analysed, so no code was checked$/.test(i.reason)) && cnt.pass === 2 && cnt.fail === 0, `the exact reason; 2 pass, 0 fail (${cnt.pass}, ${cnt.fail})`);
+        ok(c.level.missing.some(m => /PHP files were found, but none could be analysed/.test(m)) && !c.level.missing.some(m => m === 'the code of your site (its wp-content folder)'), `what is missing says the code was found but not readable: ${JSON.stringify(c.level.missing)}`);
+        const none = await run('nocode2', { noCode: true });
+        ok(none.f.case_file.status.looked === 'Looked at: your log. Not looked at: the live page, the code, a throwaway test copy.' && none.f.case_file.level.missing.includes('the code of your site (its wp-content folder)') && !none.f.case_file.level.missing.some(m => /found, but none/.test(m)), 'no code files at all: the plain wording (the code), and "the code of your site (its wp-content folder)" is missing');
     }
 
     fs.rmSync(tmp, { recursive: true, force: true });

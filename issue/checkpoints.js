@@ -26,10 +26,10 @@ function loadWork(dir) {
 }
 
 // ---------------------------------------------------------------- what ran
-function sourcesOf({ work = {}, ran = {}, hasRoot = false, hasCode = true, validation = null }) {
+function sourcesOf({ work = {}, ran = {}, hasRoot = false, hasCode = true, codeFound = 0, validation = null }) {
     const noRoot = 'no local copy of the site was given (--root), so no code was read';
     const stepOf = (list, id) => (list || []).find(s => s.id === id);
-    const noCode = 'the site folder holds no code files, so no code was read';
+    const noCode = codeFound > 0 ? `the site folder holds ${codeFound} PHP file${codeFound === 1 ? '' : 's'}, but none could be analysed, so no code was checked` : 'the site folder holds no code files, so no code was read';
     const need = (cond, whyNot) => (hasRoot && hasCode && cond ? { ok: true } : { ok: false, why: !hasRoot ? noRoot : !hasCode ? noCode : whyNot });
     const cc = work.customCode, ccSteps = cc && cc.steps;
     const classicStep = stepOf(ccSteps, 'classic-checks'), compatStep = stepOf(ccSteps, 'compat');
@@ -180,7 +180,7 @@ const SAME_AS = { 'content-hooks': 'hook-same-priority', 'php-version-code': 're
 // ---------------------------------------------------------------- the evaluation
 // inp: { work, validation, ran:{probe,sandbox}, hasRoot, issue?, checkpoints? } -> [{ id, title, result, reason }] for EVERY checkpoint, in id order
 function evaluate(inp = {}) {
-    const input = { work: inp.work || {}, validation: inp.validation || null, ran: inp.ran || {}, hasRoot: !!inp.hasRoot, hasCode: inp.hasCode !== false, issue: inp.issue || null };
+    const input = { work: inp.work || {}, validation: inp.validation || null, ran: inp.ran || {}, hasRoot: !!inp.hasRoot, hasCode: inp.hasCode !== false, codeFound: Number(inp.codeFound) || 0, issue: inp.issue || null };
     const tie = inp.tie ? makeTie(inp.tie) : null;
     const list = (inp.checkpoints || load()).checkpoints.slice().sort((a, b) => (a.id < b.id ? -1 : 1));
     const S = sourcesOf(input), c = attach(makeCtx(input, S), input);
