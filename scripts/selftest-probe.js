@@ -59,6 +59,31 @@ group('layout checks (names and order)');
 ok(layout.ORDER.join() === 'overflow,text-edge,overlap,broken-words,unreachable', 'five DOM-only checks in a fixed order');
 ok(typeof layout.runCheck === 'function', 'runCheck is exported');
 
-fs.rmSync(tmp, { recursive: true, force: true });
-console.log(failures ? `\n${failures} check(s) FAILED` : '\nAll checks passed');
-process.exit(failures ? 1 : 0);
+// ---- P1: ONE connection error is counted ONCE (a mock page: nothing is fetched). Before the fix the catch and note() both counted it, so the probe
+// stopped after the first error with "(2)" and the single retry that the rule promises never happened.
+(async () => {
+    group('one connection error counts once, and is retried once');
+    const mkPage = script => { let n = 0; return { calls: () => n, goto: async () => { const r = script[Math.min(n++, script.length - 1)]; if (r instanceof Error) throw r; return { status: () => r, headers: () => ({}) }; }, waitForTimeout: async () => {}, title: async () => '', locator: () => ({ innerText: async () => '' }) }; };
+    const RESET = () => new Error('net::ERR_CONNECTION_RESET at ' + ORIGIN + '/');
+    let p = mkPage([RESET(), 200]), sx = mk({ serverErrorRetryDelayMs: 0 }, 'p1a');
+    let r = null, err0 = null; try { r = await sx.navigate(p, ORIGIN + '/a', { settleMs: 0 }); } catch (e) { err0 = e; }
+    ok(!err0 && p.calls() === 2 && r.retried === true && r.status === 200 && sx.state.connectionErrors === 1 && !sx.isStopped(), `one connection error, then the page loads: 2 attempts, counted ONCE (${sx.state.connectionErrors}), not stopped`);
+    p = mkPage([RESET()]); sx = mk({ serverErrorRetryDelayMs: 0 }, 'p1b');
+    let err = null; try { await sx.navigate(p, ORIGIN + '/a', { settleMs: 0 }); } catch (e) { err = e; }
+    ok(p.calls() === 2 && sx.state.connectionErrors === 2 && sx.isStopped() && /Connection resets\/timeouts \(2\)/.test(sx.stopReason()) && err && err.name === 'ProtectionStop', `the same page fails twice (the page and its one retry): 2 attempts, counted 2, stopped "(2)" (${sx.stopReason()})`);
+    // two different pages, each with one connection error: the first recovers on its retry, the second error makes the total 2 and stops the probe at once
+    sx = mk({ serverErrorRetryDelayMs: 0 }, 'p1c');
+    const pa = mkPage([RESET(), 200]), pb = mkPage([RESET(), 200]);
+    let ra = null; try { ra = await sx.navigate(pa, ORIGIN + '/a', { settleMs: 0 }); } catch (e) { /* reported by the check below */ }
+    ok(ra && ra.status === 200 && sx.state.connectionErrors === 1 && !sx.isStopped(), 'page A: one error, recovered on the retry; the probe goes on (count 1)');
+    err = null; try { await sx.navigate(pb, ORIGIN + '/b', { settleMs: 0 }); } catch (e) { err = e; }
+    ok(pb.calls() === 1 && sx.state.connectionErrors === 2 && sx.isStopped() && /\(2\)/.test(sx.stopReason()) && err && err.name === 'ProtectionStop', `page B: a second connection error on another page makes the total 2: the probe stops, no retry (${sx.stopReason()})`);
+    // request(): one connection error is one count (the "is the original public" GET has no retry for it)
+    sx = mk({}, 'p1d'); let calls = 0;
+    const rq = await sx.request({ fetch: async () => { calls++; throw new Error('read ECONNRESET'); } }, ORIGIN + '/');
+    ok(calls === 1 && rq.outcome === 'connection-error' && sx.state.connectionErrors === 1 && !sx.isStopped(), `request(): one connection error counted once (${sx.state.connectionErrors}), not stopped`);
+
+    fs.rmSync(tmp, { recursive: true, force: true });
+    console.log(failures ? `\n${failures} check(s) FAILED` : '\nAll checks passed');
+    process.exit(failures ? 1 : 0);
+})().catch(e => { console.error(e); process.exit(1); });

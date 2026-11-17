@@ -145,7 +145,7 @@ class Safety {
                 return { response, status, headers, outcome: classify({ status, headers, title, bodySnippet }), title };
             } catch (error) {
                 if (UNREACHABLE.test(error.message) && !this.state.okResponses) throw new SiteUnreachable(url, error.message);
-                if (CONNECTION_ERROR.test(error.message)) { this.recordOutcome('connection-error', { url, status: 0 }); return { response: null, status: 0, headers: {}, outcome: 'connection-error', error: error.message }; }
+                if (CONNECTION_ERROR.test(error.message)) { return { response: null, status: 0, headers: {}, outcome: 'connection-error', error: error.message }; }
                 throw error;
             }
         }, 'navigation');
@@ -183,7 +183,7 @@ class Safety {
                 return { status, headers, finalUrl: res.url(), outcome, title: title.trim() };
             } catch (error) {
                 if (UNREACHABLE.test(error.message) && !this.state.okResponses) throw new SiteUnreachable(url, error.message);
-                if (CONNECTION_ERROR.test(error.message)) { this.recordOutcome('connection-error', { url, status: 0 }); return { status: 0, headers: {}, outcome: 'connection-error', error: error.message }; }
+                if (CONNECTION_ERROR.test(error.message)) { return { status: 0, headers: {}, outcome: 'connection-error', error: error.message }; }
                 return { status: 0, headers: {}, outcome: 'request-error', error: error.message };
             }
         });
