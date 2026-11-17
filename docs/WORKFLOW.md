@@ -67,3 +67,5 @@ Minor choices the Coder decides alone and records in the Decisions log in `docs/
 4. The runner does the one full run with `scripts/run-full.sh`; the Coder reads the counts.
 5. The Coder commits with EXPLICIT staging (never `state/`, `reports/`, `plugin-guard-reports/`, `issues/`, `sandboxes/`, the contents of `projects/` except `.gitkeep`, `.env*`, database files, `history/` or `data/ocr/`), updates `docs/HANDOFF.md` and, when the detection changed, `docs/COVERAGE.md`, adds the dated history entry and clears the session. Nothing is pushed unless the owner does it.
 6. The owner reviews the report of the step before the next step starts.
+
+As the LAST step of every task, the Coder updates the status column of [ROADMAP.md](./ROADMAP.md) (and its "Last updated" line), and then copies the repository file over the owner's copy in the history folder (outside the repository), so that the owner's copy stays the same.

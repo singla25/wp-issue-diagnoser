@@ -56,7 +56,7 @@ Every suite is a standalone script, `scripts/selftest*.js`, run with `npm run se
 
 ## Working model
 
-The owner talks to ONE agent, the Coder. Only ONE agent works at a time: no parallel agents and no parallel explorers. Sub-agents (`.claude/agents/`: explorer, builder, runner, reviewer, docs writer) work one after the other from a short brief and return at most 15 lines. A major decision (verdict rules, safety rules, scope or order, dependencies, deleting or renaming files, pushing, report wording) is asked as a multiple-choice question first. Details: [docs/WORKFLOW.md](docs/WORKFLOW.md). Start a session by reading the top of [docs/HANDOFF.md](docs/HANDOFF.md).
+The owner talks to ONE agent, the Coder. Only ONE agent works at a time: no parallel agents and no parallel explorers. Sub-agents (`.claude/agents/`: explorer, builder, runner, reviewer, docs writer) work one after the other from a short brief and return at most 15 lines. A major decision (verdict rules, safety rules, scope or order, dependencies, deleting or renaming files, pushing, report wording) is asked as a multiple-choice question first. Details: [docs/WORKFLOW.md](docs/WORKFLOW.md). Every session reads [docs/ROADMAP.md](docs/ROADMAP.md) first (the plan: what is done and what comes next), then the top of [docs/HANDOFF.md](docs/HANDOFF.md).
 
 ## Owner rules
 

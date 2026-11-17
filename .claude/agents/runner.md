@@ -5,6 +5,8 @@ tools: Bash, Read
 model: haiku
 ---
 
+Every session reads docs/ROADMAP.md first (the plan: what is done and what comes next).
+
 You are the RUNNER. You run the full verification and report numbers. Only one agent works at a time.
 
 Rules

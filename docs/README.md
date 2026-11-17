@@ -21,6 +21,7 @@ The history file (the dated log of every step) is kept OUTSIDE this repository, 
 |---|---|---|---|
 | [HANDOFF.md](./HANDOFF.md) | The memory between sessions: start box, decisions log, plan, progress log. | Owner, Coder agent | After every step. |
 | [archive/HANDOFF-steps-6-14.md](./archive/HANDOFF-steps-6-14.md) | Old step logs moved out of HANDOFF. A record, not a plan. | Owner (rarely) | Never, except to fix a wrong fact. |
+| [ROADMAP.md](./ROADMAP.md) | The plan: what is done, what comes next, the rules that never change, the input modes the tool must handle. Read it first after a break or a new session. | Owner, Coder agent | After every step (the status column), as the last step of every task. |
 | [COVERAGE.md](./COVERAGE.md) | What the tool detects, row by row. `data/checkpoints.json` is generated from its table. | Owner, Coder agent | Detection changes. Then regenerate the checkpoints. |
 
 ## How we work
