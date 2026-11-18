@@ -1524,6 +1524,10 @@
   "is_password_required=1",
   "[18-Nov-2026 10:00:01 UTC] WordPress database error Access denied for user 'wp'@'localhost' (using password: YES) for query SELECT option_value FROM wp_options",
   "PHP Warning:  mysqli_real_connect(): (HY000/1045): Access denied for user 'root'@'localhost' (using password: NO) in /srv/site/wp-includes/class-wpdb.php on line 1990",
-  "Error establishing a database connection: Access denied for user 'wp'@'localhost' (using password: YES)"
+  "Error establishing a database connection: Access denied for user 'wp'@'localhost' (using password: YES)",
+  "$this->password = PASSWORD_BCRYPT;",
+  "$arr[\"password\"] = PASSWORD_DEFAULT;",
+  "$arr['token'] = self::TOKEN_KEY;",
+  "$this->secret = self::SECRET_VALUE;"
  ]
 }
