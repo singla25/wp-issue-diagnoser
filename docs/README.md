@@ -23,6 +23,7 @@ The history file (the dated log of every step) is kept OUTSIDE this repository, 
 | [HANDOFF.md](./HANDOFF.md) | The memory between sessions: start box, decisions log, plan, progress log. | Owner, Coder agent | After every step. |
 | [archive/HANDOFF-steps-6-14.md](./archive/HANDOFF-steps-6-14.md) | Old step logs moved out of HANDOFF. A record, not a plan. | Owner (rarely) | Never, except to fix a wrong fact. |
 | [ROADMAP.md](./ROADMAP.md) | The plan: what is done, what comes next, the rules that never change, the input modes the tool must handle. Read it first after a break or a new session. | Owner, Coder agent | After every step (the status column), as the last step of every task. |
+| [PROJECT-HISTORY.md](./PROJECT-HISTORY.md) | The whole project for a new chat that knows nothing: what the tool does, a timeline, the decisions, the current status, what is left, the limits. Every fact names its source. | Owner, Coder agent, a new chat | A step is finished or a decision is made (a short update, not a rewrite). |
 | [INPUT-MODES.md](./INPUT-MODES.md) | A PROPOSAL (not built): the input modes (files and database, files only, no sandbox, live address only, only a description or a log), the question phases and the build order. | Owner, Coder agent | The owner decides on a step of it, or a step is built. |
 | [COVERAGE.md](./COVERAGE.md) | What the tool detects, row by row. `data/checkpoints.json` is generated from its table. | Owner, Coder agent | Detection changes. Then regenerate the checkpoints. |
 
