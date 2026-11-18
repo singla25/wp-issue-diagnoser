@@ -44,7 +44,7 @@ Last green full run: p-s0 on 2026-11-18 (HEAD 68e8f62). 76 suites (66 offline an
 | 3a-S0c: redact defects D1 to D4 and the minor items (retest compares masked pages, probe output masked and fail closed, whole-run masks, JSON / colon / PHP-dump forms) | a490e22, 68e8f62 |
 | FR1: full run p-s0 after S0c, baseline updated (TESTING.md) | 0c27ded |
 | M1: roles, models, step size and token budget (docs/WORKFLOW.md, CLAUDE.md, reviewer-light agent; docs only, no full run) | 253c12a |
-| 3a-S0d: masking corpus test (173 secret forms, 133 benign texts), the short-value rule, the exact exception for "(using password: YES|NO)" | 3a85421, a9528dc, f0badde (round 4 fix) |
+| 3a-S0d: masking corpus test (173 secret forms, 137 benign texts), the short-value rule, the exact exception for "(using password: YES|NO)" | 3a85421, a9528dc, f0badde (round 4 fix) |
 
 Push status: check with `git log origin/main..HEAD`. The owner pushes only a green state.
 
