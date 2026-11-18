@@ -56,7 +56,7 @@ Every suite is a standalone script, `scripts/selftest*.js`, run with `npm run se
 
 ## Working model
 
-The owner talks to ONE agent, the Coder. Only ONE agent works at a time: no parallel agents and no parallel explorers. Sub-agents (`.claude/agents/`: explorer, builder, runner, reviewer, docs writer) work one after the other from a short brief and return at most 15 lines. A major decision (verdict rules, safety rules, scope or order, dependencies, deleting or renaming files, pushing, report wording) is asked as a multiple-choice question first. Details: [docs/WORKFLOW.md](docs/WORKFLOW.md). Every session reads [docs/ROADMAP.md](docs/ROADMAP.md) first (the plan: what is done and what comes next), then the top of [docs/HANDOFF.md](docs/HANDOFF.md).
+The owner talks to ONE agent, the Coder. Only ONE agent that edits files or runs tests works at a time; read-only helpers (counting, grep audits, drafting) may run in parallel. Sub-agents (`.claude/agents/`: explorer, builder, runner, reviewer, reviewer-light, docs writer) that edit files or run tests work one after the other from a short brief and return at most 15 lines. A major decision (verdict rules, safety rules, scope or order, dependencies, deleting or renaming files, pushing, report wording) is asked as a multiple-choice question first. Details: [docs/WORKFLOW.md](docs/WORKFLOW.md). Every session reads [docs/ROADMAP.md](docs/ROADMAP.md) first (the plan: what is done and what comes next), then the top of [docs/HANDOFF.md](docs/HANDOFF.md).
 
 ## Owner rules
 
@@ -66,13 +66,15 @@ These apply to every agent in every session.
 - Never push. The owner pushes.
 - Stage files explicitly by name. Never `git add -A` or `git add .`.
 - Never run `docker prune` of any kind.
-- One agent at a time.
+- One agent at a time for anything that edits files, runs tests or commits (read-only helpers excepted, see docs/WORKFLOW.md).
+- Roles, models and reviews: reviewer-deep (strongest) for secrets, masking, probe code, tests, golden files and report wording; reviewer-light (cheaper) for docs-only steps; a reviewer gets only the diff and a checklist and never edits; max 3 review rounds for security code, 2 otherwise; during a full run check every 30 minutes with one waiting command (docs/WORKFLOW.md).
+- Step size: name S (at most 4 files, 1 review round), M (at most 12 files, 2 rounds) or L in the first line before editing; never start an L step, propose sub-steps and wait; commit each finished part or save a patch outside the repository; after two review rounds suggest a fresh session (docs/WORKFLOW.md).
 - Never delete, skip or weaken a test. If the text of an assertion has to change, STOP and list the old and the new text for the owner first.
 - Never claim more than was tested. Say what was run and what was not.
 - When searching with grep, exclude `issues/`, `sandboxes/` and `node_modules/`.
 - Do not paste secrets (tokens, passwords, keys, `.env` values) into any file, report or message.
 - Real site names, client names and nicknames never go into files; write "a real site".
-- Every diff gets a review by an Opus reviewer before it is committed.
+- Every diff gets a review before it is committed: by the Opus reviewer (reviewer-deep), or by reviewer-light for a docs-only diff (owner decision in M1, 2026-11-18).
 - One full run per commit, with `scripts/run-full.sh <label>` (it must be valid: test exit 0 and Docker back at its baseline).
 - The history file is kept outside the repository. After each commit a dated entry is added to it and its secret scan is run.
 - The owner reviews each report before the next step starts. One commit per step.

@@ -13,6 +13,7 @@ The history file (the dated log of every step) is kept OUTSIDE this repository, 
 | [builder.md](../.claude/agents/builder.md) | Sub-agent: builds one task and runs only the named suites. | Coder agent | The role or its limits change. |
 | [runner.md](../.claude/agents/runner.md) | Sub-agent: the only one that does the full test run. | Coder agent | The full-run script or its rules change. |
 | [reviewer.md](../.claude/agents/reviewer.md) | Sub-agent: checks every diff before a commit. | Coder agent | The review checks change. |
+| [reviewer-light.md](../.claude/agents/reviewer-light.md) | Sub-agent: checks a docs-only diff and shows the line it checked for every fact. | Coder agent | The review checks change. |
 | [docs-writer.md](../.claude/agents/docs-writer.md) | Sub-agent: edits documentation only. | Coder agent | The role or its limits change. |
 
 ## State (where the work stands)
@@ -61,7 +62,7 @@ The history file (the dated log of every step) is kept OUTSIDE this repository, 
 
 The owner starts a step by giving the Coder agent a prompt. The order of work, from [WORKFLOW.md](./WORKFLOW.md):
 
-1. The Coder writes the brief (and, for a major decision, asks the owner a multiple-choice question first). Only ONE agent works at a time.
+1. The Coder writes the brief (and, for a major decision, asks the owner a multiple-choice question first). Only ONE agent that edits files or runs tests works at a time (read-only helpers may run in parallel, see WORKFLOW.md).
 2. The builder builds; the Coder reads the summary and the diff stat.
 3. The reviewer (Opus) checks the diff.
 4. The runner does the one full run with `scripts/run-full.sh`; the Coder reads the counts.

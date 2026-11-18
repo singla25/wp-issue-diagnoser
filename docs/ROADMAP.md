@@ -1,6 +1,6 @@
 # Roadmap: wp-issue-diagnoser
 
-Last updated: 2026-11-18, after the full run p-s0 on the state after S0c (commit 68e8f62) and the baseline commit. Update the status columns after every step.
+Last updated: 2026-11-18, after M1 (roles, models, step size and token budget) and the baseline commit 0c27ded. Update the status columns after every step.
 
 ## How to use this file
 
@@ -10,12 +10,12 @@ The roadmap is the plan. `docs/HANDOFF.md` is the detailed log. If they disagree
 
 ## Rules that never change
 
-- One Coder agent, one step at a time, no parallel agents. Only the owner pushes.
+- One Coder agent, one step at a time. Only ONE agent that edits files, runs tests or commits works at a time; read-only helpers may run in parallel (changed in M1, see `docs/WORKFLOW.md`). Only the owner pushes.
 - Explicit staging by path, one commit per step, no `docker prune`, never read the owner's private folder or any `.sql` or `.env` file.
 - Never delete, skip or weaken a test. If an assertion text must change, STOP and list old and new for the owner.
 - Never claim more than was tested. Every possible cause is labelled "possible, not confirmed" unless a test confirmed it.
 - Real site or client names never go into files ("a real site"). Short, simple English.
-- Opus review of every diff (factual errors only, a second round if round 1 found anything, max 2 rounds).
+- Review of every diff, by the Opus reviewer, or by reviewer-light for a docs-only diff (owner decision in M1) (factual errors only, a second round if round 1 found anything; max 2 rounds, and max 3 for security code since M1).
 - Batch rule: a small step runs `npm run test:offline` and its quick suites. One full run (`scripts/run-full.sh <label>`) is done at the end of a batch, before the owner pushes. A run counts only if the exit is 0, the machine did not restart, and Docker is back at the known baseline (5 containers, 0 labelled, 11 volumes).
 
 ## Where we are
@@ -42,7 +42,8 @@ Last green full run: p-s0 on 2026-11-18 (HEAD 68e8f62). 76 suites (66 offline an
 | 3a-S0b: the other WordPress secrets masked, a last pass over the report files, the probe stores masked | 83d952b |
 | 3a-S0b docs: what is masked, screenshots are not (SAFETY.md, README) | f49a796 |
 | 3a-S0c: redact defects D1 to D4 and the minor items (retest compares masked pages, probe output masked and fail closed, whole-run masks, JSON / colon / PHP-dump forms) | a490e22, 68e8f62 |
-| FR1: full run p-s0 after S0c, baseline updated (TESTING.md) | the baseline commit after 68e8f62 |
+| FR1: full run p-s0 after S0c, baseline updated (TESTING.md) | 0c27ded |
+| M1: roles, models, step size and token budget (docs/WORKFLOW.md, CLAUDE.md, reviewer-light agent; docs only, no full run) | 253c12a |
 
 Push status: check with `git log origin/main..HEAD`. The owner pushes only a green state.
 
