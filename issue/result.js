@@ -476,8 +476,8 @@ function write(id, { validation, plans, dir, root, policy, gate = false, verbose
     fs.mkdirSync(R('patches', 'shims'), { recursive: true, mode: 0o700 });
     for (const old of fs.readdirSync(R('patches'))) if (/\.(diff)$/.test(old)) fs.rmSync(R('patches', old));
     for (const r of f.resolution) for (const o of r.options) {
-        if (o.diff) fs.writeFileSync(R('patches', `${path.basename(o.file)}.${o.generator}.diff`), o.diff, { mode: 0o600 });
-        if (o.php) fs.writeFileSync(R('patches', 'shims', o.file), o.php, { mode: 0o600 });
+        if (o.diff) fs.writeFileSync(R('patches', `${path.basename(o.file)}.${o.generator}.diff`), redact.text(o.diff), { mode: 0o600 });   // masked like every other file (a value that looks like a secret is replaced, so such a patch may need a manual edit)
+        if (o.php) fs.writeFileSync(R('patches', 'shims', o.file), redact.text(o.php), { mode: 0o600 });
     }
     // with the gate on (and no --verbose) tasks are written only for what is shown: nobody is asked to patch an unconfirmed possibility
     const t = tasks(gate && !verbose ? { ...f, resolution: f.resolution.filter(r => shown(f).has(r.hypothesis)) } : f, { root, policy });

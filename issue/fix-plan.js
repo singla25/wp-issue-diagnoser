@@ -9,6 +9,7 @@
 const fs = require('fs');
 const path = require('path');
 const ownership = require('../lib/ownership');
+const redact = require('../lib/redact');
 
 const HEAD = { problem: 'The problem', plan: 'The plan we suggest, and why', before: 'Before you start', steps: 'Steps', done: 'You are done when', dont: 'Please do not' };
 const DONE_CAUSE = 'Run this report again on the changed copy and it no longer lists this cause.';
@@ -61,12 +62,12 @@ function compatEvidence(root, ctx) {
     const line = new RegExp(`compatib\\w*\\s+with\\s+${name}\\s+(?:version\\s+|v)?(\\d+\\.\\d+(?:\\.\\d+)?)`, 'i');
     const read = f => { try { const st = fs.lstatSync(f); return st.isFile() && st.size < 2 * 1024 * 1024 ? fs.readFileSync(f, 'utf8') : null; } catch { return null; } };
     const main = ctx.comp.kind === 'theme' ? 'style.css' : null;
-    if (main) { const t = read(path.join(dir, main)); const m = t && head.exec(t); if (m) return { file: `${ctx.comp.rel}/${main}`, text: `${m[1].trim()}: ${m[2]}`, version: m[2] }; }
+    if (main) { const t = read(path.join(dir, main)); const m = t && head.exec(t); if (m) return { file: `${ctx.comp.rel}/${main}`, text: redact.text(`${m[1].trim()}: ${m[2]}`), version: m[2] }; }
     for (const n of ['changelog.txt', 'changelog.md', 'CHANGELOG.md', 'readme.txt']) {
         const t = read(path.join(dir, n));
         if (!t) continue;
         const l = t.split('\n').find(x => line.test(x));
-        if (l) return { file: `${ctx.comp.rel}/${n}`, text: l.trim().slice(0, 160), version: line.exec(l)[1] };
+        if (l) return { file: `${ctx.comp.rel}/${n}`, text: redact.text(l.trim().slice(0, 160)), version: line.exec(l)[1] };   // read from the site's own files: masked like every other text
     }
     return null;
 }

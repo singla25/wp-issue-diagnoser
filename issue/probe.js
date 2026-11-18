@@ -22,11 +22,17 @@ const DEFAULTS = { probePages: 3, viewports: ['laptop', 'mobile'], maxLoads: 8, 
 const STRIP_ENV = /^(PSI_API_KEY|WPSCAN_API_TOKEN|PG_TEST_.*)$/;
 const cooldownFile = env => env.PG_PROBE_COOLDOWN_FILE || path.join(__dirname, '..', 'state', 'probe-cooldown.json');
 // the worker's raw result (probe/worker.js `cut` does not redact): every string goes through lib/redact.js (only secret-looking values change, the rest of an address and its path stay); the stored result.json is rewritten with the masked copy; the caller keeps using the raw data for matching and the oracle
+// FAIL CLOSED: the worker's file is raw. If there is no complete result (the file is partial or not JSON), or masking or the rewrite fails, the raw file is DELETED and null is
+// returned: nothing raw stays on disk, and the callers treat the probe as "not stored" (NOT_STORED says why).
+const NOT_STORED = 'its output could not be masked, so it was deleted and not stored';
 function maskRaw(raw, outFile) {
-    if (!raw) return raw;
-    const clean = redact.deep(raw);
-    try { fs.writeFileSync(outFile, JSON.stringify(clean), { mode: 0o600 }); } catch { /* the in-memory copy is clean; the stored file is the worker's */ }
-    return clean;
+    const drop = () => { try { fs.rmSync(outFile, { force: true }); } catch { /* an unremovable file is reported below by the check that follows */ } try { if (fs.existsSync(outFile)) fs.writeFileSync(outFile, '{}', { mode: 0o600 }); } catch { /* nothing more can be done here */ } };
+    if (!raw) { drop(); return null; }
+    try {
+        const clean = redact.deep(raw);
+        fs.writeFileSync(outFile, JSON.stringify(clean), { mode: 0o600 });
+        return clean;
+    } catch { drop(); return null; }
 }
 const cut = (s, n = 200) => redact.text(String(s ?? '').replace(/\s+/g, ' ').trim()).slice(0, n);
 const step = (id, label, status, reason = null, extra = {}) => ({ ...extra, id, label, status, reason }); // the fixed fields win: an extra field can never overwrite the status
@@ -131,7 +137,8 @@ async function run(id, { root = null, options = {}, env = process.env, imageFile
     const result = { schema: 1, issue_id: id, planned: null, protection: null, pages: [], oracle: null, public_check: null, image_diff: null, governor: null, notes: [] };
     const finish = (extra = {}) => { fs.mkdirSync(path.join(dir, 'work'), { recursive: true, mode: 0o700 });
         // when the probe ran: kept in the ISSUE file (the work files hold no timestamps, so two investigations stay byte-identical); issue/fatal-recheck.js pairs a log fatal with it
-        if (result.pages.length) { try { const cur = store.load(id); cur.probe_ran_at = new Date().toISOString(); store.save(cur); } catch { /* the issue file is not essential */ } } fs.writeFileSync(path.join(dir, 'work', 'probe.json'), JSON.stringify(result, null, 2) + '\n', { mode: 0o600 }); return { steps, clues, result, oracle: result.oracle, ...extra }; };
+        if (result.pages.length) { try { const cur = store.load(id); cur.probe_ran_at = new Date().toISOString(); store.save(cur); } catch { /* the issue file is not essential */ } } // probe.json, the steps, the clues and the oracle are written and handed on MASKED (oracle matches and details, protection, public check, image diff, notes): the same mask on every side, so retest compares masked pages with masked pages
+        const safe = redact.deep(result); fs.writeFileSync(path.join(dir, 'work', 'probe.json'), JSON.stringify(safe, null, 2) + '\n', { mode: 0o600 }); return { steps: redact.deep(steps), clues: redact.deep(clues), result: safe, oracle: safe.oracle, ...extra }; };
 
     // ---- screenshot pair mode: expected vs actual, no website needed ----
     const pairList = imgdiff.pairs(images).filter(p => p.actual);
@@ -182,11 +189,13 @@ async function run(id, { root = null, options = {}, env = process.env, imageFile
     const mark = logMark(root);
     const w = await runWorker({ file: jobFile }, env, options.timeoutMs || DEFAULTS.timeoutMs);
     const growth = logGrowth(mark);
-    let raw = null; try { raw = JSON.parse(fs.readFileSync(outFile, 'utf8')); } catch { /* worker died */ }
-    maskRaw(raw, outFile);   // the worker writes addresses, console texts and stacks as they are: the STORED result.json is rewritten masked (the raw data stays in memory: the oracle and the page matching read it)
+    fs.rmSync(jobFile, { force: true });   // the job holds the page addresses as they were typed: it is not kept after the worker has read it
+    let raw = null, partial = false; try { raw = JSON.parse(fs.readFileSync(outFile, 'utf8')); } catch { partial = fs.existsSync(outFile); /* worker died, or the file is partial */ }
+    let notStored = false;
+    if (!maskRaw(raw, outFile)) { notStored = !!raw; raw = null; }   // the worker writes addresses, console texts and stacks as they are: the STORED result.json is rewritten masked, or deleted (fail closed); the raw data stays in memory only while it is used
 
     if (!raw || raw.error) {
-        const why = w.killed ? `the probe worker ran longer than ${Math.round((options.timeoutMs || DEFAULTS.timeoutMs) / 60000)} minutes and was stopped` : `the probe worker failed: ${cut((raw && raw.error) || w.err || `exit ${w.code}`, 240)}`;
+        const why = notStored ? `the probe worker's output was not stored: ${NOT_STORED}` : w.killed ? `the probe worker ran longer than ${Math.round((options.timeoutMs || DEFAULTS.timeoutMs) / 60000)} minutes and was stopped` : `the probe worker failed: ${cut((raw && raw.error) || w.err || `exit ${w.code}`, 240)}${partial ? `; its partial output was deleted and not stored` : ''}`;
         steps.push(step('live-probe', 'Live page probe', 'FAILED', why));
         steps.push(step('oracle', 'Oracle: is the symptom present?', 'NOT_RUN', `symptom reproduced: could not test (${why})`, { reproduced: 'could-not-test' }));
         result.oracle = oracleMod.evaluate(issue.oracle, { pages: [], planned: pl.planned, skipped: why }, { needsLogin: issue.needs_login, symptom: issue.symptom });
@@ -224,8 +233,8 @@ async function run(id, { root = null, options = {}, env = process.env, imageFile
             : pc.answered_with_page ? `${publicUrl} answered HTTP ${pc.status} with a web page, not the file (probably a catch-all); the original does not appear to be downloadable at that address.`
             : `no: ${publicUrl} answered HTTP ${pc.status}; the original does not appear to be downloadable at that address. Delete it anyway if you do not need it there.`;
         steps.push(step('original-public', 'Are the originals of the screenshots public?', 'PASSED', `${text}${(issue.public_originals || []).length > 1 ? ` Only the first of ${issue.public_originals.length} originals was checked (one request).` : ''}`, { public: pc.public, http_status: pc.status }));
-        issue.public_check = { url: publicUrl, status: pc.status, content_type: pc.content_type, public: pc.public, answered_with_page: !!pc.answered_with_page };
-        issue.notes = issue.notes.filter(n => !/^original (is|is not)/.test(n)).concat(pc.public ? `original is PUBLIC: ${publicUrl} answers HTTP ${pc.status}; delete it` : `original is not downloadable at ${publicUrl} (HTTP ${pc.status})`);
+        issue.public_check = { url: redact.text(publicUrl), status: pc.status, content_type: pc.content_type, public: pc.public, answered_with_page: !!pc.answered_with_page };
+        issue.notes = issue.notes.filter(n => !/^original (is|is not)/.test(n)).concat(pc.public ? `original is PUBLIC: ${redact.text(publicUrl)} answers HTTP ${pc.status}; delete it` : `original is not downloadable at ${redact.text(publicUrl)} (HTTP ${pc.status})`);
         store.save(issue);
     }
 
@@ -261,8 +270,9 @@ async function observeSandbox({ base, pages, vp, measure = [], click = null, sta
     fs.rmSync(outFile, { force: true });
     const childEnv = { ...env }; if (!login) { delete childEnv.PG_TEST_USER; delete childEnv.PG_TEST_PASSWORD; }
     const w = await new Promise(resolve => { const c = spawn(process.execPath, [WORKER, jobFile], { env: Object.fromEntries(Object.entries(childEnv).filter(([k]) => !/^(PSI_API_KEY|WPSCAN_API_TOKEN)$/.test(k) && (login || !/^PG_TEST_/.test(k)))), stdio: ['ignore', 'ignore', 'pipe'] }); let err = ''; c.stderr.on('data', d => { err = (err + d).slice(-1000); }); const t = setTimeout(() => c.kill('SIGKILL'), options.timeoutMs || 5 * 60 * 1000); c.on('close', code => { clearTimeout(t); resolve({ code, err }); }); });
-    let raw = null; try { raw = JSON.parse(fs.readFileSync(outFile, 'utf8')); } catch { /* worker died */ }
-    maskRaw(raw, outFile);   // the worker writes addresses, console texts and stacks as they are: the STORED result.json is rewritten masked (the raw data stays in memory: the oracle and the page matching read it)
+    fs.rmSync(jobFile, { force: true });
+    let raw = null, partial = false; try { raw = JSON.parse(fs.readFileSync(outFile, 'utf8')); } catch { partial = fs.existsSync(outFile); /* worker died, or the file is partial */ }
+    if (!maskRaw(raw, outFile) && raw) return { ok: false, reason: `the sandbox probe's output was not stored: ${NOT_STORED}` };   // fail closed: the raw file is gone
     if (!raw || raw.error) return { ok: false, reason: `the sandbox probe failed: ${cut((raw && raw.error) || w.err || `exit ${w.code}`, 200)}` };
     return { ok: true, pagesFull: raw.pages.map(norm), planned: typeof raw.planned === 'number' ? raw.planned : pages.length * vp.length, protection: raw.protection, login: raw.login || null };
 }
@@ -288,4 +298,4 @@ async function runSandbox(id, { url, stateDir, options = {}, env = process.env, 
     return { ok: true, oracle, status_codes: pagesFull.map(p => p.reused_status || p.status), fatal_text: pagesFull.some(p => /There has been a critical error|Fatal error|Parse error/i.test(p.text || '')), login: o.login || null, pages: pagesFull.map(({ text, ...p }) => ({ ...p, text_chars: (text || '').length, text_flags: oracleMod.textFlags(text) })) };
 }
 
-module.exports = { maskRaw, runSandbox, observeSandbox, viewportsFor, sandboxBase, absPages, run, plan, cluesFrom, logMark, logGrowth, browserReady, VIEWPORTS, DEFAULTS, cooldownFile };
+module.exports = { NOT_STORED, maskRaw, runSandbox, observeSandbox, viewportsFor, sandboxBase, absPages, run, plan, cluesFrom, logMark, logGrowth, browserReady, VIEWPORTS, DEFAULTS, cooldownFile };

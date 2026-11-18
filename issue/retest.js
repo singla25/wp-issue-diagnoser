@@ -8,11 +8,14 @@
 const fs = require('fs');
 const path = require('path');
 const store = require('../lib/issue-store');
+const redact = require('../lib/redact');
 
 const readJson = f => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return null; } };
 // A sandbox gets a new random port every time, so for sandbox runs a page is identified by its path (and query); live runs compare the full URL.
-const pageId = page => { try { const u = new URL(page); return u.pathname + u.search; } catch { return String(page); } };
-const keyer = sandbox => (page, viewport) => `${sandbox ? pageId(page) : page} @ ${viewport}`;
+// The page addresses are stored MASKED (probe.json), so both sides of a comparison are masked here too: a page with ?token=abc&page=2 is the same page on both sides.
+const mask = s => redact.text(String(s));
+const pageId = page => { try { const u = new URL(mask(page)); return u.pathname + u.search; } catch { return mask(page); } };
+const keyer = sandbox => (page, viewport) => `${sandbox ? pageId(page) : mask(page)} @ ${viewport}`;
 
 // pure: previous failing page+viewport pairs, and the new observation -> verdict
 function compare(failedBefore, now, { sandbox = false } = {}) {
@@ -102,7 +105,7 @@ async function run(id, { root, options = {}, env = process.env, hypothesis = nul
     const entry = { n, at: now(), where, verdict: cmp.verdict, reason: cmp.reason, fixed_verified: ver.ok, hypothesis: target, conditions: ver.conditions, compared: before.map(f => key(f.page, f.viewport)), oracle: { type: issue.oracle.type, value: issue.oracle.value, result: observed && observed.result } };
     if (cmp.fixed_verified && !ver.ok) entry.reason += ` NOT marked FIXED_VERIFIED: ${ver.conditions.filter(x => x.status === 'FAILED').map(x => `${x.id} (${x.reason})`).join('; ')}`;
     history.push(entry);
-    fs.writeFileSync(R('retests.json'), JSON.stringify(history, null, 2) + '\n', { mode: 0o600 });
+    fs.writeFileSync(R('retests.json'), JSON.stringify(redact.deep(history), null, 2) + '\n', { mode: 0o600 });
     return { entry, steps, history };
 }
 
