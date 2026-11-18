@@ -28,11 +28,11 @@ A run is **valid** only if `test.exit` says `test exit 0` AND the Docker state a
 
 ## The baseline (latest valid full run)
 
-Run `p-h1`, 2026-11-17, on the working tree of the honest-wording step (HEAD `b94f39c` plus the H1 changes; snapshot tree `58910d8`), valid: `test exit 0` and Docker back at 5/0/11 (5 containers, 0 labelled, 11 volumes, before and after). The machine was not restarted during the run (up since 2026-11-17 10:09, after an earlier restart, before the run started).
+Run `p-s0`, 2026-11-18, on the working tree after the S0c redact change (HEAD `68e8f62`; snapshot tree `0123eab`), valid: `test exit 0` and Docker back at 5/0/11 (5 containers, 0 labelled, 11 volumes, before and after). The machine was not restarted during the run (up since 2026-11-18 10:00, before the run started).
 
-- Suites: 75 (65 offline + 10 Docker). Duration: 43 min 34 s (11:37:18 to 12:20:52).
-- Checks: **4489 PASS, 0 FAIL, 7 SKIP**.
-- History: `p-n1` (2026-11-16, the rename): 4478 PASS, 0 FAIL, 7 SKIP, 38 min 12 s. `p-c2b` (the first valid run): 4468 PASS, 0 FAIL, 7 SKIP, 38 min 43 s. `p-c2` was not valid. The 11 more checks than `p-n1` are the new no-code tests (7 in `selftest-case-file.js`, 4 in `selftest-checkpoints.js`).
+- Suites: 76 (66 offline + 10 Docker). Duration: 38 min 56 s (12:41:00 to 13:19:56).
+- Checks: **4692 PASS, 0 FAIL, 6 SKIP**. The 6 SKIPs are loud: the two git checks of the snapshot (it is not a git work tree), the hints suite in standalone mode, and PHP 7.4, 8.0 and 8.1 (no pinned image). The network-namespace check did not skip this time.
+- History: `p-h1` (2026-11-17, honest wording): 4489 PASS, 0 FAIL, 7 SKIP, 43 min 34 s (75 suites). `p-n1` (2026-11-16, the rename): 4478 PASS, 0 FAIL, 7 SKIP, 38 min 12 s. `p-c2b` (the first valid run): 4468 PASS, 0 FAIL, 7 SKIP, 38 min 43 s. `p-c2` was not valid. The 11 more checks than `p-n1` are the new no-code tests (7 in `selftest-case-file.js`, 4 in `selftest-checkpoints.js`).
 
 Every SKIP, with its reason (all are loud skips that name their reason):
 

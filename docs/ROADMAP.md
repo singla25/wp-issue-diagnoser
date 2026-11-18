@@ -1,6 +1,6 @@
 # Roadmap: wp-issue-diagnoser
 
-Last updated: 2026-11-18, after task 3a-S0c (code commit a490e22, then its docs commit). Update the status columns after every step.
+Last updated: 2026-11-18, after the full run p-s0 on the state after S0c (commit 68e8f62) and the baseline commit. Update the status columns after every step.
 
 ## How to use this file
 
@@ -20,7 +20,7 @@ The roadmap is the plan. `docs/HANDOFF.md` is the detailed log. If they disagree
 
 ## Where we are
 
-Last green full run: p-h1 on 2026-11-17. 75 suites (65 offline and 10 Docker), 4489 PASS, 0 FAIL, 7 SKIP, 43 minutes. The 7 SKIPs are known and loud (no network namespace here, two git checks in the snapshot, the hints suite in standalone mode, PHP 7.4 and 8.0 have no pinned image, PHP 8.1 is not pinned).
+Last green full run: p-s0 on 2026-11-18 (HEAD 68e8f62). 76 suites (66 offline and 10 Docker), 4692 PASS, 0 FAIL, 6 SKIP, 39 minutes. The 6 SKIPs are known and loud (two git checks in the snapshot, the hints suite in standalone mode, PHP 7.4 and 8.0 have no pinned image, PHP 8.1 is not pinned). Commits since the earlier green run p-h1 (after 0dfa3dc): 93659c0, a14f3d3, 24e0a0e, 786646a, 566d1e1, 90c09cc, f1a794c, 0053fd9, 83d952b, f49a796, e130f73, a490e22, 68e8f62; all are covered by p-s0.
 
 | Done | Commit |
 |---|---|
@@ -41,7 +41,8 @@ Last green full run: p-h1 on 2026-11-17. 75 suites (65 offline and 10 Docker), 4
 | Roadmap: build batch S0 to S4 | 0053fd9 |
 | 3a-S0b: the other WordPress secrets masked, a last pass over the report files, the probe stores masked | 83d952b |
 | 3a-S0b docs: what is masked, screenshots are not (SAFETY.md, README) | f49a796 |
-| 3a-S0c: redact defects D1 to D4 and the minor items (retest compares masked pages, probe output masked and fail closed, whole-run masks, JSON / colon / PHP-dump forms) | a490e22, docs in the next commit |
+| 3a-S0c: redact defects D1 to D4 and the minor items (retest compares masked pages, probe output masked and fail closed, whole-run masks, JSON / colon / PHP-dump forms) | a490e22, 68e8f62 |
+| FR1: full run p-s0 after S0c, baseline updated (TESTING.md) | the baseline commit after 68e8f62 |
 
 Push status: check with `git log origin/main..HEAD`. The owner pushes only a green state.
 
