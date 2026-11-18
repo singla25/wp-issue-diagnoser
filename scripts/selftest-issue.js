@@ -191,6 +191,13 @@ ok(cli(['issue', 'open', '../..']).status === 2, 'open with a bad id: exit 2');
 ok(hashTree(wp) === wpHash, 'the WordPress tree is byte-identical after every CLI run');
 ok(cli(['scan', '--root', path.join(tmp, 'nope')]).status === 2, 'the classic commands still run');
 
+group('investigate without a site folder (modes D and E)');
+const nf = cli(['issue', 'new', '--no-prompt', '--title', 'White screen', '--description', 'blank page after update', '--symptom', 'white-screen', '--env', 'local']);
+const nfId = /(iss-\d{8}-\d{6}-[0-9a-f]{6})/.exec(nf.stdout)[1];
+const nfRun = cli(['issue', 'investigate', nfId, '--no-questions', '--gate']);
+ok(nfRun.status === 0 && !/Cannot read properties/.test(nfRun.stdout + nfRun.stderr), `issue investigate without --root does not crash (exit ${nfRun.status}) ${nfRun.stderr.slice(0, 200)}`);
+ok(/NOT TESTED/.test(nfRun.stdout) && /the code of your site/.test(nfRun.stdout) && fs.existsSync(path.join(store.dirOf(nfId), 'result', 'ISSUE-REPORT.md')), 'the report is written, says NOT TESTED and names the missing code');
+
 group('classic scan without node_modules');
 const nm = path.join(__dirname, '..', 'node_modules'), hidden = nm + '.pg-hidden';
 if (fs.existsSync(hidden) && !fs.existsSync(nm)) fs.renameSync(hidden, nm); // recover from an interrupted earlier run

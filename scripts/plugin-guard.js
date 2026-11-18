@@ -2,6 +2,7 @@
 // plugin-guard: tell it what is wrong with a WordPress site and where the site's folder is; it analyses a COPY and says what is probably causing it.
 //   plugin-guard                         asks the questions one by one
 //   plugin-guard --description "..." --root <wp-content or WordPress folder> [--url <https://...> --env local|staging|live [--authorized]] [--php 8.1]
+//   plugin-guard --description "..." --no-files [--url <https://...> --env local|staging|live [--authorized]] [--images a.png,b.png]   (no site folder: a weak result)
 //                [--images a.png,b.png] [--log debug.log] [--sandbox] [--db-dump f.sql] [--no-replica] [--out <reports folder>] [--yes]
 // Nothing is changed on the site. Exit codes: 0 done · 1 problem found that needs attention (not used) · 2 missing or bad answer · 3 a site that may not be visited.
 
@@ -13,7 +14,8 @@ The site's own log is found by itself, and with an address it only asks you to c
 
 Options (each one answers a question; with --yes nothing is asked):
   --description "<text>"   what is wrong (required)
-  --root <folder>          the wp-content folder, or the WordPress folder that contains it (required)
+  --root <folder>          the wp-content folder, or the WordPress folder that contains it (required, unless --no-files)
+  --no-files               you have no site files: only the description, screenshots and the address are used; the code is not looked at (cannot be used with --root, --sandbox, --db-dump or --log)
   --url <address>          the website, to look at it from outside (optional)
   --env local|staging|live what kind of site --url is (asked as one yes/no line in a terminal; required with --url otherwise)
   --authorized             you have the owner's permission to visit a LIVE site
