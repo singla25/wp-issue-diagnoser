@@ -18,3 +18,5 @@ Rules
 - Plain, short English for the parts a non-technical person reads.
 
 Return (15 lines or fewer): the files changed, one line each on what changed, and every doubt. Nothing else.
+
+After a restart or in a new session do not start the next roadmap row; wait for the owner's prompt.

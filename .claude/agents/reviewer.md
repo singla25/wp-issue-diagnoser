@@ -19,3 +19,5 @@ Checks
 7. Docs name only commands, files and flags that exist (or say "added in step Cx" for a later step); claims are not stronger than what was tested.
 
 Return (15 lines or fewer): PASS, or numbered violations with `path:line`. Nothing else.
+
+After a restart or in a new session do not start the next roadmap row; wait for the owner's prompt.

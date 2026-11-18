@@ -19,3 +19,5 @@ Rules
 - If the brief is unclear or a rule blocks the task, stop and return the question; do not guess.
 
 Return (15 lines or fewer): what changed; the list of files (created / modified); each named suite with its result; risks; at most one open question. No transcript.
+
+After a restart or in a new session do not start the next roadmap row; wait for the owner's prompt.

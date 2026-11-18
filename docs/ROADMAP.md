@@ -1,6 +1,6 @@
 # Roadmap: wp-issue-diagnoser
 
-Last updated: 2026-11-17, after task 3a-S0b (commits 83d952b and f49a796) and the roadmap update. Update the status columns after every step.
+Last updated: 2026-11-18, after task 3a-S0c (code commit a490e22, then its docs commit). Update the status columns after every step.
 
 ## How to use this file
 
@@ -41,6 +41,7 @@ Last green full run: p-h1 on 2026-11-17. 75 suites (65 offline and 10 Docker), 4
 | Roadmap: build batch S0 to S4 | 0053fd9 |
 | 3a-S0b: the other WordPress secrets masked, a last pass over the report files, the probe stores masked | 83d952b |
 | 3a-S0b docs: what is masked, screenshots are not (SAFETY.md, README) | f49a796 |
+| 3a-S0c: redact defects D1 to D4 and the minor items (retest compares masked pages, probe output masked and fail closed, whole-run masks, JSON / colon / PHP-dump forms) | a490e22, docs in the next commit |
 
 Push status: check with `git log origin/main..HEAD`. The owner pushes only a green state.
 
@@ -52,7 +53,7 @@ Push status: check with `git log origin/main..HEAD`. The owner pushes only a gre
 | 1b | P1: probe counts one connection error twice (`probe/safety.js`); remove the two extra `recordOutcome` calls, add a mock-page test | 45 min | A real bug in a safety rule. Small and low risk. | done (24e0a0e) |
 | 1c | Add this roadmap to the repository and to the docs map | 20 min | The plan must survive a compacted chat. | done (786646a) |
 | 2 | D1: design of input modes and question phases (`docs/INPUT-MODES.md`, no code) | 1 to 2 h | Cheap, no code. It decides what we build and in which order. | done (566d1e1) |
-| 3a | Build the no-code mode, part 1, in small steps with tests (order from `docs/INPUT-MODES.md`, section 7; S0 was added by the owner): **S0** redact fix for `rm_token` and `rm_key` (done, f1a794c) and **S0b** the other WordPress secrets and a last pass (done, 83d952b and f49a796); **S1** run without a folder and honest labels (includes the crash at `lib/issue-cli.js:289` and the label that says "reading your log" only), 0.5 day; **S2** question phases, 0.5 to 1 day; **S3** live observations, plugin versions, feed known conflicts (must handle a 500 answer where the probe stops early and only 3 of 7 live checks gave a result), 1 day; **S4** report layout for modes D and E, 0.5 to 1 day; then ONE full run | 2.5 to 3.5 days | Most WordPress users cannot give files or a database. This is the widest audience. | S0 and S0b done (f1a794c, 83d952b, f49a796); S1 next |
+| 3a | Build the no-code mode, part 1, in small steps with tests (order from `docs/INPUT-MODES.md`, section 7; S0 was added by the owner): **S0** redact fix for `rm_token` and `rm_key` (done, f1a794c) and **S0b** the other WordPress secrets and a last pass (done, 83d952b and f49a796); **S0c** the defects found in the extra review of S0b, D1 to D4 and the minor items (done, a490e22 and the docs commit after it); **S1** run without a folder and honest labels (includes the crash at `lib/issue-cli.js:289` and the label that says "reading your log" only), 0.5 day; **S2** question phases, 0.5 to 1 day; **S3** live observations, plugin versions, feed known conflicts (must handle a 500 answer where the probe stops early and only 3 of 7 live checks gave a result), 1 day; **S4** report layout for modes D and E, 0.5 to 1 day; then ONE full run | 2.5 to 3.5 days | Most WordPress users cannot give files or a database. This is the widest audience. | S0, S0b and S0c done (f1a794c, 83d952b, f49a796, a490e22); S1 next, only when the owner sends its prompt |
 | 3b | Build the no-code mode, part 2: **S5** Site Health text and pasted plugin list, 0.5 day; **S6** public `debug.log` check, 0.5 day; **S7** error e-mail text (after the masks of S0) and Plugins-page screenshot, 0.5 day each | about 2 days | Extra inputs for people who can copy a text but not give files. | waiting for 3a |
 | 4 | Real-site runs by the owner on 2 or 3 real sites, then review of the reports | 1 to 2 h | Tests use made-up sites. Real sites find what tests miss. After 3a, so the new mode is tested too. | waiting for 3a and 3b |
 | 5a | C6: docs leftovers, naming, GET-only wording, git-skip message, comments, `.claude/scheduled_tasks.lock` line in `.gitignore`, case-file versus HEAD comparison | 1 to 1.5 h | Small and safe. | waiting |

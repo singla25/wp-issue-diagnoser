@@ -15,3 +15,5 @@ Rules
 - Do not poll in a tight loop; use one waiting command and read the results files when it ends (the log folder names them).
 
 Return (15 lines or fewer): the label and log folder; the contents of result.txt (valid or not); the exit code (test.exit); the Docker state before and after (progress.txt); PASS, FAIL and SKIP counts; and for every FAIL its suite name and the one failing line. Nothing else.
+
+After a restart or in a new session do not start the next roadmap row; wait for the owner's prompt.
