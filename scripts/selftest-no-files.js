@@ -55,6 +55,39 @@ const readJson = f => JSON.parse(fs.readFileSync(f, 'utf8'));
     ok(fA && fA.case_file && !(fA.hypotheses || []).some(h => ['CONFIRMED', 'REPRODUCIBLE'].includes(h.status)), 'no cause is CONFIRMED or REPRODUCIBLE without any site files');
     ok(/No site folder was given \(--no-files\)/.test(a.stdout), 'the terminal says plainly that no site folder was given');
 
+    // ---- S1b: the wording comes from the data (what ran, what was read), not from the mode ----
+    const R = n => fs.readFileSync(path.join(dirA, 'result', n), 'utf8');
+    group('S1b (a) zero checks ran: the verdict says nothing could be checked, and why');
+    ok(fA && fA.verdict.label === 'Nothing could be checked' && /^How sure we are: not at all\. Nothing could be checked/.test(fA.confidence_text), `case (a) verdict: "${fA && fA.verdict.label}" / "${fA && fA.confidence_text.slice(0, 80)}"`);
+    ok(/no site files were given, no log was read and no live check was run/.test(fA.confidence_text) && !/Nothing that was checked points at a cause/.test(a.stdout + JSON.stringify(fA)), 'it names the reasons (no site files, no log, no live check) and never says "Nothing that was checked points at a cause"');
+    ok(/VERDICT: Nothing could be checked/.test(a.stdout), 'the terminal prints the same verdict');
+    const plain = require('../lib/plain-names');
+    ok(/^How sure we are: not at all\. Nothing could be checked, so this report does not say whether your site is healthy: no code was read, no log was read and the live page was loaded, but none of the 53 checks ran on it\.$/.test(plain.zeroChecksSentence({ hasRoot: true, hasCode: false, hasLog: false, probeRan: true, total: 53 })), 'the sentence follows the data: a site folder without code says "no code was read", a probe that ran says the page was loaded');
+    ok(/: no log was read and no live check was run\.$/.test(plain.zeroChecksSentence({ hasRoot: true, hasCode: true, hasLog: false, probeRan: false, total: 53 })) && !/site files/.test(plain.zeroChecksSentence({ hasRoot: true, hasCode: true, hasLog: false, probeRan: false, total: 53 })), 'with code but no log and no probe only those two reasons are named');
+
+    group('S1b (b) no folder: nothing is said as if the site was searched');
+    ok(!/No error log was found on this site/.test(a.stdout + R('ISSUE-REPORT.md') + R('issue.html')) && !/WP_DEBUG/.test(R('ISSUE-REPORT.md')), 'no "No error log was found on this site" and no WP_DEBUG advice in the terminal text, ISSUE-REPORT.md or issue.html');
+    ok(/No log was read, because no site files were given\./.test(R('ISSUE-REPORT.md')) && /run it again with the site folder \(--root\)/.test(R('ISSUE-REPORT.md')), 'the report says no log was read because no site files were given, and what to do');
+
+    group('S1b (c) the last line is true');
+    ok(/Nothing on your site was changed\./.test(a.stdout) && !/Your site folder was not changed/.test(a.stdout), 'without a site folder the last line says "Nothing on your site was changed."');
+
+    group('S1b (d) the NOT CHECKED reason');
+    const rowsA = fA.checkpoints.items.filter(i => i.result === 'NOT CHECKED');
+    const noFilesRows = rowsA.filter(i => /^no site files were given, so no (code|log) was read$/.test(i.reason));
+    ok(rowsA.length === 53 && noFilesRows.length === 31 && noFilesRows.filter(i => /no code was read/.test(i.reason)).length === 29, `all 53 are NOT CHECKED; the 31 that need the site's code or log say "no site files were given, so no code was read" (29) or "... no log was read" (2); the other 22 keep their own reasons (not built yet, probe did not run, classic scan only)`);
+    ok(!/\(--root\)/.test(JSON.stringify(fA.checkpoints)), 'no "(--root)" wording is left in the check reasons');
+
+    group('S1b (e) the label says what was really read');
+    const lab = require('../issue/case-file').notTestedLabel;
+    const L = x => lab(x).replace(/^NOT TESTED: what this report says comes from (.*)\. It was not tried on a copy of your site\.$/, '$1');
+    ok(L({ hasLog: false, hasCode: false }) === 'your description only', 'nothing read: "your description only"');
+    ok(L({ hasLog: false, hasCode: false, probeRan: true }) === 'looking at the live page', 'a live page and no code or log: "looking at the live page" (it used to say "your description only")');
+    ok(L({ hasLog: true, hasCode: false, probeRan: true }) === 'reading your log and looking at the live page', 'a log and a live page: both named');
+    ok(L({ hasLog: false, hasCode: false, probeRan: true, screenshotsRead: true }) === 'looking at the live page and the text of your screenshots', 'a live page and screenshot text: both named');
+    ok(L({ hasLog: true, hasCode: false }) === 'reading your log' && L({ hasLog: false, hasCode: true }) === 'reading the code', 'the old log-only and code-only sentences are unchanged');
+    ok(lab({ hasLog: true, hasCode: true, probeRan: true }) === 'NOT TESTED: what this report says comes from reading your log and the code. It was not tried on a copy of your site.', 'a log and the code together keep the old sentence (unchanged)');
+
     group('case (c): a local fixture address that answers 200');
     const hits = [];
     const server = http.createServer((req, res) => {
@@ -73,11 +106,37 @@ const readJson = f => JSON.parse(fs.readFileSync(f, 'utf8'));
         ok(hits.length > 0 && hits.every(h => h.method === 'GET'), `the fixture received ${hits.length} request(s), all GET`);
         ok(probeC && probeC.pages.length > 0 && probeC.pages.every(p => p.loaded && p.status === 200), 'the probe loaded the page and it answered 200');
         ok(/NOT TESTED ON A COPY/.test(c.stdout), 'the report level is "NOT TESTED ON A COPY"');
+        ok(/comes from looking at the live page\./.test(c.stdout) && !/your description only/.test(c.stdout), 'S1b (e): the label says the report comes from looking at the live page, not "your description only"');
         ok(/Looked at: [^.\n]*the live page/.test(c.stdout) && /Not looked at: [^.\n]*the code/.test(c.stdout), 'the status line says the live page was looked at and the code was not');
         ok(!fs.existsSync(path.join(dirC, 'site-copy')), 'no site copy was made');
         const fC = fs.existsSync(path.join(dirC, 'result', 'findings.json')) ? readJson(path.join(dirC, 'result', 'findings.json')) : null;
+        ok(fC && fC.verdict.label === 'Nothing could be checked' && /the live page was loaded, but none of the 53 checks ran on it/.test(fC.confidence_text), 'S1b (a)/(case c): 0 checks ran, so the verdict says nothing could be checked and that the page was loaded but no check ran on it');
         ok(fC && !(fC.hypotheses || []).some(h => ['CONFIRMED', 'REPRODUCIBLE'].includes(h.status)), 'no cause is CONFIRMED or REPRODUCIBLE without any site files');
     } finally { server.close(); }
+
+    group('case (d): a local fixture address that answers 500 (checks DO run: the verdict is not "Nothing could be checked")');
+    const hits500 = [];
+    const server500 = http.createServer((req, res) => { hits500.push(req.method); res.writeHead(500, { 'Content-Type': 'text/html' }); res.end('<html><body>There has been a critical error on this website.</body></html>'); });
+    await new Promise(r => server500.listen(0, '127.0.0.1', r));
+    try {
+        const before = issueDirs();
+        const d = await runAsync([...base, '--no-files', '--url', `http://127.0.0.1:${server500.address().port}/`, '--env', 'local']);
+        const dirD = issueDirs().filter(n => !before.includes(n)).map(n => path.join(tmp, 'issues', n))[0] || path.join(tmp, 'none');
+        const fD = fs.existsSync(path.join(dirD, 'result', 'findings.json')) ? readJson(path.join(dirD, 'result', 'findings.json')) : null;
+        ok(d.status === 0 && fD && fD.checkpoints.counts.fail + fD.checkpoints.counts.pass + fD.checkpoints.counts.also_noticed > 0, `exit 0 and some checks ran (${fD && JSON.stringify(fD.checkpoints.counts)})`);
+        ok(fD && fD.verdict.label !== 'Nothing could be checked' && !/Nothing could be checked/.test(fD.confidence_text), 'the zero-checks verdict is derived from the number of checks that ran, not from the mode: with checks run it is not used');
+        ok(/The live page answered HTTP 500\./.test(d.stdout) && /comes from looking at the live page/.test(d.stdout) && hits500.every(m => m === 'GET'), 'the report says the live page answered HTTP 500, rests on looking at the live page, and only GET requests were made');
+    } finally { server500.close(); }
+
+    group('--no-files with --env live: the live rules are not loosened (decision: no new rule, the existing ones apply)');
+    const hitsLive = [];
+    const serverLive = http.createServer((req, res) => { hitsLive.push(req.method); res.writeHead(200); res.end('x'); });
+    await new Promise(r => serverLive.listen(0, '127.0.0.1', r));
+    try {
+        const lv = await runAsync([...base, '--no-files', '--url', `http://127.0.0.1:${serverLive.address().port}/`, '--env', 'live']);
+        ok(lv.status === 3 && /is marked live\. Without a terminal to confirm on, a live site is not visited unless you pass --authorized/.test(lv.stderr), `a live address without --authorized and without a terminal is refused, exit 3 (exit ${lv.status})`);
+        ok(hitsLive.length === 0, 'and the address was not visited at all (0 requests)');
+    } finally { serverLive.close(); }
 
     fs.rmSync(tmp, { recursive: true, force: true });
     console.log(failures ? `\n${failures} check(s) FAILED` : '\nAll no-files checks passed');

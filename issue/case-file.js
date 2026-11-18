@@ -98,6 +98,10 @@ const MODIFIED_ADVICE = 'If this copy did not come from the vendor, replace it w
 const NO_LOG_HELP = ['No error log was found on this site.',
     'To see what is going wrong, turn error logging on. First make a backup with UpdraftPlus. Then, in the file wp-config.php, set WP_DEBUG to true, WP_DEBUG_LOG to true and WP_DEBUG_DISPLAY to false. Load the page that shows the problem once, then run this report again.',
     'This does not mean nothing went wrong.'];
+// no site folder was given (--no-files, or no --root): nothing was searched, so nothing is said about "this site"; the advice that fits is to give the folder
+const NO_FILES_LOG_HELP = ['No log was read, because no site files were given.',
+    'To let this tool read the error log of your site, run it again with the site folder (--root).',
+    'This does not mean nothing went wrong.'];
 const cap = s => String(s).replace(/^./, c => c.toUpperCase());
 const plural = (n, one, many) => (n === 1 ? one : many);
 const plural2 = (n, one, many) => (n > 1 ? many : one);   // the status line: "0 likely cause", "1 likely cause", "2 likely causes"
@@ -129,7 +133,7 @@ function lookedAt(facts, { box = false, copyBuilt = false, liveLoop = false } = 
     const yes = [], no = [];
     (facts.hasLog ? yes : no).push('your log');
     if (facts.probeRan) yes.push('the live page'); else if (liveLoop) yes.push(LOOP_LOOKED); else no.push('the live page');
-    if (facts.hasCode) yes.push(facts.phpSkipped ? `the code (${skippedText(facts.phpSkippedDetail)})` : 'the code'); else no.push(facts.codeFound > 0 ? `the code (${facts.codeFound} PHP file${facts.codeFound === 1 ? ' was' : 's were'} found, but none was analysed)` : 'the code');
+    if (facts.hasCode) yes.push(facts.phpSkipped ? `the code (${skippedText(facts.phpSkippedDetail)})` : 'the code'); else no.push(facts.noFiles ? 'the code (no site files were given)' : facts.codeFound > 0 ? `the code (${facts.codeFound} PHP file${facts.codeFound === 1 ? ' was' : 's were'} found, but none was analysed)` : 'the code');
     if (facts.sandboxRan) yes.push('a throwaway test copy'); else if (copyBuilt) yes.push('a throwaway test copy (it was built)'); else no.push(facts.sandboxFailed ? 'a throwaway test copy (it could not run)' : 'a throwaway test copy');
     // the PHP version only as the reporter stated it; the host's PHP (or the sandbox image's) is never claimed as the site's
     if (facts.php) yes.push(`PHP ${facts.php} (${facts.phpSource === 'you confirmed' ? 'you confirmed' : 'you told us'})`);
@@ -303,7 +307,14 @@ const MISSING_TEXT = { database: 'a database export file of your site (.sql or .
 const MISSING_INTRO = 'What a test on a copy of your site needs, and was missing:';
 const NOT_TESTED_LABEL = 'NOT TESTED: what this report says comes from reading your log and the code. It was not tried on a copy of your site.';
 // what the report was really built from: the label never says the code (or the log) was read when it was not (H1)
-const notTestedLabel = f => { const hasLog = f.hasLog !== false, hasCode = f.hasCode !== false; return hasLog && hasCode ? NOT_TESTED_LABEL : `NOT TESTED: what this report says comes from ${hasLog ? 'reading your log' : hasCode ? 'reading the code' : 'your description only'}. It was not tried on a copy of your site.`; };
+// what the report really rests on: the log, the code, the live page and the screenshots, as far as each was read (a log and the code together keep the old sentence)
+const notTestedLabel = f => {
+    const hasLog = f.hasLog !== false, hasCode = f.hasCode !== false;
+    if (hasLog && hasCode) return NOT_TESTED_LABEL;
+    const read = [hasLog && 'reading your log', hasCode && 'reading the code', f.probeRan && 'looking at the live page', f.screenshotsRead && 'the text of your screenshots'].filter(Boolean);
+    const list = read.length > 1 ? `${read.slice(0, -1).join(', ')} and ${read[read.length - 1]}` : read[0];
+    return `NOT TESTED: what this report says comes from ${list || 'your description only'}. It was not tried on a copy of your site.`;
+};
 // a copy WAS built and logged the reported error, but your site had no failing page to compare (level 2): not "not tried on a copy"
 const NOT_CONFIRMED_LABEL = 'NOT CONFIRMED: a test copy of your site was built and logged the reported error, but your site had no failing page to compare with, so the copy does not confirm this report. What this report says comes from reading your log and the code.';
 const MATCHED_LINE = 'A test copy of your site, built from your database, showed the same problem as your site: the same page, the same kind of failure and the same error.';
@@ -506,4 +517,4 @@ function cli(cf) {
     return L.join('\n');
 }
 
-module.exports = { hasDbClue, FILES_ONLY_HEADING, FILES_ONLY_YES, FILES_ONLY_NO, isSelfLoop, loopSentence, loopLines, LOOP_LOOKED, addressSentence, STATUS_WORDS, PROTECT_CODES, addressPageOf, liveAnswers, pageSentence, NOT_CONFIRMED_LABEL, NO_PAGE_MATCH, copyLevel, closeness, closeLines, LEVEL_HEADING, MISSING_TEXT, MISSING_INTRO, NOT_TESTED_LABEL, CHOSE_NO_COPY, MATCHED_LINE, CLOSE_TITLE, CLOSE_GROUPS, NOT_COVERED, countedChecks, countedSentence, fidelityPart, MISSING_SHOWN, userDataLines, activePluginLines, versionLines, build, markdown, markdownDeveloper, cli, statusLine, lookedAt, skippedText, confirmedSentence, LIKELY, CHECK, CHECK_NO_CRASH, CONFIRMED, SIGNS, EMPTY_STATUS, NOT_CONFIRMED_SENTENCE, NO_CAUSE_NOTE, NOT_LIVE_SENTENCE, PHP_NOT_STATED, MODIFIED_NOTE, MODIFIED_ADVICE, NO_LOG_HELP };
+module.exports = { notTestedLabel, NO_FILES_LOG_HELP, hasDbClue, FILES_ONLY_HEADING, FILES_ONLY_YES, FILES_ONLY_NO, isSelfLoop, loopSentence, loopLines, LOOP_LOOKED, addressSentence, STATUS_WORDS, PROTECT_CODES, addressPageOf, liveAnswers, pageSentence, NOT_CONFIRMED_LABEL, NO_PAGE_MATCH, copyLevel, closeness, closeLines, LEVEL_HEADING, MISSING_TEXT, MISSING_INTRO, NOT_TESTED_LABEL, CHOSE_NO_COPY, MATCHED_LINE, CLOSE_TITLE, CLOSE_GROUPS, NOT_COVERED, countedChecks, countedSentence, fidelityPart, MISSING_SHOWN, userDataLines, activePluginLines, versionLines, build, markdown, markdownDeveloper, cli, statusLine, lookedAt, skippedText, confirmedSentence, LIKELY, CHECK, CHECK_NO_CRASH, CONFIRMED, SIGNS, EMPTY_STATUS, NOT_CONFIRMED_SENTENCE, NO_CAUSE_NOTE, NOT_LIVE_SENTENCE, PHP_NOT_STATED, MODIFIED_NOTE, MODIFIED_ADVICE, NO_LOG_HELP };

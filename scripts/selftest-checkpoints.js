@@ -121,7 +121,7 @@ const T = rows => cpMod.tally(rows);
     const noroot = await investigate('noroot', { withRoot: false });
     const rNo = run(noroot, { hasRoot: false }), tn = T(rNo), bn = by(rNo);
     ok(tn.pass === 0 && tn.fail === 0 && tn.not_checked === 53, `no root: 0 PASS, 0 FAIL, 53 NOT CHECKED (got ${tn.pass}/${tn.fail}/${tn.not_checked})`);
-    ok(rNo.filter(r => cps.find(c => c.id === r.id).evaluator && cps.find(c => c.id === r.id).reached_in !== 'Classic' && !['cp-38', 'cp-39', 'cp-40', 'cp-41', 'cp-43', 'cp-44', 'cp-45', 'cp-20'].includes(r.id)).every(r => /no local copy of the site/.test(r.reason) || /no log|PHP version/.test(r.reason)), 'every code-reading row names the missing folder as the reason');
+    ok(rNo.filter(r => cps.find(c => c.id === r.id).evaluator && cps.find(c => c.id === r.id).reached_in !== 'Classic' && !['cp-38', 'cp-39', 'cp-40', 'cp-41', 'cp-43', 'cp-44', 'cp-45', 'cp-20'].includes(r.id)).every(r => /no site files were given/.test(r.reason) || /no log|PHP version/.test(r.reason)), 'every code-reading row names the missing folder as the reason');
     // the guard: the work files of the ews run are still there, but the caller says there was no root and no probe: nothing may turn into a PASS
     const guard = cpMod.evaluate({ work: cpMod.loadWork(ews.dir), validation: ews.val, ran: { probe: false, sandbox: false }, hasRoot: false });
     ok(T(guard).pass === 0 && T(guard).fail === 0, 'hasRoot false with leftover work files: still no PASS and no FAIL from a missing source');

@@ -27,7 +27,7 @@ function loadWork(dir) {
 
 // ---------------------------------------------------------------- what ran
 function sourcesOf({ work = {}, ran = {}, hasRoot = false, hasCode = true, codeFound = 0, validation = null }) {
-    const noRoot = 'no local copy of the site was given (--root), so no code was read';
+    const noRoot = 'no site files were given, so no code was read';
     const stepOf = (list, id) => (list || []).find(s => s.id === id);
     const noCode = codeFound > 0 ? `the site folder holds ${codeFound} PHP file${codeFound === 1 ? '' : 's'}, but none could be analysed, so no code was checked` : 'the site folder holds no code files, so no code was read';
     const need = (cond, whyNot) => (hasRoot && hasCode && cond ? { ok: true } : { ok: false, why: !hasRoot ? noRoot : !hasCode ? noCode : whyNot });
@@ -42,7 +42,7 @@ function sourcesOf({ work = {}, ran = {}, hasRoot = false, hasCode = true, codeF
     S.graph = need(!!work.graph && !work.graph.truncated, work.graph && work.graph.truncated ? 'only part of the relations between components was kept' : 'the component relations were not built');
     S.kb = need(!!work.kbHits, 'the known-patterns check did not run');
     const logStep = stepOf(work.evidence && work.evidence.steps, 'logs');
-    S.logs = { ok: !!(hasRoot && logStep && logStep.status === 'PASSED'), why: !hasRoot ? noRoot : 'no log file was found or read (turn on WP_DEBUG_LOG); that is not evidence that nothing went wrong' };
+    S.logs = { ok: !!(hasRoot && logStep && logStep.status === 'PASSED'), why: !hasRoot ? 'no site files were given, so no log was read' : 'no log file was found or read (turn on WP_DEBUG_LOG); that is not evidence that nothing went wrong' };
     S.hypotheses = { ok: !!(validation && Array.isArray(validation.hypotheses)), why: 'the hypotheses were not validated' };
     const pr = work.probe, loaded = pr && Array.isArray(pr.pages) ? pr.pages.filter(p => p.loaded) : [];
     S.probe = { ok: !!(ran.probe && pr && Array.isArray(pr.pages) && pr.pages.length), why: 'the live page probe did not run (no address, not allowed, or switched off)' };

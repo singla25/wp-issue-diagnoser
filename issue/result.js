@@ -159,6 +159,7 @@ function limitsFirst(sandbox) {
 const modifiedSigns = require('./modified-signs');
 // the log steps when no log was read: one reader sentence (findings.json keeps each step's own text)
 const NO_LOG_STEP = 'No error log was found on this site. This does not mean nothing went wrong.';
+const NO_LOG_STEP_NO_FILES = 'No log was read, because no site files were given. This does not mean nothing went wrong.';
 const LOG_STEP = t => t && t.status !== 'PASSED' && (t.id === 'intake-log' || (t.id === 'logs' && /no debug\.log or error_log found/.test(String(t.reason || ''))));
 const caseFileMod = require('./case-file'), causeDetailMod = require('./cause-detail'), oracleMod = require('./oracle'), whatsWrong = require('./whats-wrong'), gateMod = require('./gate'), summaryMod = require('./summary'), rollbackMod = require('./rollback'), ctMod = require('./conflict-type');
 const TYPE_TEXT = {
@@ -311,8 +312,8 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
         const fdNow = fidelityOf(sbx, W), clNow = sbx && sbx.sandbox ? cleanCopyLog(W('copy-log.json')) : null;
         const copyLogLines = !hasLog && !(ikLog && ikLog.log_state === 'unreadable') && fdNow && fdNow.level === 'matched' && clNow && clNow.label === 'verified' && clNow.last_fatals.length
             ? [fdNow.real_page === false ? COPY_LOG_INTRO_NO_PAGE : COPY_LOG_INTRO, ...clNow.last_fatals.slice(-3).map(x => `From a test copy of your site: ${x.message}${x.file ? ` (${x.file}${x.line ? `, line ${x.line}` : ''})` : ''}`)] : null;
-        const logHelp = hasLog || copyLogLines ? null : ikLog && ikLog.log_state === 'unreadable' ? [ikLog.reason] : caseFileMod.NO_LOG_HELP;
-        if (!hasLog) for (const t of f.timeline) if (LOG_STEP(t)) f.not_tested_text[t.id] = `${t.label}: ${ikLog && ikLog.log_state === 'unreadable' && t.id === 'intake-log' ? ikLog.reason : NO_LOG_STEP}`;
+        const logHelp = hasLog || copyLogLines ? null : ikLog && ikLog.log_state === 'unreadable' ? [ikLog.reason] : issue.root ? caseFileMod.NO_LOG_HELP : caseFileMod.NO_FILES_LOG_HELP;
+        if (!hasLog) for (const t of f.timeline) if (LOG_STEP(t)) f.not_tested_text[t.id] = `${t.label}: ${ikLog && ikLog.log_state === 'unreadable' && t.id === 'intake-log' ? ikLog.reason : issue.root ? NO_LOG_STEP : NO_LOG_STEP_NO_FILES}`;
         // PHP files that were not read: left out of the copy (reason not recorded), too large for the code analysis, or the parser could not read them (custom-code.json per-component file counts)
         const phpSk = { tooLarge: 0, unparsed: 0, other: Number(ik.php_skipped) > 0 ? Number(ik.php_skipped) : 0 };
         for (const c of cc.components || []) { phpSk.tooLarge += Number((c.files || {}).too_big) || 0; phpSk.unparsed += Number((c.files || {}).failed) || 0; }
@@ -335,7 +336,7 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
             activePlugins: sbx && sbx.sandbox ? cleanActivePlugins(W('active-plugins.json')) : null,
             // 6d-2: the fidelity check of a copy from a database file (the reader's sentence; and whether the copy may be named among the checks that counted)
             fidelity: fidelityOf(sbx, W),
-            facts: { hasLog: !!((lg.files || []).length || (lg.entries || []).length), hasCode: !!issue.root && codeFilesRead > 0, codeFound: codeFilesFound, phpSkipped: phpSk.total > 0, phpSkippedDetail: phpSk, probeRan: ran.probe, sandboxRan: ran.sandbox, sandboxFailed: !!(sbx && sbx.could_not_run),
+            facts: { hasLog: !!((lg.files || []).length || (lg.entries || []).length), hasCode: !!issue.root && codeFilesRead > 0, noFiles: !issue.root, screenshotsRead: ((f.reported && f.reported.images) || []).some(i => i.ocr_text && String(i.ocr_text).trim()), codeFound: codeFilesFound, phpSkipped: phpSk.total > 0, phpSkippedDetail: phpSk, probeRan: ran.probe, sandboxRan: ran.sandbox, sandboxFailed: !!(sbx && sbx.could_not_run),
                 sandboxReproduced: sbx ? sbx.reproduced_in_sandbox : null, php: issue.php_version || null, phpSource: issue.php_source || null, crash }
         });
         f.summary.text_report = caseFileMod.cli(f.case_file);
@@ -345,6 +346,11 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
         const seen5 = sure1.map(t => /^The live page answered HTTP (\d{3})\.$/.exec(t)).find(Boolean);
         const live1 = !sure1.length ? null : seen5 ? { status: Number(seen5[1]) } : sure1.includes(caseFileMod.NOT_LIVE_SENTENCE) ? 'not-checked' : sure1.some(t => /^The live pages that were loaded did not answer with an error\.$/.test(t)) ? 'fine' : null;
         if (live1) f.confidence_text = plainNames.confidenceSentence(f.verdict.confidence, f.verdict.label, { reproduced: split.findings.some(x => x.status === 'REPRODUCIBLE'), live: live1 });
+        // zero checks ran: the verdict says nothing could be checked, and why (from the counts and the facts, not from the mode); a cause found by other means keeps its own verdict
+        if (cpCounts.pass + cpCounts.fail + cpCounts.also_noticed === 0 && f.verdict.label === 'No confirmed breaking cause was found') {
+            f.verdict = { ...f.verdict, label: plainNames.NOTHING_CHECKED_LABEL };
+            f.confidence_text = plainNames.zeroChecksSentence({ hasRoot: !!issue.root, hasCode: !!issue.root && codeFilesRead > 0, hasLog: !!((lg.files || []).length || (lg.entries || []).length), probeRan: !!ran.probe, total: cpRows.length });
+        }
         // the Limits in reader words (findings.json `limits` keeps the internal text): the first sentence says what "confirmed" means and whether a test copy was used, from the data
         f.limits_text = [limitsFirst(ran.sandbox ? 'ran' : sbx && sbx.could_not_run ? 'failed' : 'none'), ...f.limits.slice(1)];
     }
