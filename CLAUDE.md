@@ -32,7 +32,7 @@ npm run demo [-- --sandbox] [-- --keep] # the worked example end to end on a fix
 npm run checkpoints [-- --check]        # regenerate data/checkpoints.json from the COVERAGE table (--check exits 1 if stale)
 npm run verify-knowledge                # re-fetch the official pages cited by the knowledge data files
 npm run knowledge-review                # regenerate KNOWLEDGE-REVIEW.md for a person to review; a test fails if it is stale
-npm test                                # every suite: test:offline (67 suites), then test:docker (10 suites, real containers)
+npm test                                # every suite: test:offline (68 suites), then test:docker (10 suites, real containers)
 npm run test:offline                    # the offline suites only
 npm run test:docker                     # the Docker suites only (they skip loudly when Docker is unusable)
 scripts/run-full.sh <label>             # the ONE full run on a snapshot; logs in ~/pg-runs/<label>/
@@ -50,7 +50,7 @@ The `wp-issue-diagnoser` command (`npm run diagnose`; bin entry `wp-issue-diagno
 - No PHP question up front (the follow-up engine asks only when needed); when the folder name hints a PHP version, one `[Y/n]` line confirms it (`lib/wizard.js`); `--php` sets it.
 - The database question (a database export file, `.sql` or `.sql.gz`) is asked only when Docker works, the site is not live and none of `--sandbox`, `--db-dump` or `--no-replica` was given; with a file the test copy is built without asking whether to build it (the wizard still asks the one user-accounts question: 1 dummy users, 0 skip the test copy).
 - It copies the site read-only and runs the issue pipeline with the gate and the follow-up questions.
-- Flags-only use: `--description --root [--url --env --authorized --php --images --log --sandbox --db-dump --max-size-mb --no-replica --out --yes]` (`wp-issue-diagnoser --help`). `--db-dump f.sql` gives the database file; `--max-size-mb` is the size cap (database default 1024 MB, unpacked); `--no-replica` means the same as answering "0) Skip the test copy": no test copy, no database question. A problem marked live (`--env live`, or confirmed in the wizard) never gets a test copy from a database file; live is the reporter's label and is not detected.
+- Flags-only use: `--description --root` (or `--no-files` instead of `--root`: no site folder, a weak result, not with `--root`, `--sandbox`, `--db-dump` or `--log`) `[--url --env --authorized --php --images --log --sandbox --db-dump --max-size-mb --no-replica --out --yes]` (`wp-issue-diagnoser --help`). `--db-dump f.sql` gives the database file; `--max-size-mb` is the size cap (database default 1024 MB, unpacked); `--no-replica` means the same as answering "0) Skip the test copy": no test copy, no database question. A problem marked live (`--env live`, or confirmed in the wizard) never gets a test copy from a database file; live is the reporter's label and is not detected.
 
 Every suite is a standalone script, `scripts/selftest*.js`, run with `npm run selftest:<name>` (the original one is `scripts/selftest.js`). There is no per-test runner.
 

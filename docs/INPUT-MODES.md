@@ -174,4 +174,6 @@ Written for a person who is not a developer. Every question can be skipped with 
 | S6 | A public `debug.log` check with a GET (redacted, reported as exposure) | fixture server with and without a log; the redaction test | 0.5 day |
 | S7 | The error e-mail text (after masks for `rm_token` and `rm_key` and a test) and the Plugins-page screenshot | redaction tests; OCR fixture with a plugin list | 0.5 day each |
 
+**Build status (2026-11-18):** S1a is built (commit `2abfccc`: the option `--no-files`, the crash fix at `lib/issue-cli.js:289`, refusals with `--root`, `--sandbox`, `--db-dump` and `--log`, the end-to-end suite `scripts/selftest-no-files.js`). S1b is built (commit `ee782f4`: the zero-checks verdict, no "on this site" wording without a folder, the true last line, the reason "no site files were given", the NOT TESTED label from what was really read). S1c is this documentation. **S1d (not built): `--log` together with `--no-files`** (log text without a site folder; today it is refused with a plain message), then case (b) of the S1 plan can be run.
+
 The order is S1, S2, S3, S4, then S5 to S7. D1 itself (this file) makes no code change. A full run is needed after S1 to S4, before the owner pushes.
