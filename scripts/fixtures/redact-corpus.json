@@ -1,0 +1,1529 @@
+{
+ "note": "Made-up values only. Each secret form carries unique marker values that must not survive redact.text(); each benign text must come back unchanged. Used by scripts/selftest-redact-corpus.js.",
+ "secrets": [
+  {
+   "id": "s001",
+   "category": "url-param",
+   "text": "https://example.test/path?token=S3cretMarker0001&page=2",
+   "markers": [
+    "S3cretMarker0001"
+   ]
+  },
+  {
+   "id": "s002",
+   "category": "url-param",
+   "text": "https://example.test/path?access_token=S3cretMarker0002&page=2",
+   "markers": [
+    "S3cretMarker0002"
+   ]
+  },
+  {
+   "id": "s003",
+   "category": "url-param",
+   "text": "https://example.test/path?api_key=S3cretMarker0003&page=2",
+   "markers": [
+    "S3cretMarker0003"
+   ]
+  },
+  {
+   "id": "s004",
+   "category": "url-param",
+   "text": "https://example.test/path?password=S3cretMarker0004&page=2",
+   "markers": [
+    "S3cretMarker0004"
+   ]
+  },
+  {
+   "id": "s005",
+   "category": "url-param",
+   "text": "https://example.test/path?pwd=S3cretMarker0005&page=2",
+   "markers": [
+    "S3cretMarker0005"
+   ]
+  },
+  {
+   "id": "s006",
+   "category": "url-param",
+   "text": "https://example.test/path?secret=S3cretMarker0006&page=2",
+   "markers": [
+    "S3cretMarker0006"
+   ]
+  },
+  {
+   "id": "s007",
+   "category": "url-param",
+   "text": "https://example.test/path?client_secret=S3cretMarker0007&page=2",
+   "markers": [
+    "S3cretMarker0007"
+   ]
+  },
+  {
+   "id": "s008",
+   "category": "url-param",
+   "text": "https://example.test/path?refresh_token=S3cretMarker0008&page=2",
+   "markers": [
+    "S3cretMarker0008"
+   ]
+  },
+  {
+   "id": "s009",
+   "category": "url-param",
+   "text": "https://example.test/path?auth_token=S3cretMarker0009&page=2",
+   "markers": [
+    "S3cretMarker0009"
+   ]
+  },
+  {
+   "id": "s010",
+   "category": "url-param",
+   "text": "https://example.test/path?csrf_token=S3cretMarker0010&page=2",
+   "markers": [
+    "S3cretMarker0010"
+   ]
+  },
+  {
+   "id": "s011",
+   "category": "url-param",
+   "text": "https://example.test/path?user_pass=S3cretMarker0011&page=2",
+   "markers": [
+    "S3cretMarker0011"
+   ]
+  },
+  {
+   "id": "s012",
+   "category": "url-param",
+   "text": "https://example.test/path?pass1=S3cretMarker0012&page=2",
+   "markers": [
+    "S3cretMarker0012"
+   ]
+  },
+  {
+   "id": "s013",
+   "category": "url-param",
+   "text": "https://example.test/wp-login.php?action=rp&key=S3cretMarker0013&login=editor",
+   "markers": [
+    "S3cretMarker0013"
+   ]
+  },
+  {
+   "id": "s014",
+   "category": "url-param",
+   "text": "https://example.test/cb?next=1&access_token=Sec.Mark.0014.tail.",
+   "markers": [
+    "Sec.Mark.0014.tail"
+   ]
+  },
+  {
+   "id": "s015",
+   "category": "url-param",
+   "text": "https://example.test/cb#access_token=Sec.Mark.0015.tail&state=x",
+   "markers": [
+    "Sec.Mark.0015.tail"
+   ]
+  },
+  {
+   "id": "s016",
+   "category": "url-param",
+   "text": "https://example.test/?token=Zq016&page=2",
+   "markers": [
+    "Zq016"
+   ]
+  },
+  {
+   "id": "s017",
+   "category": "url-param",
+   "text": "https://example.test/?password=Zq017",
+   "markers": [
+    "Zq017"
+   ]
+  },
+  {
+   "id": "s018",
+   "category": "url-param",
+   "text": "https://example.test/?pwd=Zq018&log=editor",
+   "markers": [
+    "Zq018"
+   ]
+  },
+  {
+   "id": "s019",
+   "category": "url-param",
+   "text": "https://example.test/?secret=Sec/Mark/0019-x",
+   "markers": [
+    "Sec/Mark/0019-x"
+   ]
+  },
+  {
+   "id": "s020",
+   "category": "url-param",
+   "text": "https://example.test/?api_key=Sec-Mark-0020-x",
+   "markers": [
+    "Sec-Mark-0020-x"
+   ]
+  },
+  {
+   "id": "s021",
+   "category": "url-encoded",
+   "text": "https://example.test/?next=%2Fa%3Ftoken%3DS3cretMarker0021%26y%3D1",
+   "markers": [
+    "S3cretMarker0021"
+   ]
+  },
+  {
+   "id": "s022",
+   "category": "url-encoded",
+   "text": "https://example.test/?next=%252Fa%253Faccess_token%253DS3cretMarker0022%2526y%253D1",
+   "markers": [
+    "S3cretMarker0022"
+   ]
+  },
+  {
+   "id": "s023",
+   "category": "url-encoded",
+   "text": "https://example.test/?a=1&amp;access_token=S3cretMarker0023&amp;b=2",
+   "markers": [
+    "S3cretMarker0023"
+   ]
+  },
+  {
+   "id": "s024",
+   "category": "url-encoded",
+   "text": "https://example.test/wp-login.php?action=rp&amp;key=S3cretMarker0024&amp;login=editor",
+   "markers": [
+    "S3cretMarker0024"
+   ]
+  },
+  {
+   "id": "s025",
+   "category": "nonce",
+   "text": "https://example.test/wp-admin/admin-ajax.php?action=x&_wpnonce=cafe00000019&y=1",
+   "markers": [
+    "cafe00000019"
+   ]
+  },
+  {
+   "id": "s026",
+   "category": "nonce",
+   "text": "https://example.test/wp-admin/admin-ajax.php?action=x&_ajax_nonce=cafe0000001a&y=1",
+   "markers": [
+    "cafe0000001a"
+   ]
+  },
+  {
+   "id": "s027",
+   "category": "nonce",
+   "text": "https://example.test/wp-admin/admin-ajax.php?action=x&security=cafe0000001b&y=1",
+   "markers": [
+    "cafe0000001b"
+   ]
+  },
+  {
+   "id": "s028",
+   "category": "nonce",
+   "text": "X-WP-Nonce: cafe0000001c",
+   "markers": [
+    "cafe0000001c"
+   ]
+  },
+  {
+   "id": "s029",
+   "category": "nonce",
+   "text": "{\"nonce\":\"cafe0000001d\",\"a\":1}",
+   "markers": [
+    "cafe0000001d"
+   ]
+  },
+  {
+   "id": "s030",
+   "category": "nonce",
+   "text": "woocommerce-login-nonce=cafe0000001e&_wp_http_referer=%2Fmy-account%2F",
+   "markers": [
+    "cafe0000001e"
+   ]
+  },
+  {
+   "id": "s031",
+   "category": "nonce",
+   "text": "Link has _wpnonce=cafe0000001f.",
+   "markers": [
+    "cafe0000001f"
+   ]
+  },
+  {
+   "id": "s032",
+   "category": "header",
+   "text": "Authorization: Bearer S3cretMarker0032",
+   "markers": [
+    "S3cretMarker0032"
+   ]
+  },
+  {
+   "id": "s033",
+   "category": "header",
+   "text": "Authorization: Basic dXNlcjpTM2NyZXRNYXJrZXIwMDMz",
+   "markers": [
+    "dXNlcjpTM2NyZXRNYXJrZXIwMDMz"
+   ]
+  },
+  {
+   "id": "s034",
+   "category": "header",
+   "text": "Authorization: Digest S3cretMarker0034",
+   "markers": [
+    "S3cretMarker0034"
+   ]
+  },
+  {
+   "id": "s035",
+   "category": "header",
+   "text": "Authorization: Negotiate S3cretMarker0035",
+   "markers": [
+    "S3cretMarker0035"
+   ]
+  },
+  {
+   "id": "s036",
+   "category": "header",
+   "text": "Authorization: NTLM S3cretMarker0036",
+   "markers": [
+    "S3cretMarker0036"
+   ]
+  },
+  {
+   "id": "s037",
+   "category": "header",
+   "text": "Authorization: Token S3cretMarker0037",
+   "markers": [
+    "S3cretMarker0037"
+   ]
+  },
+  {
+   "id": "s038",
+   "category": "header",
+   "text": "Proxy-Authorization: Basic dXNlcjpTM2NyZXRNYXJrZXIwMDM4",
+   "markers": [
+    "dXNlcjpTM2NyZXRNYXJrZXIwMDM4"
+   ]
+  },
+  {
+   "id": "s039",
+   "category": "header",
+   "text": "X-Api-Key: S3cretMarker0039",
+   "markers": [
+    "S3cretMarker0039"
+   ]
+  },
+  {
+   "id": "s040",
+   "category": "header",
+   "text": "X-Auth-Token: S3cretMarker0040",
+   "markers": [
+    "S3cretMarker0040"
+   ]
+  },
+  {
+   "id": "s041",
+   "category": "header",
+   "text": "curl -H \"Authorization: Bearer S3cretMarker0041\" https://example.test/api",
+   "markers": [
+    "S3cretMarker0041"
+   ]
+  },
+  {
+   "id": "s042",
+   "category": "cookie",
+   "text": "Cookie: wordpress_logged_in_0123abcd=S3cretMarker0042%7C1700000000%7Chash; wp-settings-1=x",
+   "markers": [
+    "S3cretMarker0042"
+   ]
+  },
+  {
+   "id": "s043",
+   "category": "cookie",
+   "text": "Cookie: a=b; wordpress_sec_0123abcd=S3cretMarker0043; y=2",
+   "markers": [
+    "S3cretMarker0043"
+   ]
+  },
+  {
+   "id": "s044",
+   "category": "cookie",
+   "text": "wordpress_0123456789abcdef0123=S3cretMarker0044",
+   "markers": [
+    "S3cretMarker0044"
+   ]
+  },
+  {
+   "id": "s045",
+   "category": "cookie",
+   "text": "Cookie: wordpress_logged_in_0123abcd=\"S3cretMarker0045|1700000000|abc\"; a=b",
+   "markers": [
+    "S3cretMarker0045"
+   ]
+  },
+  {
+   "id": "s046",
+   "category": "cookie",
+   "text": "Set-Cookie: session=S3cretMarker0046; path=/; HttpOnly",
+   "markers": [
+    "S3cretMarker0046"
+   ]
+  },
+  {
+   "id": "s047",
+   "category": "cookie",
+   "text": "Cookie: PHPSESSID=abc; cookie=S3cretMarker0047",
+   "markers": [
+    "S3cretMarker0047"
+   ]
+  },
+  {
+   "id": "s048",
+   "category": "json",
+   "text": "{\"password\":\"S3cretMarker0048\"}",
+   "markers": [
+    "S3cretMarker0048"
+   ]
+  },
+  {
+   "id": "s049",
+   "category": "json",
+   "text": "{\"token\":\"S3cretMarker0049\"}",
+   "markers": [
+    "S3cretMarker0049"
+   ]
+  },
+  {
+   "id": "s050",
+   "category": "json",
+   "text": "{\"api_key\":\"S3cretMarker0050\"}",
+   "markers": [
+    "S3cretMarker0050"
+   ]
+  },
+  {
+   "id": "s051",
+   "category": "json",
+   "text": "{\"client_secret\":\"S3cretMarker0051\"}",
+   "markers": [
+    "S3cretMarker0051"
+   ]
+  },
+  {
+   "id": "s052",
+   "category": "json",
+   "text": "{\"secret\":\"S3cretMarker0052\"}",
+   "markers": [
+    "S3cretMarker0052"
+   ]
+  },
+  {
+   "id": "s053",
+   "category": "json",
+   "text": "{\"access_token\":\"S3cretMarker0053\"}",
+   "markers": [
+    "S3cretMarker0053"
+   ]
+  },
+  {
+   "id": "s054",
+   "category": "json",
+   "text": "{\"pwd\":\"S3cretMarker0054\",\"log\":\"editor\"}",
+   "markers": [
+    "S3cretMarker0054"
+   ]
+  },
+  {
+   "id": "s055",
+   "category": "json",
+   "text": "{\"pwd\": \"S3cretMarker0055\"}",
+   "markers": [
+    "S3cretMarker0055"
+   ]
+  },
+  {
+   "id": "s056",
+   "category": "json",
+   "text": "{\"user\":{\"pass\":\"S3cretMarker0056\"}}",
+   "markers": [
+    "S3cretMarker0056"
+   ]
+  },
+  {
+   "id": "s057",
+   "category": "json",
+   "text": "{\"DB_PASSWORD\":\"S3cretMarker0057\"}",
+   "markers": [
+    "S3cretMarker0057"
+   ]
+  },
+  {
+   "id": "s058",
+   "category": "json",
+   "text": "{\"password\":\"Zq058\"}",
+   "markers": [
+    "Zq058"
+   ]
+  },
+  {
+   "id": "s059",
+   "category": "json",
+   "text": "{\"token\":\"Zq059\"}",
+   "markers": [
+    "Zq059"
+   ]
+  },
+  {
+   "id": "s060",
+   "category": "json",
+   "text": "{\"pass1\":\"S3cretMarker0060\",\"pass2\":\"S3cretMarker0061\"}",
+   "markers": [
+    "S3cretMarker0060",
+    "S3cretMarker0061"
+   ]
+  },
+  {
+   "id": "s061",
+   "category": "json",
+   "text": "{\\\"password\\\":\\\"S3cretMarker0062\\\"}",
+   "markers": [
+    "S3cretMarker0062"
+   ]
+  },
+  {
+   "id": "s062",
+   "category": "json",
+   "text": "{\"password\":\"a \\\"quoted\\\" S3cretMarker0063\"}",
+   "markers": [
+    "S3cretMarker0063"
+   ]
+  },
+  {
+   "id": "s063",
+   "category": "json",
+   "text": "{\"password\":\"two words S3cretMarker0064\"}",
+   "markers": [
+    "S3cretMarker0064"
+   ]
+  },
+  {
+   "id": "s064",
+   "category": "php-dump",
+   "text": "    [pwd] => S3cretMarker0065",
+   "markers": [
+    "S3cretMarker0065"
+   ]
+  },
+  {
+   "id": "s065",
+   "category": "php-dump",
+   "text": "    [user_pass] => S3cretMarker0066",
+   "markers": [
+    "S3cretMarker0066"
+   ]
+  },
+  {
+   "id": "s066",
+   "category": "php-dump",
+   "text": "    [password] => S3cretMarker0067",
+   "markers": [
+    "S3cretMarker0067"
+   ]
+  },
+  {
+   "id": "s067",
+   "category": "php-dump",
+   "text": "    [token] => S3cretMarker0068",
+   "markers": [
+    "S3cretMarker0068"
+   ]
+  },
+  {
+   "id": "s068",
+   "category": "php-dump",
+   "text": "    [secret] => S3cretMarker0069",
+   "markers": [
+    "S3cretMarker0069"
+   ]
+  },
+  {
+   "id": "s069",
+   "category": "php-dump",
+   "text": "    [PHP_AUTH_PW] => S3cretMarker0070",
+   "markers": [
+    "S3cretMarker0070"
+   ]
+  },
+  {
+   "id": "s070",
+   "category": "php-dump",
+   "text": "    [HTTP_AUTHORIZATION] => Basic dXNlcjpTM2NyZXRNYXJrZXIwMDcx",
+   "markers": [
+    "dXNlcjpTM2NyZXRNYXJrZXIwMDcx"
+   ]
+  },
+  {
+   "id": "s071",
+   "category": "php-dump",
+   "text": "    [HTTP_AUTHORIZATION] => Bearer S3cretMarker0072",
+   "markers": [
+    "S3cretMarker0072"
+   ]
+  },
+  {
+   "id": "s072",
+   "category": "php-dump",
+   "text": "    [pwd] => Zq073",
+   "markers": [
+    "Zq073"
+   ]
+  },
+  {
+   "id": "s073",
+   "category": "wp-config",
+   "text": "define( 'DB_PASSWORD', 'S3cretMarker0074' );",
+   "markers": [
+    "S3cretMarker0074"
+   ]
+  },
+  {
+   "id": "s074",
+   "category": "wp-config",
+   "text": "define(\"DB_PASSWORD\", \"S3cretMarker0075\");",
+   "markers": [
+    "S3cretMarker0075"
+   ]
+  },
+  {
+   "id": "s075",
+   "category": "wp-config",
+   "text": "define('DB_PASSWORD','Zq076');",
+   "markers": [
+    "Zq076"
+   ]
+  },
+  {
+   "id": "s076",
+   "category": "wp-config",
+   "text": "define( 'AUTH_KEY', 'S3cretMarker0077' );",
+   "markers": [
+    "S3cretMarker0077"
+   ]
+  },
+  {
+   "id": "s077",
+   "category": "wp-config",
+   "text": "define( 'SECURE_AUTH_KEY', 'S3cretMarker0078' );",
+   "markers": [
+    "S3cretMarker0078"
+   ]
+  },
+  {
+   "id": "s078",
+   "category": "wp-config",
+   "text": "define( 'LOGGED_IN_KEY', 'S3cretMarker0079' );",
+   "markers": [
+    "S3cretMarker0079"
+   ]
+  },
+  {
+   "id": "s079",
+   "category": "wp-config",
+   "text": "define( 'NONCE_KEY', 'S3cretMarker0080' );",
+   "markers": [
+    "S3cretMarker0080"
+   ]
+  },
+  {
+   "id": "s080",
+   "category": "wp-config",
+   "text": "define( 'AUTH_SALT', 'S3cretMarker0081' );",
+   "markers": [
+    "S3cretMarker0081"
+   ]
+  },
+  {
+   "id": "s081",
+   "category": "wp-config",
+   "text": "define( 'SECURE_AUTH_SALT', 'S3cretMarker0082' );",
+   "markers": [
+    "S3cretMarker0082"
+   ]
+  },
+  {
+   "id": "s082",
+   "category": "wp-config",
+   "text": "define( 'LOGGED_IN_SALT', 'S3cretMarker0083' );",
+   "markers": [
+    "S3cretMarker0083"
+   ]
+  },
+  {
+   "id": "s083",
+   "category": "wp-config",
+   "text": "define( 'NONCE_SALT', 'S3cretMarker0084' );",
+   "markers": [
+    "S3cretMarker0084"
+   ]
+  },
+  {
+   "id": "s084",
+   "category": "wp-config",
+   "text": "DB_PASSWORD = S3cretMarker0085",
+   "markers": [
+    "S3cretMarker0085"
+   ]
+  },
+  {
+   "id": "s085",
+   "category": "recovery",
+   "text": "https://example.test/wp-login.php?action=enter_recovery_mode&rm_token=S3cretMarker0086&rm_key=S3cretMarker0087",
+   "markers": [
+    "S3cretMarker0086",
+    "S3cretMarker0087"
+   ]
+  },
+  {
+   "id": "s086",
+   "category": "recovery",
+   "text": "Use rm_token: S3cretMarker0088 and rm_key: S3cretMarker0089 to enter.",
+   "markers": [
+    "S3cretMarker0088",
+    "S3cretMarker0089"
+   ]
+  },
+  {
+   "id": "s087",
+   "category": "recovery",
+   "text": "{\"rm_token\":\"S3cretMarker0090\",\"rm_key\":\"S3cretMarker0091\"}",
+   "markers": [
+    "S3cretMarker0090",
+    "S3cretMarker0091"
+   ]
+  },
+  {
+   "id": "s088",
+   "category": "recovery",
+   "text": "https://example.test/x?next=%2Fwp-login.php%3Faction%3Denter_recovery_mode%26rm_token%3DS3cretMarker0092%26rm_key%3DS3cretMarker0093",
+   "markers": [
+    "S3cretMarker0092",
+    "S3cretMarker0093"
+   ]
+  },
+  {
+   "id": "s089",
+   "category": "jwt",
+   "text": "jwt eyJhbGciOiJub25lIn0.eyJzdWIiOiJNYXJrZXI0094In0.FakeSigMarker0094xx end",
+   "markers": [
+    "eyJhbGciOiJub25lIn0.eyJzdWIiOiJNYXJrZXI0094In0.FakeSigMarker0094xx"
+   ]
+  },
+  {
+   "id": "s090",
+   "category": "jwt",
+   "text": "Authorization: Bearer eyJhbGciOiJub25lIn0.eyJzdWIiOiJNYXJrZXI0095In0.FakeSigMarker0095xx",
+   "markers": [
+    "eyJhbGciOiJub25lIn0.eyJzdWIiOiJNYXJrZXI0095In0.FakeSigMarker0095xx"
+   ]
+  },
+  {
+   "id": "s091",
+   "category": "jwt",
+   "text": "{\"id_token\":\"eyJhbGciOiJub25lIn0.eyJzdWIiOiJNYXJrZXI0096In0.FakeSigMarker0096xx\"}",
+   "markers": [
+    "eyJhbGciOiJub25lIn0.eyJzdWIiOiJNYXJrZXI0096In0.FakeSigMarker0096xx"
+   ]
+  },
+  {
+   "id": "s092",
+   "category": "jwt",
+   "text": "https://example.test/cb?code=eyJhbGciOiJub25lIn0.eyJzdWIiOiJNYXJrZXI0097In0.FakeSigMarker0097xx",
+   "markers": [
+    "eyJhbGciOiJub25lIn0.eyJzdWIiOiJNYXJrZXI0097In0.FakeSigMarker0097xx"
+   ]
+  },
+  {
+   "id": "s093",
+   "category": "url-creds",
+   "text": "mysql://dbuser:S3cretMarker0098@db.test/wp",
+   "markers": [
+    "S3cretMarker0098"
+   ]
+  },
+  {
+   "id": "s094",
+   "category": "url-creds",
+   "text": "https://user:S3cretMarker0099@example.test/path?x=1",
+   "markers": [
+    "S3cretMarker0099"
+   ]
+  },
+  {
+   "id": "s095",
+   "category": "url-creds",
+   "text": "postgres://u:S3cretMarker0100@h:5432/d",
+   "markers": [
+    "S3cretMarker0100"
+   ]
+  },
+  {
+   "id": "s096",
+   "category": "url-creds",
+   "text": "redis://:S3cretMarker0101@cache.test:6379",
+   "markers": [
+    "S3cretMarker0101"
+   ]
+  },
+  {
+   "id": "s097",
+   "category": "url-creds",
+   "text": "https://user:Zq102@example.test/",
+   "markers": [
+    "Zq102"
+   ]
+  },
+  {
+   "id": "s098",
+   "category": "env",
+   "text": "DB_PASSWORD=S3cretMarker0103",
+   "markers": [
+    "S3cretMarker0103"
+   ]
+  },
+  {
+   "id": "s099",
+   "category": "env",
+   "text": "MYSQL_ROOT_PASSWORD=S3cretMarker0104",
+   "markers": [
+    "S3cretMarker0104"
+   ]
+  },
+  {
+   "id": "s100",
+   "category": "env",
+   "text": "WP_PASSWORD=S3cretMarker0105",
+   "markers": [
+    "S3cretMarker0105"
+   ]
+  },
+  {
+   "id": "s101",
+   "category": "env",
+   "text": "API_KEY=S3cretMarker0106",
+   "markers": [
+    "S3cretMarker0106"
+   ]
+  },
+  {
+   "id": "s102",
+   "category": "env",
+   "text": "SECRET_KEY_BASE=S3cretMarker0107",
+   "markers": [
+    "S3cretMarker0107"
+   ]
+  },
+  {
+   "id": "s103",
+   "category": "env",
+   "text": "JWT_SECRET=S3cretMarker0108",
+   "markers": [
+    "S3cretMarker0108"
+   ]
+  },
+  {
+   "id": "s104",
+   "category": "env",
+   "text": "AWS_SECRET_ACCESS_KEY=S3cretMarker0109",
+   "markers": [
+    "S3cretMarker0109"
+   ]
+  },
+  {
+   "id": "s105",
+   "category": "env",
+   "text": "GITHUB_TOKEN=S3cretMarker0110",
+   "markers": [
+    "S3cretMarker0110"
+   ]
+  },
+  {
+   "id": "s106",
+   "category": "env",
+   "text": "SLACK_TOKEN=S3cretMarker0111",
+   "markers": [
+    "S3cretMarker0111"
+   ]
+  },
+  {
+   "id": "s107",
+   "category": "env",
+   "text": "MAIL_PASSWORD=S3cretMarker0112",
+   "markers": [
+    "S3cretMarker0112"
+   ]
+  },
+  {
+   "id": "s108",
+   "category": "env",
+   "text": "APP_SECRET=S3cretMarker0113",
+   "markers": [
+    "S3cretMarker0113"
+   ]
+  },
+  {
+   "id": "s109",
+   "category": "env",
+   "text": "DB_PASSWORD=\"S3cretMarker0114\"",
+   "markers": [
+    "S3cretMarker0114"
+   ]
+  },
+  {
+   "id": "s110",
+   "category": "env",
+   "text": "DB_PASSWORD='S3cretMarker0115'",
+   "markers": [
+    "S3cretMarker0115"
+   ]
+  },
+  {
+   "id": "s111",
+   "category": "env",
+   "text": "MAIL_PASSWORD=Zq116",
+   "markers": [
+    "Zq116"
+   ]
+  },
+  {
+   "id": "s112",
+   "category": "env",
+   "text": "API_KEY=Zq117",
+   "markers": [
+    "Zq117"
+   ]
+  },
+  {
+   "id": "s113",
+   "category": "env",
+   "text": "export DB_PASSWORD=S3cretMarker0118",
+   "markers": [
+    "S3cretMarker0118"
+   ]
+  },
+  {
+   "id": "s114",
+   "category": "yaml",
+   "text": "password: S3cretMarker0119",
+   "markers": [
+    "S3cretMarker0119"
+   ]
+  },
+  {
+   "id": "s115",
+   "category": "yaml",
+   "text": "  api_key: \"S3cretMarker0120\"",
+   "markers": [
+    "S3cretMarker0120"
+   ]
+  },
+  {
+   "id": "s116",
+   "category": "yaml",
+   "text": "db:\n  password: S3cretMarker0121\n  host: localhost",
+   "markers": [
+    "S3cretMarker0121"
+   ]
+  },
+  {
+   "id": "s117",
+   "category": "yaml",
+   "text": "token: 'S3cretMarker0122'",
+   "markers": [
+    "S3cretMarker0122"
+   ]
+  },
+  {
+   "id": "s118",
+   "category": "yaml",
+   "text": "secret: S3cretMarker0123 # comment",
+   "markers": [
+    "S3cretMarker0123"
+   ]
+  },
+  {
+   "id": "s119",
+   "category": "yaml",
+   "text": "- password=S3cretMarker0124",
+   "markers": [
+    "S3cretMarker0124"
+   ]
+  },
+  {
+   "id": "s120",
+   "category": "yaml",
+   "text": "password: Zq125",
+   "markers": [
+    "Zq125"
+   ]
+  },
+  {
+   "id": "s121",
+   "category": "yaml",
+   "text": "token: Sec.Mark.0126.tail",
+   "markers": [
+    "Sec.Mark.0126.tail"
+   ]
+  },
+  {
+   "id": "s122",
+   "category": "shell",
+   "text": "export TOKEN=S3cretMarker0127",
+   "markers": [
+    "S3cretMarker0127"
+   ]
+  },
+  {
+   "id": "s123",
+   "category": "shell",
+   "text": "export DB_PASSWORD='S3cretMarker0128'",
+   "markers": [
+    "S3cretMarker0128"
+   ]
+  },
+  {
+   "id": "s124",
+   "category": "shell",
+   "text": "export SECRET=Zq129",
+   "markers": [
+    "Zq129"
+   ]
+  },
+  {
+   "id": "s125",
+   "category": "shell",
+   "text": "WP_DB_PASSWORD=S3cretMarker0130 wp db check",
+   "markers": [
+    "S3cretMarker0130"
+   ]
+  },
+  {
+   "id": "s126",
+   "category": "shell",
+   "text": "curl \"https://example.test/api?api_key=S3cretMarker0131\" -o out.json",
+   "markers": [
+    "S3cretMarker0131"
+   ]
+  },
+  {
+   "id": "s127",
+   "category": "log",
+   "text": "[18-Nov-2026 10:00:01 UTC] PHP Warning:  request to https://api.test/v1?api_key=S3cretMarker0132 returned 401 in /srv/site/wp-content/plugins/acme/acme.php on line 12",
+   "markers": [
+    "S3cretMarker0132"
+   ]
+  },
+  {
+   "id": "s128",
+   "category": "log",
+   "text": "[18-Nov-2026 10:00:02 UTC] PHP Fatal error:  Uncaught Exception: Invalid token=S3cretMarker0133 in /srv/site/wp-content/plugins/acme/acme.php:12",
+   "markers": [
+    "S3cretMarker0133"
+   ]
+  },
+  {
+   "id": "s129",
+   "category": "log",
+   "text": "Failed to load https://example.test/a.js?access_token=S3cretMarker0134:1:2",
+   "markers": [
+    "S3cretMarker0134"
+   ]
+  },
+  {
+   "id": "s130",
+   "category": "log",
+   "text": "Uncaught TypeError at https://example.test/wp-content/plugins/acme/a.js?ver=1.2&key=S3cretMarker0135:10:5",
+   "markers": [
+    "S3cretMarker0135"
+   ]
+  },
+  {
+   "id": "s131",
+   "category": "log",
+   "text": "#0 /srv/site/wp-content/plugins/acme/acme.php(12): acme_login(array('password' => 'S3cretMarker0136'))",
+   "markers": [
+    "S3cretMarker0136"
+   ]
+  },
+  {
+   "id": "s132",
+   "category": "log",
+   "text": "POST /wp-login.php log=editor&pwd=S3cretMarker0137&wp-submit=Log+In HTTP/1.1",
+   "markers": [
+    "S3cretMarker0137"
+   ]
+  },
+  {
+   "id": "s133",
+   "category": "log",
+   "text": "The access_token=Sec.Mark.0138.tail. Next sentence.",
+   "markers": [
+    "Sec.Mark.0138.tail"
+   ]
+  },
+  {
+   "id": "s134",
+   "category": "log",
+   "text": "GET /?token=S3cretMarker0139.",
+   "markers": [
+    "S3cretMarker0139"
+   ]
+  },
+  {
+   "id": "s135",
+   "category": "log",
+   "text": "password=S3cretMarker0140!!!",
+   "markers": [
+    "S3cretMarker0140"
+   ]
+  },
+  {
+   "id": "s136",
+   "category": "log",
+   "text": "sent password: S3cretMarker0141.",
+   "markers": [
+    "S3cretMarker0141"
+   ]
+  },
+  {
+   "id": "s137",
+   "category": "log",
+   "text": "db error (password=S3cretMarker0142) retrying",
+   "markers": [
+    "S3cretMarker0142"
+   ]
+  },
+  {
+   "id": "s138",
+   "category": "log",
+   "text": "at https://example.test/x.js?access_token=S3cretMarker0143:1:2",
+   "markers": [
+    "S3cretMarker0143"
+   ]
+  },
+  {
+   "id": "s139",
+   "category": "misc",
+   "text": "password: `S3cretMarker0144`",
+   "markers": [
+    "S3cretMarker0144"
+   ]
+  },
+  {
+   "id": "s140",
+   "category": "misc",
+   "text": "| log | token: 'S3cretMarker0145 seen | **High** |",
+   "markers": [
+    "S3cretMarker0145"
+   ]
+  },
+  {
+   "id": "s141",
+   "category": "misc",
+   "text": "`api_key=S3cretMarker0146` and `x`",
+   "markers": [
+    "S3cretMarker0146"
+   ]
+  },
+  {
+   "id": "s142",
+   "category": "misc",
+   "text": "password=\"S3cretMarker0147\"",
+   "markers": [
+    "S3cretMarker0147"
+   ]
+  },
+  {
+   "id": "s143",
+   "category": "misc",
+   "text": "password='Zq148'",
+   "markers": [
+    "Zq148"
+   ]
+  },
+  {
+   "id": "s144",
+   "category": "misc",
+   "text": "pwd=Zq149",
+   "markers": [
+    "Zq149"
+   ]
+  },
+  {
+   "id": "s145",
+   "category": "misc",
+   "text": "pass=Zq150",
+   "markers": [
+    "Zq150"
+   ]
+  },
+  {
+   "id": "s146",
+   "category": "misc",
+   "text": "password=Zq151",
+   "markers": [
+    "Zq151"
+   ]
+  },
+  {
+   "id": "s147",
+   "category": "misc",
+   "text": "secret=Zq152",
+   "markers": [
+    "Zq152"
+   ]
+  },
+  {
+   "id": "s148",
+   "category": "misc",
+   "text": "token=Zq153",
+   "markers": [
+    "Zq153"
+   ]
+  },
+  {
+   "id": "s149",
+   "category": "misc",
+   "text": "user_pass=Zq154",
+   "markers": [
+    "Zq154"
+   ]
+  },
+  {
+   "id": "s150",
+   "category": "misc",
+   "text": "password=$upermanS3cretMarker0155",
+   "markers": [
+    "S3cretMarker0155"
+   ]
+  },
+  {
+   "id": "s151",
+   "category": "misc",
+   "text": "password=Sec-Mark-0156-x",
+   "markers": [
+    "Sec-Mark-0156-x"
+   ]
+  },
+  {
+   "id": "s152",
+   "category": "misc",
+   "text": "password=Sec/Mark/0157-x",
+   "markers": [
+    "Sec/Mark/0157-x"
+   ]
+  },
+  {
+   "id": "s153",
+   "category": "misc",
+   "text": "client_secret=Sec.Mark.0158.tail&x=1",
+   "markers": [
+    "Sec.Mark.0158.tail"
+   ]
+  },
+  {
+   "id": "s154",
+   "category": "misc",
+   "text": "refresh_token=Sec/Mark/0159-x",
+   "markers": [
+    "Sec/Mark/0159-x"
+   ]
+  },
+  {
+   "id": "s155",
+   "category": "misc",
+   "text": "password=$2y$10$S3cretMarker0160",
+   "markers": [
+    "S3cretMarker0160"
+   ]
+  },
+  {
+   "id": "s156",
+   "category": "misc",
+   "text": "password: \"SUPERSECRETS3cretMarker0161\"",
+   "markers": [
+    "S3cretMarker0161"
+   ]
+  },
+  {
+   "id": "s157",
+   "category": "env",
+   "text": "a_b_c_d_e_f_token=S3cretMarker0901",
+   "markers": [
+    "S3cretMarker0901"
+   ]
+  },
+  {
+   "id": "s158",
+   "category": "env",
+   "text": "a_b_c_d_e_f_password=S3cretMarker0902",
+   "markers": [
+    "S3cretMarker0902"
+   ]
+  },
+  {
+   "id": "s159",
+   "category": "log",
+   "text": "password=Zq903:12:34",
+   "markers": [
+    "Zq903"
+   ]
+  },
+  {
+   "id": "s160",
+   "category": "log",
+   "text": "password=ab1:34:56",
+   "markers": [
+    "ab1"
+   ]
+  },
+  {
+   "id": "s161",
+   "category": "yaml",
+   "text": "auth: { user: 'u', pass: 'S3cretMarker0905' }",
+   "markers": [
+    "S3cretMarker0905"
+   ]
+  },
+  {
+   "id": "s162",
+   "category": "misc",
+   "text": "pass:\"S3cretMarker0906\"",
+   "markers": [
+    "S3cretMarker0906"
+   ]
+  },
+  {
+   "id": "s163",
+   "category": "env",
+   "text": "abcdefghijklmnopqrstuv_access_token=S3cretMarker0911",
+   "markers": [
+    "S3cretMarker0911"
+   ]
+  },
+  {
+   "id": "s164",
+   "category": "env",
+   "text": "wp_plugin_vendor_module_feature_sub_area_extra_more_api_client_secret=S3cretMarker0912",
+   "markers": [
+    "S3cretMarker0912"
+   ]
+  },
+  {
+   "id": "s165",
+   "category": "env",
+   "text": "a_b_c_d_e_f_g_h_i_j_k_password=S3cretMarker0913",
+   "markers": [
+    "S3cretMarker0913"
+   ]
+  },
+  {
+   "id": "s166",
+   "category": "url-param",
+   "text": "https://example.test/?x-api-key=S3cretMarker0914&y=1",
+   "markers": [
+    "S3cretMarker0914"
+   ]
+  },
+  {
+   "id": "s167",
+   "category": "misc",
+   "text": "password: YES2secretmarker",
+   "markers": [
+    "YES2secretmarker"
+   ]
+  },
+  {
+   "id": "s168",
+   "category": "misc",
+   "text": "password=NO-secret-marker",
+   "markers": [
+    "NO-secret-marker"
+   ]
+  },
+  {
+   "id": "s169",
+   "category": "log",
+   "text": "Access denied for user 'wp'@'localhost' (using password: YES2secretmarker2)",
+   "markers": [
+    "YES2secretmarker2"
+   ]
+  },
+  {
+   "id": "s170",
+   "category": "env",
+   "text": "DB_PASSWORD: ROOTPASSWDAAAAA",
+   "markers": [
+    "ROOTPASSWDAAAAA"
+   ]
+  },
+  {
+   "id": "s171",
+   "category": "env",
+   "text": "DB_PASSWORD = ROOTPASSWDBBBBB",
+   "markers": [
+    "ROOTPASSWDBBBBB"
+   ]
+  },
+  {
+   "id": "s172",
+   "category": "env",
+   "text": "MYSQL_ROOT_PASSWORD: ROOTPASSWDCCCCC",
+   "markers": [
+    "ROOTPASSWDCCCCC"
+   ]
+  },
+  {
+   "id": "s173",
+   "category": "yaml",
+   "text": "secret: SUPERSECRETDDDDD",
+   "markers": [
+    "SUPERSECRETDDDDD"
+   ]
+  }
+ ],
+ "benign": [
+  "The password reset page asks for your e-mail. A token is a short string.",
+  "To reset your password, open the login page and click \"Lost your password?\".",
+  "This plugin stores a token in the options table and rotates it every day.",
+  "Never share your secret with anyone; the support team will not ask for it.",
+  "A nonce is a number used once; monkey=1; turkey=2; wordpress_test_cookie=WP%20Cookie%20check",
+  "The login page uses a password field and a remember-me checkbox.",
+  "Enter the API key in the settings page, then press Save.",
+  "The session was closed because the user logged out.",
+  "Authorization: required for this route, and Authorization-free headers are fine",
+  "Use a strong password with at least twelve characters.",
+  "Tokens expire after one hour. Refresh them before then.",
+  "Password and username are case sensitive on this site.",
+  "We found the plugin keys and the theme keys in the list.",
+  "secret santa 2026 sign-up page",
+  "See the section about secret management in the handbook.",
+  "type pwd in a terminal to print the working directory; pwd: /srv/site",
+  "plugin: jwt-authentication-for-wp-rest-api 1.3, theme: twentytwentyfour, slug wp-security-nonce-helper",
+  "/wp-json/jwt-auth/v1/token is the route of the plugin",
+  "GET /wp-json/wp/v2/posts?per_page=5&page=2&search=key HTTP/1.1",
+  "/wp-content/plugins/password-protected/password-protected.php",
+  "/wp-content/plugins/two-factor/includes/class-two-factor-core.php:120",
+  "wp-content/themes/twentytwentyfour/functions.php on line 33",
+  "/wp-admin/options-general.php?page=wp-mail-smtp",
+  "/wp-json/oembed/1.0/embed?url=https%3A%2F%2Fexample.test%2F",
+  "/wp-content/plugins/api-key-manager/readme.txt",
+  "https://example.test/wp-login.php?action=lostpassword",
+  "https://example.test/my-account/lost-password/",
+  "https://example.test/?s=token&post_type=product",
+  "Content-Type: application/json\nUser-Agent: Mozilla/5.0\nAccept: text/html\nHost: example.test",
+  "https://example.test:8080/path?x=1 and mailto:a@example.test and http://user@example.test/",
+  "version 1.2.3, eyJ is the start of a token but eyJ alone is not one",
+  "wp-content/plugins/acme/acme.php:12 PHP Warning:  Undefined variable $x",
+  "PHP Fatal error:  Uncaught Error: Call to undefined function acme_run() in /srv/site/wp-content/plugins/acme/acme.php:7",
+  "Stack trace: #0 /srv/site/wp-includes/class-wp-hook.php(324): acme_init() #1 {main}",
+  "GET /wp-admin/admin-ajax.php?action=heartbeat HTTP/1.1 200",
+  "https://example.test/wp-content/uploads/2026/11/photo-300x200.jpg",
+  "Cache-Control: no-cache, must-revalidate, max-age=0",
+  "$user_pass = wp_generate_password(); $pwd = $_POST[\"pwd\"]; $pass1 != $pass2; id_token is read here",
+  "$password = $request['password'];",
+  "$token = sanitize_text_field( $_GET['token'] );",
+  "headers: { 'X-WP-Nonce': wpApiSettings.nonce }, and the value $_REQUEST['_wpnonce'] is checked",
+  "$token = $this->get_token();",
+  "$secret = get_option( 'acme_secret' );",
+  "$password = wp_hash_password( $plain );",
+  "if ( ! wp_verify_nonce( $_POST[\"_wpnonce\"], \"save\" ) ) { wp_die(); }",
+  "'password' => $password,",
+  "'token' => $token,",
+  "var id_token = getToken(); auth_token = this.get(); api_secret: process.env.API_SECRET; auth_token: null; api_token: undefined",
+  "const token = localStorage.getItem(\"token\");",
+  "password: req.body.password,",
+  "token: this.token,",
+  "const apiKey = process.env.API_KEY;",
+  "secret = os.environ[\"SECRET\"]",
+  "$secret = self::SECRET_KEY;",
+  "$password = PASSWORD_DEFAULT;",
+  "$cookie = COOKIEHASH;",
+  "$token = (string) $raw;",
+  "$password = !empty($p) ? 1 : 2;",
+  "$token = sanitize_key ( $x );",
+  "function check_password( $password, $hash ) { return wp_check_password( $password, $hash ); }",
+  "if ( isset( $_POST[\"pwd\"] ) ) { $pwd = trim( $_POST[\"pwd\"] ); }",
+  "wp_set_password( $new_password, $user_id );",
+  "add_action( \"wp_ajax_nopriv_acme_token\", \"acme_token\" );",
+  "register_setting( \"acme\", \"acme_api_key\" );",
+  "define( \"ACME_SECRET_KEY\", get_option( \"acme_secret\" ) );",
+  "DB_PASSWORD = env and the word key in ?key words",
+  "SELECT * FROM wp_users WHERE user_pass = %s AND user_pass=%s AND pwd = ?",
+  "$wpdb->prepare( \"SELECT * FROM wp_users WHERE user_pass = %s\", $hash )",
+  "pwd=wp_hash_password(x)",
+  "pwd=wp_hash_password($x)",
+  "user_pass = wp_hash_password( $pass )",
+  "$_POST['password']",
+  "$_REQUEST[\"token\"]",
+  "password_hash( $pw, PASSWORD_DEFAULT )",
+  "nonce: wpApiSettings.nonce",
+  "security: high",
+  "form_token=getToken()",
+  "secret = %s",
+  "token = ?",
+  "var password = document.getElementById(\"password\").value;",
+  "<input type=\"password\" name=\"pwd\" id=\"user_pass\" class=\"input\" value=\"\" size=\"20\" />",
+  "<input type=\"hidden\" name=\"_wpnonce\" value=\"\" />",
+  "<label for=\"user_pass\">Password</label>",
+  "if ($token === null) { return; }",
+  "if (!token) return;",
+  "password=[REDACTED]",
+  "token: [REDACTED]",
+  "Authorization: Bearer [REDACTED]",
+  "{\"password\":\"[REDACTED]\"}",
+  "define( 'DB_PASSWORD', '[REDACTED]' );",
+  "https://user:[REDACTED]@example.test/",
+  "rm_token=[REDACTED]&rm_key=[REDACTED]",
+  "_wpnonce=[REDACTED]&page=2",
+  "password=",
+  "token=&page=2",
+  "{\"password\":\"\"}",
+  "password: ''",
+  "api_key=\"\"",
+  "secret:",
+  "password=****",
+  "token: ********",
+  "{\"password\":\"******\"}",
+  "The report says \"Nothing was changed on your site\".",
+  "Looked at: your log, the live page. Not looked at: the code, a throwaway test copy.",
+  "0 likely cause · 0 confirmed. This does not mean the site is healthy.",
+  "Plugin Name: Acme Slider\nVersion: 1.0.0\nAuthor: Acme",
+  "monkey=1&turkey=2&keyboard=us&passenger=3&tokenizer=on",
+  "max_tokens=1000 and tokens=5",
+  "Surfing the web: surf=1, passage=3, bypass=true",
+  "passthrough=1 compass=north",
+  "Cookies are used for the shopping cart. Accept all cookies?",
+  "Session timeout: 30 minutes",
+  "Keys: arrow up, arrow down",
+  "The key to the cache is the post ID.",
+  "Please type your password again to confirm.",
+  "Bearer of bad news: the update failed.",
+  "wordpress_test_cookie=WP%20Cookie%20check; wp-settings-time-1=1700000000",
+  "a=1&b=2&c=3",
+  "Title: Slider is blank since the WooCommerce update",
+  "The slider has stopped working since version 8.1.2 of the plugin.",
+  "curl -I https://example.test/ returned HTTP/2 200",
+  "Compatible with WooCommerce version 8.1.2",
+  "Pass: Duplicate function / class",
+  "Fail: Missing parent / dependency plugin: the code of the parent plugin was not found",
+  "Not checked: Memory / execution limits: needs the PHP settings",
+  "Also noticed: Same hook, same priority: both plugins use priority 10",
+  "Pass: HTTPS / mixed content (checked for the common cases only)",
+  "compass=north bypass=true passenger=3 passport=ok",
+  "reset_password_url=https://example.test/lost-password/ and token_type=bearer",
+  "is_password_required=1",
+  "[18-Nov-2026 10:00:01 UTC] WordPress database error Access denied for user 'wp'@'localhost' (using password: YES) for query SELECT option_value FROM wp_options",
+  "PHP Warning:  mysqli_real_connect(): (HY000/1045): Access denied for user 'root'@'localhost' (using password: NO) in /srv/site/wp-includes/class-wpdb.php on line 1990",
+  "Error establishing a database connection: Access denied for user 'wp'@'localhost' (using password: YES)"
+ ]
+}
