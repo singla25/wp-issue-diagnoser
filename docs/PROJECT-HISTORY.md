@@ -99,9 +99,9 @@ Decisions 1 to 19 and 21 to 27 are recorded as "approved by the owner" without a
 ## 4. Current status
 
 - **Last green full run:** `p-s0`, 2026-11-18, HEAD 68e8f62: 76 suites (66 offline and 10 Docker), 4692 PASS, 0 FAIL, 6 SKIP, 38 min 56 s; Docker 5/0/11 before and after; no restart [TESTING; ROADMAP]. The 6 SKIPs are loud: two git checks of the snapshot, the hints suite in standalone mode, PHP 7.4, 8.0 and 8.1 images.
-- **Since that run:** M1, S0d and S1 are covered by `test:offline` only (68 offline suites, last result 4717 PASS, 0 FAIL, 2 SKIP, 2026-11-18) [HANDOFF 85 to 87]. A new full run is still to be done after S4 [IM section 7].
-- **Pushed:** the owner pushed up to commit 020c778 (the remote-tracking branch points there, as last fetched) [git]. **Not pushed:** the four S1 commits (2abfccc, ee782f4, 9383889, 5c2174e) and the commit that adds this file [git].
-- **In progress:** nothing is running. The Coder waits for the owner's next prompt [CLAUDE.md].
+- **Since that run:** M1, S0d, S1 and S1b-fix are covered by `test:offline` only (68 offline suites, last result TEST_COUNTS, 2026-11-19) [HANDOFF 85 to 89]. A new full run is still to be done after S4 [IM section 7].
+- **Pushed:** the owner pushed up to commit 020c778 (the remote-tracking branch points there, as last fetched) [git]. **Not pushed:** the four S1 commits (2abfccc, ee782f4, 9383889, 5c2174e), the commit that adds this file (de0ec6f) and the two S1b-fix commits (S1BFIX_HASH and the hash commit after it) [git].
+- **In progress:** nothing is running. S1b-fix is finished; the Coder waits for the owner's next prompt [CLAUDE.md; HANDOFF 89].
 
 ## 5. What is left (roadmap rows in order) [ROADMAP]
 
@@ -122,8 +122,8 @@ Decisions 1 to 19 and 21 to 27 are recorded as "approved by the owner" without a
 
 - **Masking** (best effort): an unquoted password with a space keeps the part after the first space; `session` and `cookie` values under 6 characters are not masked; unquoted `pass:` is not masked; `password=ab:1:2:3:4` can leave a tail; `Error: password: field missing` is masked (over-masking); `issue.json` and `issue.md` keep page addresses as typed; `sandbox.json` is not masked; e-mail and IP addresses and screenshots are not masked [SAFETY 6; HANDOFF 86].
 - **Reviews not repeated:** the last fixes of S0c round 3 and of S0d round 4 were not reviewed again, because the round limit was reached [HANDOFF 84, 86].
-- **Open for the owner:** `scripts/selftest-issue-evidence.js:173` pins the old text "no local WordPress root" for the log step reason in `issue/evidence.js:91`, so a no-folder run still says "(--root)" in the verbose step list; changing the assertion is the owner's decision [HANDOFF 87].
-- **May read stronger than the test:** a live page answering 500 with failing checks still gets the verdict "No confirmed breaking cause was found" with "Nothing that was checked points at a cause that could be confirmed" [HANDOFF 87].
+- **Fixed in S1b-fix (S1BFIX_HASH):** the log step reason without site files is now "no site files were given, so no log could be read" (`issue/evidence.js:91`, `issue/analysis.js:34`); the assertion `scripts/selftest-issue-evidence.js:173` was changed with the owner's approval [HANDOFF 87, 89].
+- **Fixed in S1b-fix (S1BFIX_HASH):** without site files, a live page that answered an error status or a failed live check now gets the verdict "A problem was seen on the live page" with only true parts (the status, the number of failed live checks, "No cause could be found from what was given", what is missing); it no longer says "No confirmed breaking cause was found" [HANDOFF 89; REPORT-SPEC 4.0]. A run with a site folder keeps the old wording.
 - **Sandbox:** only PHP 8.2, 8.3 and 8.4 images are pinned; 7.4, 8.0 and 8.1 have none [TESTING; HANDOFF 48]. An inconclusive bisect skips the default-theme step [HANDOFF 58].
 - **Name leftovers:** internal names (Docker labels, `PG_*` variables, the reports folder, the config file name) still use the old product name until Stage 2 [ROADMAP, Leftovers]. A local project nickname is still in tests and in old commits (C8) [HANDOFF 72].
 - **Test chain:** the `isolated-copy` suite is left out of the chain until C7 [CLAUDE.md; HANDOFF 69].

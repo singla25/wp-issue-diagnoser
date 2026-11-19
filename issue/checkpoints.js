@@ -202,7 +202,7 @@ function evaluate(inp = {}) {
             // tied to the crash: a symptom row of the probe / log, or an item that names a component or file of the crash evidence. Items that are tied come first in the reason.
             const tied = found.filter(x => !tie || SYMPTOM_ROWS.has(cp.evaluator) || isTied(x, tie, { fileOnly: WEAK_TIE_ROWS.has(cp.id) })), rest = found.filter(x => !tied.includes(x));
             const order = [...tied, ...rest], text = order[0].t, more = order.length > 1 ? ` (and ${order.length - 1} more)` : '';
-            return { ...base, result: tied.length ? 'FAIL' : 'ALSO NOTICED', reason: text + more, tied_to_crash: tied.length > 0, breaks_site: cp.breaks_site || 'depends' };
+            return { ...base, result: tied.length ? 'FAIL' : 'ALSO NOTICED', reason: text + more, tied_to_crash: tied.length > 0, breaks_site: cp.breaks_site || 'depends', live: r.need.includes('probe') };   // live: the check reads the live page (probe), so a FAIL here is a failed LIVE check
         }
         const gap = missing(r.need) || r.blocked;
         if (gap) return { ...base, result: 'NOT CHECKED', reason: gap };

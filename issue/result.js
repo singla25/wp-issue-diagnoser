@@ -346,6 +346,18 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
         const seen5 = sure1.map(t => /^The live page answered HTTP (\d{3})\.$/.exec(t)).find(Boolean);
         const live1 = !sure1.length ? null : seen5 ? { status: Number(seen5[1]) } : sure1.includes(caseFileMod.NOT_LIVE_SENTENCE) ? 'not-checked' : sure1.some(t => /^The live pages that were loaded did not answer with an error\.$/.test(t)) ? 'fine' : null;
         if (live1) f.confidence_text = plainNames.confidenceSentence(f.verdict.confidence, f.verdict.label, { reproduced: split.findings.some(x => x.status === 'REPRODUCIBLE'), live: live1 });
+        // NO site files and (the live page answered an error status OR a live check failed): the verdict says so, from the probe data and the check rows (never a fixed status or count);
+        // only when the old label would be "No confirmed breaking cause was found" (a cause found by other means keeps its own verdict); a run WITH a site folder is not touched
+        const errStatuses = probePages.filter(p => p && p.loaded && Number(p.status) >= 400).map(p => Number(p.status));
+        const failedLive = cpRows.filter(r => r.live && r.result === 'FAIL').length;
+        if (!issue.root && (errStatuses.length || failedLive > 0) && f.verdict.label === 'No confirmed breaking cause was found') {
+            f.verdict = { ...f.verdict, label: plainNames.ERROR_PAGE_LABEL };
+            f.confidence_text = plainNames.errorPageSentence({ statuses: errStatuses, failedLive, hasRoot: false, hasLog: !!((lg.files || []).length || (lg.entries || []).length) });
+            // the summary data repeats the old headline ("No confirmed breaking cause was found." and "Nothing else stood out."): it says the same new sentence, so the old words are nowhere in the output
+            const NEW_HEAD = f.confidence_text;
+            const rewrite = v => typeof v === 'string' ? v.split('No confirmed breaking cause was found.').join(NEW_HEAD).replace(/\n?Nothing else stood out\./g, '') : Array.isArray(v) ? v.filter(x => x !== 'Nothing else stood out.').map(rewrite) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, rewrite(x)])) : v;
+            f.summary = rewrite(f.summary);
+        }
         // zero checks ran: the verdict says nothing could be checked, and why (from the counts and the facts, not from the mode); a cause found by other means keeps its own verdict
         if (cpCounts.pass + cpCounts.fail + cpCounts.also_noticed === 0 && f.verdict.label === 'No confirmed breaking cause was found') {
             f.verdict = { ...f.verdict, label: plainNames.NOTHING_CHECKED_LABEL };

@@ -88,7 +88,7 @@ async function run(id, { root = null, maxLogBytes, deepLogCap, recognizer = ocr.
 
     // ---- logs ----
     let logResult = null;
-    if (!root) steps.push(stepOf('logs', 'debug.log / error_log', 'NOT_RUN', 'no local WordPress root was given (--root), so no log could be read'));
+    if (!root) steps.push(stepOf('logs', 'debug.log / error_log', 'NOT_RUN', 'no site files were given, so no log could be read'));
     else {
         const since = parsed.dates[0] || null;
         // a crash (white screen, critical error, 500) is the one symptom where a fatal buried in a huge, noisy log is worth the extra reading (issue/logs.js deepScan)

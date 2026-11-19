@@ -31,7 +31,7 @@ function run(id, { root, config = null } = {}) {
     const issue = store.load(id), dir = store.dirOf(id);
     const evFile = path.join(dir, 'work', 'evidence.json');
     const evidence = fs.existsSync(evFile) ? JSON.parse(fs.readFileSync(evFile, 'utf8')) : { clues: [], features: [], component_hints: [] };
-    if (!root) return { steps: [{ id: 'custom-first', label: 'Custom code first', status: 'NOT_RUN', reason: 'no local WordPress root was given (--root)' }, { id: 'component-index', label: 'Component and feature index', status: 'NOT_RUN', reason: 'no local WordPress root was given (--root)' }] };
+    if (!root) return { steps: [{ id: 'custom-first', label: 'Custom code first', status: 'NOT_RUN', reason: 'no site files were given' }, { id: 'component-index', label: 'Component and feature index', status: 'NOT_RUN', reason: 'no site files were given' }] };
 
     const cfg = cfgLib.resolve({ root, config: config || undefined });
     if (cfg.errors.length) { const e = new Error(cfg.errors.join('\n')); e.exitCode = 2; throw e; }

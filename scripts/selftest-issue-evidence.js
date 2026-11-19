@@ -170,7 +170,7 @@ const pgRoot = path.join(__dirname, '..');
     ok(snap() === s1, 'determinism: a second run gives byte-identical evidence.json, description.json and logs.json');
     ok(hashTree(wp) === treeBefore, 'the WordPress tree is byte-identical after the investigation');
     const ev2 = await evidence.run(mk({ description: 'blank page' }).id, { root: null });
-    ok(stepsOf(ev2).logs === 'NOT_RUN' && /no local WordPress root/.test(ev2.steps.find(s => s.id === 'logs').reason) && stepsOf(ev2).ocr === 'NOT_RUN', 'no root and no images: logs and OCR are NOT_RUN with the reason');
+    ok(stepsOf(ev2).logs === 'NOT_RUN' && /no site files were given/.test(ev2.steps.find(s => s.id === 'logs').reason) && stepsOf(ev2).ocr === 'NOT_RUN', 'no root and no images: logs and OCR are NOT_RUN with the reason');
     const ev3 = await evidence.run(mk({ root: none, description: 'x' }).id, { root: none });
     ok(stepsOf(ev3).logs === 'NOT_RUN' && /not evidence that nothing went wrong/.test(ev3.steps.find(s => s.id === 'logs').reason), 'a site without any log is "NOT_RUN", not "clean"');
     const i4 = mk({ description: 'blank page' }); store.intakeImages(i4.id, [SHOT]);

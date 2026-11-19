@@ -138,6 +138,62 @@ const readJson = f => JSON.parse(fs.readFileSync(f, 'utf8'));
         ok(hitsLive.length === 0, 'and the address was not visited at all (0 requests)');
     } finally { serverLive.close(); }
 
+    // ---- S1b-fix: the verdict for an error page or a failed live check, when NO site files were given ----
+    // trigger (from the data, never a fixed status or count): no site folder AND (a loaded live page answered a status of 400 or more OR a live check failed)
+    const serve = (code, body) => new Promise(r => { const hit = []; const sv = http.createServer((q, res) => { hit.push(q.method); res.writeHead(code, { 'Content-Type': 'text/html' }); res.end(body); }); sv.listen(0, '127.0.0.1', () => r({ sv, hit, url: `http://127.0.0.1:${sv.address().port}/` })); });
+    const CRIT = '<html><body>There has been a critical error on this website.</body></html>';
+    const OK200 = '<!doctype html><html><head><title>Fixture</title></head><body><h1>Fixture shop</h1><p>The page works and has enough text to look like a real page.</p></body></html>';
+    const FORBIDDEN = /No confirmed breaking cause was found|Nothing that was checked points at a cause/;
+    const runCase = async (code, body, extraArgs = []) => {
+        const { sv, url } = await serve(code, body);
+        const before = issueDirs();
+        try {
+            const r = await runAsync([...base, ...extraArgs, '--url', url, '--env', 'local']);
+            const dir = issueDirs().filter(n => !before.includes(n)).map(n => path.join(tmp, 'issues', n))[0] || path.join(tmp, 'none');
+            const f = fs.existsSync(path.join(dir, 'result', 'findings.json')) ? readJson(path.join(dir, 'result', 'findings.json')) : null;
+            const files = ['ISSUE-REPORT.md', 'issue.html', 'findings.json'].map(n => { try { return fs.readFileSync(path.join(dir, 'result', n), 'utf8'); } catch { return ''; } }).join('\n');
+            return { r, f, files };
+        } finally { sv.close(); }
+    };
+    group('S1b-fix (a): no files, the page answers 500 and live checks failed (case d)');
+    const E500 = await runCase(500, CRIT, ['--no-files']);
+    const failedN = E500.f ? E500.f.checkpoints.counts.fail : -1;
+    ok(E500.r.status === 0 && E500.f && E500.f.verdict.label === 'A problem was seen on the live page', `the verdict label is "A problem was seen on the live page" (got "${E500.f && E500.f.verdict.label}")`);
+    ok(E500.f && failedN > 0 && E500.f.confidence_text === `The live page answered with an error (HTTP 500). ${failedN} live checks failed. No cause could be found from what was given. To go further, give the site files and a log.`, `the sentence has the status code and the failed count from the data (${failedN}): "${E500.f && E500.f.confidence_text}"`);
+    ok(/VERDICT: A problem was seen on the live page/.test(E500.r.stdout) && /The live page answered with an error \(HTTP 500\)\./.test(E500.r.stdout), 'the terminal prints the same verdict');
+    ok(!FORBIDDEN.test(E500.r.stdout + E500.files), 'neither "No confirmed breaking cause was found" nor "Nothing that was checked points at a cause" is in the terminal text, findings.json, ISSUE-REPORT.md or issue.html');
+    ok(!/plugin|theme|conflict/i.test(E500.f.confidence_text) && !/confirmed|fully checked/i.test(E500.f.confidence_text), 'the sentence names no cause, plugin or theme and says nothing was confirmed or fully checked');
+
+    group('S1b-fix (b): no files, an error status (404) and no failed check: only the status part');
+    const E404 = await runCase(404, '<html><body>Not found.</body></html>', ['--no-files']);
+    ok(E404.f && E404.f.checkpoints.counts.fail === 0 && E404.f.verdict.label === 'A problem was seen on the live page' && E404.f.confidence_text === 'The live page answered with an error (HTTP 404). No cause could be found from what was given. To go further, give the site files and a log.', `status part only, no "checks failed" part: "${E404.f && E404.f.confidence_text}"`);
+    ok(!FORBIDDEN.test(E404.r.stdout + E404.files), 'neither forbidden sentence appears');
+
+    group('S1b-fix (c): no files, status 200 but a live check failed: only the failed part');
+    const F200 = await runCase(200, CRIT, ['--no-files']);
+    const failedC = F200.f ? F200.f.checkpoints.counts.fail : -1;
+    ok(F200.f && failedC > 0 && F200.f.verdict.label === 'A problem was seen on the live page' && F200.f.confidence_text === `${failedC} live check${failedC === 1 ? '' : 's'} failed. No cause could be found from what was given. To go further, give the site files and a log.`, `failed part only, no "answered with an error" part: "${F200.f && F200.f.confidence_text}"`);
+    ok(!/answered with an error/.test(F200.f.confidence_text) && !FORBIDDEN.test(F200.r.stdout + F200.files), 'no "answered with an error" and neither forbidden sentence');
+
+    group('S1b-fix (d, e): status 200 and nothing failed (case c) and a description only (case a) are unchanged');
+    const OK = await runCase(200, OK200, ['--no-files']);
+    ok(OK.f && OK.f.verdict.label === 'Nothing could be checked' && OK.f.confidence_text === 'How sure we are: not at all. Nothing could be checked, so this report does not say whether your site is healthy: no site files were given, no log was read and the live page was loaded, but none of the 53 checks ran on it.', `case (c) text is exactly the S1b text: "${OK.f && OK.f.confidence_text}"`);
+    ok(fA && fA.verdict.label === 'Nothing could be checked' && fA.confidence_text === 'How sure we are: not at all. Nothing could be checked, so this report does not say whether your site is healthy: no site files were given, no log was read and no live check was run.', 'case (a) text is exactly the S1b text');
+
+    group('S1b-fix (f): WITH a site folder and failing checks the old verdict text is exactly the old text');
+    const wp = path.join(tmp, 'wp');
+    fs.mkdirSync(path.join(wp, 'wp-content', 'plugins', 'okplug'), { recursive: true }); fs.mkdirSync(path.join(wp, 'wp-content', 'themes', 'tt'), { recursive: true });
+    fs.writeFileSync(path.join(wp, 'wp-content', 'plugins', 'okplug', 'okplug.php'), '<?php\n/**\n * Plugin Name: Ok Plug\n * Version: 1.0.0\n */\nfunction okplug_hello() { return 1; }\n');
+    fs.writeFileSync(path.join(wp, 'wp-content', 'themes', 'tt', 'style.css'), '/*\nTheme Name: TT\nVersion: 1.0\n*/\n'); fs.writeFileSync(path.join(wp, 'wp-content', 'themes', 'tt', 'functions.php'), '<?php\n// theme\n');
+    const WF = await runCase(500, CRIT, ['--root', wp, '--no-replica']);
+    ok(WF.f && WF.f.checkpoints.counts.fail > 0 && WF.f.verdict.label === 'No confirmed breaking cause was found' && WF.f.confidence_text === 'How sure we are: not very. Nothing that was checked points at a cause that could be confirmed.', `with a site folder and ${WF.f && WF.f.checkpoints.counts.fail} failed checks the verdict is the old text, byte for byte`);
+    ok(WF.f && !/A problem was seen on the live page|No cause could be found from what was given/.test(WF.r.stdout + WF.files), 'and none of the new wording appears');
+
+    group('S1b-fix (g): the log step reason without site files');
+    const logStep = (fA.timeline || []).find(t => t.id === 'logs');
+    ok(logStep && logStep.reason === 'no site files were given, so no log could be read', `the log step says "no site files were given, so no log could be read" (got "${logStep && logStep.reason}")`);
+    ok(!/no local WordPress root/.test(JSON.stringify(fA)) && (fA.timeline || []).filter(t => /was given \(--root\)/.test(t.reason || '')).length === 0, 'no "no local WordPress root" and no "was given (--root)" reason is left in findings.json of a no-files run');
+
     fs.rmSync(tmp, { recursive: true, force: true });
     console.log(failures ? `\n${failures} check(s) FAILED` : '\nAll no-files checks passed');
     process.exit(failures ? 1 : 0);
