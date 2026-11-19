@@ -103,7 +103,7 @@ Decisions 1 to 19 and 21 to 27 are recorded as "approved by the owner" without a
 
 - **Last green full run:** `p-s0`, 2026-11-18, HEAD 68e8f62: 76 suites (66 offline and 10 Docker), 4692 PASS, 0 FAIL, 6 SKIP, 38 min 56 s; Docker 5/0/11 before and after; no restart [TESTING; ROADMAP]. The 6 SKIPs are loud: two git checks of the snapshot, the hints suite in standalone mode, PHP 7.4, 8.0 and 8.1 images.
 - **Since that run:** M1, S0d, S1, S1b-fix, S1d and S1d-fix are covered by `test:offline` only (68 offline suites, last result 4810 PASS, 0 FAIL, 2 SKIP, 2026-11-19) [HANDOFF 85 to 90]. A new full run is still to be done after S4 [IM section 7].
-- **Pushed:** the owner pushed up to commit f68a266 (the remote-tracking branch points there, as last fetched) [git]. **Not pushed:** the S1d commit (7a9952a), the S1d-fix commit (4e56cd0) and the two S1d-docs commits (S1D_DOCS_HASH and S1D_HASH2) [git].
+- **Pushed:** the owner pushed up to commit f68a266 (the remote-tracking branch points there, as last fetched) [git]. **Not pushed:** the S1d commit (7a9952a), the S1d-fix commit (4e56cd0) and the two S1d-docs commits (51d77b4 and the hash commit after it) [git].
 - **In progress:** nothing is running. S1d, S1d-fix and S1d-docs are finished; the Coder waits for the owner's next prompt [CLAUDE.md; HANDOFF 90].
 
 ## 5. What is left (roadmap rows in order) [ROADMAP]
