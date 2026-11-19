@@ -15,13 +15,13 @@ The site's own log is found by itself, and with an address it only asks you to c
 Options (each one answers a question; with --yes nothing is asked):
   --description "<text>"   what is wrong (required)
   --root <folder>          the wp-content folder, or the WordPress folder that contains it (required, unless --no-files)
-  --no-files               you have no site files: only the description, screenshots and the address are used; the code is not looked at (cannot be used with --root, --sandbox, --db-dump or --log)
+  --no-files               you have no site files: only the description, screenshots and the address are used; the code is not looked at (cannot be used with --root, --sandbox or --db-dump; --log is allowed: the log is then the only file read)
   --url <address>          the website, to look at it from outside (optional)
   --env local|staging|live what kind of site --url is (asked as one yes/no line in a terminal; required with --url otherwise)
   --authorized             you have the owner's permission to visit a LIVE site
   --php <version>          for example 8.1 (optional)
   --images <paths>         screenshots: files or folders, separated by commas (optional)
-  --log <file>             a log file instead of the one found in your site; it is copied and redacted, never changed (optional)
+  --log <file>             a log file instead of the one found in your site; it is read as masked text, never changed (optional). With --no-files it is the only thing read; a database export, an environment file or wp-config is refused
   --sandbox                also test in a throwaway copy in Docker (needs: ${require('../lib/hints').current().npmRun('setup-sandbox')})
   --db-dump <file>         a database export (.sql or .sql.gz): a test copy of your site is built from it when Docker works and the site is not live
   --max-size-mb <n>        size cap in MB for the site copy and for the database file once unpacked (database default 1024)

@@ -88,12 +88,15 @@ async function run(id, { root = null, maxLogBytes, deepLogCap, recognizer = ocr.
 
     // ---- logs ----
     let logResult = null;
-    if (!root) steps.push(stepOf('logs', 'debug.log / error_log', 'NOT_RUN', 'no site files were given, so no log could be read'));
+    // no site files: a log given with --log was copied masked to <issue>/log-only/wp-content/debug.log by the wizard (lib/wizard.js); it is read like the log of a site, nothing else of that folder exists
+    const logOnlyRoot = !root && fs.existsSync(path.join(dir, 'log-only', 'wp-content', 'debug.log')) ? path.join(dir, 'log-only') : null;
+    const logRoot = root || logOnlyRoot;
+    if (!logRoot) steps.push(stepOf('logs', 'debug.log / error_log', 'NOT_RUN', 'no site files were given, so no log could be read'));
     else {
         const since = parsed.dates[0] || null;
         // a crash (white screen, critical error, 500) is the one symptom where a fatal buried in a huge, noisy log is worth the extra reading (issue/logs.js deepScan)
         const crash = issue.symptom === 'white-screen' || logs.looksLikeCrash(`${issue.title} ${issue.description}`) || all.some(c => ['wp-critical-error', 'php-fatal', 'php-class-not-found'].includes(c.type));
-        logResult = logs.collect(root, { maxBytes: maxLogBytes, window: { from: since ? `${since}T00:00:00.000Z` : null, to: issue.created_at }, deep: { enabled: crash, cap: deepLogCap } });
+        logResult = logs.collect(logRoot, { maxBytes: maxLogBytes, window: { from: since ? `${since}T00:00:00.000Z` : null, to: issue.created_at }, deep: { enabled: crash, cap: deepLogCap } });
         for (const e of logResult.entries) {
             addNotices(e.text, { kind: 'log', ref: e.sources[0] });
             for (const c of clues.extract(e.text, { kind: 'log', ref: e.sources[0] }, { confidence: 'certain' })) {
@@ -107,7 +110,7 @@ async function run(id, { root = null, maxLogBytes, deepLogCap, recognizer = ocr.
         const deepNote = logResult.files.filter(f => f.deep).map(f => `${f.ref}: ${f.deep.text}`).join('; ');
         steps.push(logResult.files.length
             ? stepOf('logs', 'debug.log / error_log', 'PASSED', [tzNote, deepNote].filter(Boolean).join('; ') || null, { files: logResult.files.map(f => f.ref), entries: logResult.entries.length, window_from: since, timezone_assumed: assumed, timezone_unknown: unknown })
-            : stepOf('logs', 'debug.log / error_log', 'NOT_RUN', `no debug.log or error_log found under ${path.basename(root)} (WP_DEBUG_LOG may be off): this is not evidence that nothing went wrong`));
+            : stepOf('logs', 'debug.log / error_log', 'NOT_RUN', root ? `no debug.log or error_log found under ${path.basename(root)} (WP_DEBUG_LOG may be off): this is not evidence that nothing went wrong` : 'the log file you gave is empty: this is not evidence that nothing went wrong'));
         for (const p of logResult.problems) steps.push(stepOf('logs-file', `Log file ${p.split(':')[0]}`, 'SKIPPED', p));
     }
 

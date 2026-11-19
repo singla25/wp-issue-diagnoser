@@ -269,6 +269,8 @@ function build(f, ctx) {
     if (answers.any || loops.length) see.push(...answers.lines, ...loops);
     else if (ctx.facts && ctx.facts.probeRan) see.push('The live pages that were loaded did not answer with an error.');
     else see.push('No live check was run, so nothing was seen on the live page.');
+    // a log without site files: its possible causes (fatal errors that name a plugin or a theme), said as possible, not confirmed
+    if (ctx.facts && ctx.facts.logSeeLines && ctx.facts.logSeeLines.length) see.push(...ctx.facts.logSeeLines);
     const cp = f.checkpoints ? f.checkpoints.counts : null;
     // the counts are ONE dot line (the old "We looked at N things" sentence is gone); the full list only with --verbose
     const checked = cp ? { line: `${cp.pass} pass · ${cp.fail} fail · ${cp.not_checked} not checked · ${cp.also_noticed || 0} also noticed`,

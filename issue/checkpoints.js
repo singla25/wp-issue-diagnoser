@@ -26,7 +26,7 @@ function loadWork(dir) {
 }
 
 // ---------------------------------------------------------------- what ran
-function sourcesOf({ work = {}, ran = {}, hasRoot = false, hasCode = true, codeFound = 0, validation = null }) {
+function sourcesOf({ work = {}, ran = {}, hasRoot = false, hasCode = true, codeFound = 0, validation = null, logOnly = false }) {
     const noRoot = 'no site files were given, so no code was read';
     const stepOf = (list, id) => (list || []).find(s => s.id === id);
     const noCode = codeFound > 0 ? `the site folder holds ${codeFound} PHP file${codeFound === 1 ? '' : 's'}, but none could be analysed, so no code was checked` : 'the site folder holds no code files, so no code was read';
@@ -42,7 +42,7 @@ function sourcesOf({ work = {}, ran = {}, hasRoot = false, hasCode = true, codeF
     S.graph = need(!!work.graph && !work.graph.truncated, work.graph && work.graph.truncated ? 'only part of the relations between components was kept' : 'the component relations were not built');
     S.kb = need(!!work.kbHits, 'the known-patterns check did not run');
     const logStep = stepOf(work.evidence && work.evidence.steps, 'logs');
-    S.logs = { ok: !!(hasRoot && logStep && logStep.status === 'PASSED'), why: !hasRoot ? 'no site files were given, so no log was read' : 'no log file was found or read (turn on WP_DEBUG_LOG); that is not evidence that nothing went wrong' };
+    S.logs = { ok: !!((hasRoot || logOnly) && logStep && logStep.status === 'PASSED'), why: !(hasRoot || logOnly) ? 'no site files were given, so no log was read' : 'no log file was found or read (turn on WP_DEBUG_LOG); that is not evidence that nothing went wrong' };
     S.hypotheses = { ok: !!(validation && Array.isArray(validation.hypotheses)), why: 'the hypotheses were not validated' };
     const pr = work.probe, loaded = pr && Array.isArray(pr.pages) ? pr.pages.filter(p => p.loaded) : [];
     S.probe = { ok: !!(ran.probe && pr && Array.isArray(pr.pages) && pr.pages.length), why: 'the live page probe did not run (no address, not allowed, or switched off)' };
@@ -180,7 +180,7 @@ const SAME_AS = { 'content-hooks': 'hook-same-priority', 'php-version-code': 're
 // ---------------------------------------------------------------- the evaluation
 // inp: { work, validation, ran:{probe,sandbox}, hasRoot, issue?, checkpoints? } -> [{ id, title, result, reason }] for EVERY checkpoint, in id order
 function evaluate(inp = {}) {
-    const input = { work: inp.work || {}, validation: inp.validation || null, ran: inp.ran || {}, hasRoot: !!inp.hasRoot, hasCode: inp.hasCode !== false, codeFound: Number(inp.codeFound) || 0, issue: inp.issue || null };
+    const input = { work: inp.work || {}, validation: inp.validation || null, ran: inp.ran || {}, hasRoot: !!inp.hasRoot, hasCode: inp.hasCode !== false, codeFound: Number(inp.codeFound) || 0, issue: inp.issue || null, logOnly: !!inp.logOnly };
     const tie = inp.tie ? makeTie(inp.tie) : null;
     const list = (inp.checkpoints || load()).checkpoints.slice().sort((a, b) => (a.id < b.id ? -1 : 1));
     const S = sourcesOf(input), c = attach(makeCtx(input, S), input);
@@ -202,10 +202,12 @@ function evaluate(inp = {}) {
             // tied to the crash: a symptom row of the probe / log, or an item that names a component or file of the crash evidence. Items that are tied come first in the reason.
             const tied = found.filter(x => !tie || SYMPTOM_ROWS.has(cp.evaluator) || isTied(x, tie, { fileOnly: WEAK_TIE_ROWS.has(cp.id) })), rest = found.filter(x => !tied.includes(x));
             const order = [...tied, ...rest], text = order[0].t, more = order.length > 1 ? ` (and ${order.length - 1} more)` : '';
-            return { ...base, result: tied.length ? 'FAIL' : 'ALSO NOTICED', reason: text + more, tied_to_crash: tied.length > 0, breaks_site: cp.breaks_site || 'depends', live: r.need.includes('probe') };   // live: the check reads the live page (probe), so a FAIL here is a failed LIVE check
+            return { ...base, result: tied.length ? 'FAIL' : 'ALSO NOTICED', reason: text + more, tied_to_crash: tied.length > 0, breaks_site: cp.breaks_site || 'depends', live: r.need.includes('probe'), from_log: r.need.includes('logs') };   // live: the check reads the live page (probe), so a FAIL here is a failed LIVE check
         }
         const gap = missing(r.need) || r.blocked;
         if (gap) return { ...base, result: 'NOT CHECKED', reason: gap };
+        // a log check on a log WITHOUT site files: it only says what the part of the log that was read does not hold, never that the site is fine
+        if (!input.hasRoot && input.logOnly && r.need.includes('logs')) return { ...base, result: 'PASS', reason: 'not found in the part of the log that was read' };
         return { ...base, result: 'PASS', reason: ['nothing found', cp.coverage === 'PARTIAL' ? PARTIAL_NOTE : '', r.note || ''].filter(Boolean).join('; ') };
     });
     // a row that only repeats another row's findings is shown as "same finding as <that row>" (its own result and count stay; ids are internal, the reader sees the title)

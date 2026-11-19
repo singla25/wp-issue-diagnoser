@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Self-test of --no-files (S1a): the command runs with NO site folder (modes D and E of docs/INPUT-MODES.md).
-//   - the flag's refusals are plain (with --root, --sandbox, --db-dump, --log) and the old refusal without --root is unchanged
+//   - the flag's refusals are plain (with --root, --sandbox, --db-dump; --log needs a real file, S1d) and the old refusal without --root is unchanged
 //   - case (a): a description only -> no crash, a report, level "NOT TESTED ON A COPY", no site copy, nothing visited
 //   - case (c): a local fixture address that answers 200 -> the page is loaded with GET only, the report says the live page was looked at
 // Real Chromium and a fixture web server on 127.0.0.1 only; no real site. Offline otherwise.
@@ -34,8 +34,8 @@ const readJson = f => JSON.parse(fs.readFileSync(f, 'utf8'));
     ok(sb.status === 2 && /--sandbox and --db-dump need the site files/.test(sb.stderr), '--no-files with --sandbox: refused');
     const db = run([...base, '--no-files', '--db-dump', path.join(tmp, 'x.sql')]);
     ok(db.status === 2 && /--sandbox and --db-dump need the site files/.test(db.stderr), '--no-files with --db-dump: refused');
-    const lg = run([...base, '--no-files', '--log', path.join(tmp, 'debug.log')]);
-    ok(lg.status === 2 && /--log cannot be used with --no-files yet/.test(lg.stderr), '--no-files with --log: refused for now (S1b)');
+    const lg = run([...base, '--no-files', '--log', path.join(tmp, 'no-such-folder', 'debug.log')]);
+    ok(lg.status === 2 && /The log file .* does not exist or is not a file/.test(lg.stderr), '--no-files with --log and a missing file: refused');
     ok(issueDirs().length === 0, 'none of them created an issue folder');
     const help = run(['--help']);
     ok(/--no-files/.test(help.stdout) && /--root <folder>.*unless --no-files/.test(help.stdout), '--help lists --no-files and says --root is needed unless --no-files');
@@ -193,6 +193,121 @@ const readJson = f => JSON.parse(fs.readFileSync(f, 'utf8'));
     const logStep = (fA.timeline || []).find(t => t.id === 'logs');
     ok(logStep && logStep.reason === 'no site files were given, so no log could be read', `the log step says "no site files were given, so no log could be read" (got "${logStep && logStep.reason}")`);
     ok(!/no local WordPress root/.test(JSON.stringify(fA)) && (fA.timeline || []).filter(t => /was given \(--root\)/.test(t.reason || '')).length === 0, 'no "no local WordPress root" and no "was given (--root)" reason is left in findings.json of a no-files run');
+
+    // ---- S1d: --log with --no-files: a log without a site folder. Possible causes only, never confirmed. Made-up logs and ONE fake secret marker; no real site. ----
+    const SECRET = 'FAKEmarker0001', SECRET2 = 'FAKEmarker0002';
+    const logsDir = path.join(tmp, 'logs'); fs.mkdirSync(logsDir, { recursive: true });
+    const mkLog = (name, text) => { const f = path.join(logsDir, name); fs.writeFileSync(f, text); return f; };
+    const LOG1 = mkLog('debug.log', `[19-Nov-2026 10:00:01 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function acme_missing() in /srv/example/wp-content/plugins/acme-slider/acme.php:12\nStack trace:\n#0 /srv/example/wp-includes/class-wp-hook.php(324): acme_init()\n[19-Nov-2026 10:00:02 UTC] PHP Warning:  fetch https://api.example.test/v1?api_key=${SECRET} failed in /srv/example/wp-content/plugins/acme-slider/api.php on line 7\n[19-Nov-2026 10:00:03 UTC] PHP Notice:  login failed for password=${SECRET2} in /srv/example/wp-content/themes/tt/functions.php on line 3\n`);
+    const LOG_CLEAN = mkLog('clean.log', '[19-Nov-2026 10:00:02 UTC] PHP Warning:  Undefined variable $x in /srv/example/wp-content/plugins/acme-slider/api.php on line 7\n[19-Nov-2026 10:00:03 UTC] PHP Notice:  Trying to access array offset in /srv/example/wp-content/themes/tt/functions.php on line 3\n');
+    const LOG_EMPTY = mkLog('empty.log', '');
+    const LOG_CORE = mkLog('core.log', '[19-Nov-2026 10:00:01 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function core_thing() in /srv/example/wp-includes/foo.php:9\n[19-Nov-2026 10:00:02 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function mu_thing() in /srv/example/wp-content/mu-plugins/x.php:4\n');
+    const LOG_MANY = mkLog('many.log', ['plugin-a|15', 'plugin-b|18', 'plugin-c|17', 'plugin-d|19'].map(x => { const [n, d] = x.split('|'); return `[${d}-Nov-2026 10:00:01 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function f_${n.replace('-', '_')}() in /srv/example/wp-content/plugins/${n}/main.php:3`; }).join('\n') + '\n');
+    const LOG_MEM = mkLog('mem.log', '[19-Nov-2026 10:00:01 UTC] PHP Fatal error:  Allowed memory size of 134217728 bytes exhausted (tried to allocate 4096 bytes)\n');
+    const LOG_HOSTILE = mkLog('hostile.log', '[19-Nov-2026 10:00:01 UTC] PHP Fatal error:  Uncaught Error: boom in /srv/example/wp-content/plugins/evil <b>"x y/a.php:3\n');
+    const walk = d => { const out = []; (function w(x) { for (const n of fs.readdirSync(x)) { const f = path.join(x, n), st = fs.lstatSync(f); if (st.isDirectory()) w(f); else if (st.isFile()) out.push(f); } })(d); return out; };
+    const runLogCase = async (extra, { code = null, body = null } = {}) => {
+        let sv = null, url = null, before = issueDirs();
+        if (code) { const x = await serve(code, body); sv = x.sv; url = x.url; }
+        try {
+            const r = await runAsync([...base, '--no-files', ...extra, ...(url ? ['--url', url, '--env', 'local'] : [])]);
+            const dir = issueDirs().filter(n => !before.includes(n)).map(n => path.join(tmp, 'issues', n))[0] || path.join(tmp, 'none');
+            const f = fs.existsSync(path.join(dir, 'result', 'findings.json')) ? readJson(path.join(dir, 'result', 'findings.json')) : null;
+            const rd = n => { try { return fs.readFileSync(path.join(dir, 'result', n), 'utf8'); } catch { return ''; } };
+            return { r, dir, f, report: rd('ISSUE-REPORT.md'), html: rd('issue.html'), all: fs.existsSync(dir) ? walk(dir) : [] };
+        } finally { if (sv) sv.close(); }
+    };
+    const countIn = (res, needle) => res.all.filter(f => fs.readFileSync(f, 'utf8').includes(needle)).length + (res.r.stdout.includes(needle) ? 1 : 0) + (res.r.stderr.includes(needle) ? 1 : 0);
+    const TAIL1 = 'This is a possible cause, not confirmed: the code was not read and nothing was tested.';
+    const OLDER = 'The log may also hold older errors, and the tool cannot tell if this is the error you see now.';
+
+    group('S1d (a) a real fake log now runs with --no-files; the log is masked before it is stored, and no site folder exists');
+    const L1 = await runLogCase(['--log', LOG1]);
+    ok(L1.r.status === 0 && L1.f, `exit 0 and a report (exit ${L1.r.status}) ${L1.r.stderr.slice(0, 120)}`);
+    const issueL1 = readJson(path.join(L1.dir, 'issue.json'));
+    ok(!issueL1.root && !fs.existsSync(path.join(L1.dir, 'site-copy')) && fs.existsSync(path.join(L1.dir, 'log-only', 'wp-content', 'debug.log')), 'issue.root stays empty, no site-copy, and only the masked copy exists under log-only/');
+    ok(countIn(L1, SECRET) === 0 && countIn(L1, SECRET2) === 0, `the fake secrets appear in NO output file and not in the terminal (counts ${countIn(L1, SECRET)} and ${countIn(L1, SECRET2)}; ${L1.all.length} files checked)`);
+    ok(fs.readFileSync(path.join(L1.dir, 'log-only', 'wp-content', 'debug.log'), 'utf8').includes('api_key=[REDACTED]'), 'the masked copy holds [REDACTED] in place of the secret');
+    const rawLine = 'Call to undefined function acme_missing()';
+    ok(!L1.r.stdout.includes(rawLine) && !L1.report.includes(rawLine) && !L1.html.includes(rawLine) && !JSON.stringify(L1.f).includes(rawLine), 'the log line itself is not copied into the terminal, ISSUE-REPORT.md, issue.html or findings.json');
+    const userText = L1.r.stdout.split('\n').filter(l => !/^Saved: /.test(l)).join('\n') + L1.report;   // the "Saved:" line lists the report files themselves (findings.json, issue.html ...), as in every run
+    ok(!/(hypotheses|evidence|validation|probe|logs|intake|sandbox|bisect|custom-code|components)\.json|\bwork\//.test(userText), 'no internal work file name (hypotheses.json, evidence.json, work/ ...) in the terminal text or ISSUE-REPORT.md of a log-only run');
+
+    group('S1d (b) the possible cause, word for word; the code and database were not read; level 2; never confirmed');
+    ok(L1.f.verdict.label === 'The log shows a possible cause' && L1.f.confidence_text === `The log shows a fatal error in a file of acme-slider (last seen 2026-11-19). ${TAIL1} ${OLDER} To go further, give the site files.`, `verdict: "${L1.f.verdict.label}" / "${L1.f.confidence_text}"`);
+    ok(/Looked at: your log\. Not looked at: [^.]*the code \(no site files were given\)[^.]*a throwaway test copy\./.test(L1.r.stdout) && /NOT TESTED ON A COPY/.test(L1.r.stdout) && /comes from reading your log\./.test(L1.r.stdout), 'level 2 "NOT TESTED ON A COPY"; Looked at: your log; Not looked at: the code (no site files were given), a throwaway test copy; the label says reading your log');
+    ok(/a database export file of your site/.test(L1.r.stdout) && /the code of your site/.test(L1.r.stdout), 'the missing list names the database export and the code');
+    ok(!/confirmed(?!,| cause)|caused by|most likely/i.test(L1.f.confidence_text.replace(/not confirmed/g, '')), 'the sentence never says "confirmed" (except "not confirmed"), "caused by" or "most likely"');
+    ok(!/all secrets|every secret/i.test(L1.r.stdout + L1.report), 'it never says that all secrets were removed');
+    ok(/The log shows a fatal error in a file of acme-slider/.test(L1.r.stdout.split('WHAT YOU SEE')[1] || ''), 'the possible cause is also under "What you see"');
+
+    group('S1d (c) the gate: a log alone never reaches CONFIRMED, REPRODUCIBLE or "likely"');
+    ok(!(L1.f.hypotheses || []).some(h => ['CONFIRMED', 'REPRODUCIBLE', 'FIXED_VERIFIED'].includes(h.status)) && (L1.f.findings || []).length === 0, 'no hypothesis is CONFIRMED, REPRODUCIBLE or FIXED_VERIFIED and there is no finding');
+    ok(!/Confirmed|Most likely/.test(L1.f.verdict.label) && !((L1.f.case_file || {}).cases || []).some(c => ['confirmed', 'likely'].includes(c.kind)), 'the verdict label and the case file carry no "Confirmed" or "Most likely" case');
+    ok(L1.f.log_only && L1.f.log_only.possible_causes.length === 1 && L1.f.log_only.possible_causes[0].name === 'acme-slider', 'the possible cause is kept apart from the hypotheses, in its own field');
+
+    group('S1d (d) the checks: only the two log checks can run; the other 51 say "no site files were given"');
+    const rowsL = L1.f.checkpoints.items;
+    ok(rowsL.filter(i => i.result === 'PASS').length === 2 && rowsL.filter(i => i.result === 'NOT CHECKED').length === 51, `2 log checks ran (pass), 51 are not checked (${JSON.stringify(L1.f.checkpoints.counts)})`);
+    ok(rowsL.filter(i => i.result === 'PASS').every(i => i.reason === 'not found in the part of the log that was read'), 'a PASS of a log check says "not found in the part of the log that was read", never "this is fine"');
+    ok(rowsL.filter(i => i.result === 'NOT CHECKED').filter(i => /no site files were given/.test(i.reason)).length >= 29, 'the code rows keep "no site files were given, so no code was read"');
+
+    group('S1d (e) no fatal error that names a plugin or a theme');
+    const CL = await runLogCase(['--log', LOG_CLEAN]);
+    ok(CL.f && CL.f.verdict.label === 'No cause could be named from the log' && CL.f.confidence_text === 'The last part of the log (up to 2 MB) was read. It has no fatal error that names a plugin or a theme. This does not mean the site is fine. To go further, give the site files.', `clean log: "${CL.f && CL.f.verdict.label}" / "${CL.f && CL.f.confidence_text}"`);
+    const EM = await runLogCase(['--log', LOG_EMPTY]);
+    ok(EM.r.status === 0 && EM.f && EM.f.verdict.label === 'No cause could be named from the log' && EM.f.confidence_text === 'The log file is empty. This does not mean the site is fine. To go further, give the site files.', `empty log: "${EM.f && EM.f.confidence_text}"`);
+    const CO = await runLogCase(['--log', LOG_CORE]);
+    ok(CO.f && CO.f.verdict.label === 'No cause could be named from the log' && /The log shows a fatal error, but no plugin or theme can be named from it\./.test(CO.f.confidence_text) && CO.f.log_only.possible_causes.length === 0, `a fatal in core and in mu-plugins: no cause named: "${CO.f && CO.f.confidence_text}"`);
+
+    group('S1d (f) at most 3 names, most recent first, then "and N more"; names are limited to letters, digits and . _ -');
+    const MN = await runLogCase(['--log', LOG_MANY]);
+    ok(MN.f && MN.f.confidence_text.startsWith('The log shows fatal errors in files of plugin-d (last seen 2026-11-19), plugin-b (last seen 2026-11-18), plugin-c (last seen 2026-11-17) and 1 more. These are possible causes, not confirmed:'), `four plugins: three names, newest first, "and 1 more": "${MN.f && MN.f.confidence_text.slice(0, 190)}"`);
+    const HO = await runLogCase(['--log', LOG_HOSTILE]);
+    ok(HO.r.status === 0 && HO.f && !/[<>"]/.test(HO.f.confidence_text) && !/evil/.test(HO.f.confidence_text + HO.report), `a hostile folder name (space, <, quote) never reaches a sentence: "${HO.f && HO.f.confidence_text.slice(0, 120)}"`);
+    const P = require('../lib/plain-names');
+    const hostile = P.logCausesOf([{ level: 'fatal error', file: 'wp-content/plugins/ev il<b>"x/a.php', last_seen: '2026-11-19T10:00:01Z' }, { level: 'fatal error', file: 'wp-content/plugins/ev\nil/a.php' }, { level: 'fatal error', file: 'wp-content/themes/ok.name-1_x/f.php', last_seen: '2026-11-19T10:00:01Z' }, { level: 'warning', file: 'wp-content/plugins/warn-only/a.php' }]);
+    ok(hostile.causes.length === 1 && hostile.causes[0].name === 'ok.name-1_x' && hostile.fatalOutside === true && hostile.causes.every(c => P.NAME_OK.test(c.name)), 'logCausesOf: a name with space, "<", quote or newline is not a cause; only a clean name is; a warning is not a fatal');
+
+    group('S1d (g) a log check that found something is a possible cause too; "No cause could be named" never appears then');
+    const ME = await runLogCase(['--log', LOG_MEM]);
+    ok(ME.f && ME.f.verdict.label === 'The log shows a possible cause' && /^The log shows PHP running out of memory\. This is a possible cause, not confirmed: the code was not read and nothing was tested\./.test(ME.f.confidence_text) && !/No cause could be named/.test(ME.r.stdout + ME.report + ME.html), `memory check: "${ME.f && ME.f.confidence_text.slice(0, 150)}"`);
+
+    group('S1d (h) log + a home page that answers 500: one verdict, no contradiction');
+    const PG = await runLogCase(['--log', LOG1], { code: 500, body: CRIT });
+    const failedPG = PG.f ? PG.f.checkpoints.counts.fail : -1;
+    ok(PG.f && failedPG > 0 && PG.f.verdict.label === 'A problem was seen on the live page, and the log shows a possible cause' && PG.f.confidence_text === `The live page answered with an error (HTTP 500). ${failedPG} live checks failed. The log shows a fatal error in a file of acme-slider (last seen 2026-11-19). ${TAIL1} ${OLDER} To go further, give the site files.`, `combined: "${PG.f && PG.f.confidence_text}"`);
+    ok(!/No cause could be (found|named)|No confirmed breaking cause|Nothing that was checked points at a cause/.test(PG.r.stdout + PG.report + PG.html), 'no "No cause could be found / named" and neither old sentence next to a possible cause');
+    ok(countIn(PG, SECRET) === 0, 'the fake secret is in no output file of this run either');
+    const OK200L = await runLogCase(['--log', LOG1], { code: 200, body: OK200 });
+    ok(OK200L.f && OK200L.f.verdict.label === 'The log shows a possible cause' && !/answered with an error/.test(OK200L.f.confidence_text), 'log + an address that answers 200: only the log part, the live rules are unchanged');
+    const DS = await runLogCase(['--log', LOG1, '--description', 'The shop page is slow and shows a white screen since the update']);
+    ok(DS.r.status === 0, 'log + a description works');
+
+    group('S1d (i) names that are never read as a log (also through a symlink); the message holds no file content');
+    const secretText = 'DB_PASSWORD=FAKEmarker0003\n';
+    const refuse = (name, text = secretText) => { const f = path.join(logsDir, name); fs.writeFileSync(f, text); return run([...base, '--no-files', '--log', f]); };
+    for (const nm of ['dump.sql', 'dump.sql.gz', 'prod.env', '.env', '.env.local', 'wp-config.php', 'wp-config-sample.php', 'DUMP.SQL', '.ENV', 'Wp-Config.PHP', 'dump.sql.', 'x.env.', 'wp-config.php.', 'wp-config.php.bak', 'dump.sql.zip']) {
+        const x = refuse(nm);
+        ok(x.status === 2 && new RegExp(`The file ${nm.replace(/\./g, '\\.')} is not read`).test(x.stderr) && !/FAKEmarker0003/.test(x.stdout + x.stderr), `${nm}: refused (exit 2), and the message holds no file content`);
+    }
+    const envFile = path.join(logsDir, 'real-name.env'); fs.writeFileSync(envFile, secretText);
+    const linkFile = path.join(logsDir, 'innocent.log'); try { fs.rmSync(linkFile, { force: true }); fs.symlinkSync(envFile, linkFile); } catch { /* no symlinks here */ }
+    const sl = run([...base, '--no-files', '--log', linkFile]);
+    ok(sl.status === 2 && /is not read/.test(sl.stderr) && !/FAKEmarker0003/.test(sl.stdout + sl.stderr), 'a harmless name that is a symlink to an .env file is refused (the real path is checked)');
+    const dirsBefore = issueDirs().length; const dirOnly = path.join(logsDir, 'adir.log'); fs.mkdirSync(dirOnly, { recursive: true });
+    const notFile = run([...base, '--no-files', '--log', dirOnly]);
+    ok(notFile.status === 2 && /does not exist or is not a file/.test(notFile.stderr) && issueDirs().length === dirsBefore, 'a folder is not a file: refused, and no issue folder is left');
+
+    group('S1d (j) with a site folder (--root) --log behaves as before');
+    const beforeW = issueDirs();
+    const WLr = await runAsync([...base, '--root', wp, '--no-replica', '--log', LOG1]);
+    const dirW = issueDirs().filter(n => !beforeW.includes(n)).map(n => path.join(tmp, 'issues', n))[0] || path.join(tmp, 'none');
+    const fW = fs.existsSync(path.join(dirW, 'result', 'findings.json')) ? readJson(path.join(dirW, 'result', 'findings.json')) : null;
+    ok(WLr.status === 0 && fW && /Log used: .*debug\.log \(given with --log\)\./.test(WLr.stdout), `--root with --log runs and says "Log used: ... (given with --log)" (exit ${WLr.status})`);
+    ok(fW && !fW.log_only && !fs.existsSync(path.join(dirW, 'log-only')) && fs.existsSync(path.join(dirW, 'site-copy', 'wp-content', 'debug.log')), 'with a site folder the log goes into the site copy as before: no log-only folder, no log_only field');
+    ok(fW && !/The log shows a possible cause|No cause could be named from the log|A problem was seen on the live page/.test(fW.verdict.label) && /Looked at: your log, the code\./.test(WLr.stdout), 'with a site folder none of the new no-files wording appears, and the code is looked at');
+    ok(!/FAKEmarker000[12]/.test(fs.readFileSync(path.join(dirW, 'site-copy', 'wp-content', 'debug.log'), 'utf8')), 'with a site folder the log copy is still masked (unchanged)');
 
     fs.rmSync(tmp, { recursive: true, force: true });
     console.log(failures ? `\n${failures} check(s) FAILED` : '\nAll no-files checks passed');

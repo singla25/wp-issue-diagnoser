@@ -209,7 +209,8 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
             }
         }
     }
-    const cpMod = require('./checkpoints'), cpRows = cpMod.evaluate({ work: cpMod.loadWork(dir), validation, ran, hasRoot: !!issue.root, hasCode: !!issue.root && codeFilesRead > 0, codeFound: codeFilesFound, issue, tie });
+    const logOnly = !issue.root && fs.existsSync(path.join(dir, 'log-only', 'wp-content', 'debug.log'));   // a log given without site files (--no-files --log): the masked copy
+    const cpMod = require('./checkpoints'), cpRows = cpMod.evaluate({ work: cpMod.loadWork(dir), validation, ran, hasRoot: !!issue.root, logOnly, hasCode: !!issue.root && codeFilesRead > 0, codeFound: codeFilesFound, issue, tie });
     const cpCounts = cpMod.tally(cpRows);
     f.checkpoints = { counts: cpCounts, items: cpRows.map(r => ({ id: r.id, title: r.title, result: r.result, tied_to_crash: !!r.tied_to_crash, breaks_site: r.breaks_site, reason: r.reason, ...(r.same_as ? { same_as: r.same_as } : {}) })) };
     const cpText = plainNames.checkpointText(cpRows.map(r => ({ ...r, title: plainNames.plainText(r.title, comps), reason: plainNames.plainText(r.reason, comps) })), cpCounts);
@@ -307,6 +308,13 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
         // no error log on the site: the plain steps to turn logging on; a log that exists but could not be read is said as it is
         const hasLog = !!((lg.files || []).length || (lg.entries || []).length);
         const ikLog = ((ik.steps || []).find(s => s && s.id === 'intake-log')) || null;
+        // what the live page and the log say when NO site files were given (used by "What you see" and by the verdict below): statuses and counts come from the data, never fixed values
+        const errStatuses = probePages.filter(p => p && p.loaded && Number(p.status) >= 400).map(p => Number(p.status));
+        const failedLive = cpRows.filter(r => r.live && r.result === 'FAIL').length;
+        // a log without site files: its fatal errors that name a plugin or a theme, and the log checks that found something, are POSSIBLE causes (never confirmed, never "most likely"); they stay out of the hypotheses and the tiers
+        const lc = logOnly ? plainNames.logCausesOf(lg.entries || []) : { causes: [], fatalOutside: false };
+        const checkFinds = logOnly ? cpRows.filter(r => r.from_log && (r.result === 'FAIL' || r.result === 'ALSO NOTICED')).map(r => r.reason) : [];
+        const lv = logOnly ? plainNames.logVerdict({ statuses: errStatuses, failedLive, causes: lc.causes, checkFinds, fatalOutside: lc.fatalOutside, empty: ((ikLog && ikLog.log_read) || {}).original_bytes === 0 }) : null;
         // TEST-COPY-SPEC 6.2 (6d-3): no log on the site, but a test copy that showed the SAME problem (fidelity matched, copy-log.json 'verified'):
         // the copy's own log is the report's log, named "from a test copy of your site". Otherwise the guided steps for the real site stay.
         const fdNow = fidelityOf(sbx, W), clNow = sbx && sbx.sandbox ? cleanCopyLog(W('copy-log.json')) : null;
@@ -336,7 +344,7 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
             activePlugins: sbx && sbx.sandbox ? cleanActivePlugins(W('active-plugins.json')) : null,
             // 6d-2: the fidelity check of a copy from a database file (the reader's sentence; and whether the copy may be named among the checks that counted)
             fidelity: fidelityOf(sbx, W),
-            facts: { hasLog: !!((lg.files || []).length || (lg.entries || []).length), hasCode: !!issue.root && codeFilesRead > 0, noFiles: !issue.root, screenshotsRead: ((f.reported && f.reported.images) || []).some(i => i.ocr_text && String(i.ocr_text).trim()), codeFound: codeFilesFound, phpSkipped: phpSk.total > 0, phpSkippedDetail: phpSk, probeRan: ran.probe, sandboxRan: ran.sandbox, sandboxFailed: !!(sbx && sbx.could_not_run),
+            facts: { hasLog: !!((lg.files || []).length || (lg.entries || []).length), hasCode: !!issue.root && codeFilesRead > 0, noFiles: !issue.root, logSeeLines: lv ? lv.see : [], screenshotsRead: ((f.reported && f.reported.images) || []).some(i => i.ocr_text && String(i.ocr_text).trim()), codeFound: codeFilesFound, phpSkipped: phpSk.total > 0, phpSkippedDetail: phpSk, probeRan: ran.probe, sandboxRan: ran.sandbox, sandboxFailed: !!(sbx && sbx.could_not_run),
                 sandboxReproduced: sbx ? sbx.reproduced_in_sandbox : null, php: issue.php_version || null, phpSource: issue.php_source || null, crash }
         });
         f.summary.text_report = caseFileMod.cli(f.case_file);
@@ -348,11 +356,10 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
         if (live1) f.confidence_text = plainNames.confidenceSentence(f.verdict.confidence, f.verdict.label, { reproduced: split.findings.some(x => x.status === 'REPRODUCIBLE'), live: live1 });
         // NO site files and (the live page answered an error status OR a live check failed): the verdict says so, from the probe data and the check rows (never a fixed status or count);
         // only when the old label would be "No confirmed breaking cause was found" (a cause found by other means keeps its own verdict); a run WITH a site folder is not touched
-        const errStatuses = probePages.filter(p => p && p.loaded && Number(p.status) >= 400).map(p => Number(p.status));
-        const failedLive = cpRows.filter(r => r.live && r.result === 'FAIL').length;
-        if (!issue.root && (errStatuses.length || failedLive > 0) && f.verdict.label === 'No confirmed breaking cause was found') {
-            f.verdict = { ...f.verdict, label: plainNames.ERROR_PAGE_LABEL };
-            f.confidence_text = plainNames.errorPageSentence({ statuses: errStatuses, failedLive, hasRoot: false, hasLog: !!((lg.files || []).length || (lg.entries || []).length) });
+        if (!issue.root && (errStatuses.length || failedLive > 0 || logOnly) && f.verdict.label === 'No confirmed breaking cause was found') {
+            if (logOnly) f.log_only = { possible_causes: lc.causes.map(c => ({ name: c.name, kind: c.kind, last_seen: c.last_seen })), log_checks: checkFinds, fatal_outside: lc.fatalOutside };
+            f.verdict = { ...f.verdict, label: lv ? lv.label : plainNames.ERROR_PAGE_LABEL };
+            f.confidence_text = lv ? lv.text : plainNames.errorPageSentence({ statuses: errStatuses, failedLive, hasRoot: false, hasLog: !!((lg.files || []).length || (lg.entries || []).length) });
             // the summary data repeats the old headline ("No confirmed breaking cause was found." and "Nothing else stood out."): it says the same new sentence, so the old words are nowhere in the output
             const NEW_HEAD = f.confidence_text;
             const rewrite = v => typeof v === 'string' ? v.split('No confirmed breaking cause was found.').join(NEW_HEAD).replace(/\n?Nothing else stood out\./g, '') : Array.isArray(v) ? v.filter(x => x !== 'Nothing else stood out.').map(rewrite) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, rewrite(x)])) : v;
