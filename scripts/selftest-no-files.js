@@ -309,6 +309,34 @@ const readJson = f => JSON.parse(fs.readFileSync(f, 'utf8'));
     ok(fW && !/The log shows a possible cause|No cause could be named from the log|A problem was seen on the live page/.test(fW.verdict.label) && /Looked at: your log, the code\./.test(WLr.stdout), 'with a site folder none of the new no-files wording appears, and the code is looked at');
     ok(!/FAKEmarker000[12]/.test(fs.readFileSync(path.join(dirW, 'site-copy', 'wp-content', 'debug.log'), 'utf8')), 'with a site folder the log copy is still masked (unchanged)');
 
+    // ---- S1d-fix: the --log refusal is a RULE (lower-case, trailing junk removed, split on "."; a part sql or env, or a name starting with wp-config = data; a packed part = packed) ----
+    group('S1d-fix (k) names that are refused: database export, environment file, wp-config, packed files (also with trailing junk and through a symlink)');
+    const DATA_MSG = /a database export, an environment file or wp-config is not a log\. Give an error log, for example debug\.log\./;
+    const PACKED_MSG = /a packed file cannot be read as a log\. Unpack it and give the \.log file\./;
+    const nDirs = issueDirs().length;
+    const table = [
+        ['dump.sql.7z', DATA_MSG], ['dump.sql.tar.gz', DATA_MSG], ['db.sql\t', DATA_MSG], ['.env.production', DATA_MSG], ['wp-config.php.bak', DATA_MSG], ['WP-CONFIG.PHP ', DATA_MSG], ['x.SQL.GZ', DATA_MSG],
+        ['backup.tar.gz', PACKED_MSG], ['logs.zip', PACKED_MSG], ['old.7z', PACKED_MSG], ['x.rar', PACKED_MSG], ['y.xz', PACKED_MSG], ['z.bz2', PACKED_MSG], ['a.zst', PACKED_MSG], ['b.tgz', PACKED_MSG], ['c.tar', PACKED_MSG], ['d.GZ.\t ', PACKED_MSG]
+    ];
+    for (const [nm, msg] of table) {
+        const x = refuse(nm);
+        ok(x.status === 2 && msg.test(x.stderr) && /The file [^\n]* is not read/.test(x.stderr) && !/FAKEmarker0003/.test(x.stdout + x.stderr) && !/[\t]/.test(x.stderr), `${JSON.stringify(nm)}: refused (exit 2) with the ${msg === DATA_MSG ? 'database / environment / wp-config' : 'packed file'} message, no file content, no control character printed`);
+    }
+    const bidi = refuse('dump.sql\u202e'), zw = refuse('prod\u200b.env');
+    ok(bidi.status === 2 && DATA_MSG.test(bidi.stderr) && !/[\u202e\u200b\u2028\u2029]/.test(bidi.stderr) && zw.status === 2 && DATA_MSG.test(zw.stderr) && !/[\u202e\u200b]/.test(zw.stderr), 'a bidi override or a zero-width character in the name is refused and is not printed as it is');
+    const linkTo = (dirName, target) => { const d = path.join(logsDir, dirName); fs.mkdirSync(d, { recursive: true }); const real = path.join(logsDir, target); fs.writeFileSync(real, secretText); const l = path.join(d, 'debug.log'); try { fs.rmSync(l, { force: true }); fs.symlinkSync(real, l); } catch { /* no symlinks here */ } return run([...base, '--no-files', '--log', l]); };
+    const slSql = linkTo('link-sql', 'real-dump.sql'), slPacked = linkTo('link-packed', 'archive.tar.gz');
+    ok(slSql.status === 2 && DATA_MSG.test(slSql.stderr) && !/FAKEmarker0003/.test(slSql.stdout + slSql.stderr), 'a symlink named debug.log that points to a .sql file is refused through its real name');
+    ok(slPacked.status === 2 && /is not read: a (packed file|database export)/.test(slPacked.stderr) && !/FAKEmarker0003/.test(slPacked.stdout + slPacked.stderr), 'a symlink named debug.log that points to a packed file is refused through its real name');
+    ok(issueDirs().length === nDirs, 'none of these refusals made an issue folder');
+
+    group('S1d-fix (l) names that are still accepted: a real log runs (exit 0)');
+    for (const nm of ['debug.log', 'debug.log.1', 'error_log', 'php_errors.log', 'sql-errors.log', 'access.log']) {
+        const f = path.join(logsDir, 'ok-' + nm.replace(/\./g, '_'), nm); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, '[19-Nov-2026 10:00:02 UTC] PHP Warning:  Undefined variable $x in /srv/example/wp-content/plugins/acme-slider/api.php on line 7\n');
+        const x = run([...base, '--no-files', '--log', f]);
+        ok(x.status === 0 && /Log used: /.test(x.stdout), `${nm}: accepted, the log is read (exit ${x.status})`);
+    }
+
     fs.rmSync(tmp, { recursive: true, force: true });
     console.log(failures ? `\n${failures} check(s) FAILED` : '\nAll no-files checks passed');
     process.exit(failures ? 1 : 0);
