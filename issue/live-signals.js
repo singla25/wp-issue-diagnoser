@@ -9,7 +9,7 @@
 const SLUG = /^(?!\.+$)[A-Za-z0-9._-]{1,60}$/;
 const VERSION = /^[A-Za-z0-9.+-]{1,20}$/;
 const WP_VERSION = /^[0-9]+(?:\.[0-9]+){1,3}(?:[-+][A-Za-z0-9.]{1,12})?$/;
-const MAX_ASSETS = 500, MAX_COMMENTS = 100, MAX_COMMENT_CHARS = 300, MAX_PLUGINS = 5, MAX_VERSIONS = 3;
+const MAX_ASSETS = 500, MAX_COMMENTS = 100, MAX_COMMENT_CHARS = 300, MAX_PLUGINS = 5, MAX_VERSIONS = 3, MAX_NAMES = 100;
 
 // The fixed comment list. `slug` is the plugin folder name on wordpress.org; `version` is the capture group, or null when the comment names no version.
 const COMMENTS = [
@@ -92,7 +92,9 @@ function collect(pages) {
     });
     // plugins whose files the page loaded; plugins only NAMED in a page comment (a cache plugin leaves a comment, not always a file) are kept apart, so "loads files of" stays true
     const all = [...plugins.values()], pl = shape(all.filter(e => e.loaded)), named = shape(all.filter(e => !e.loaded)), th = shape([...themes.values()]);
-    return { wordpress, plugins: pl.slice(0, MAX_PLUGINS), plugins_more: Math.max(0, pl.length - MAX_PLUGINS), named_in_comments: named.slice(0, MAX_PLUGINS), named_in_comments_more: Math.max(0, named.length - MAX_PLUGINS), themes: th.slice(0, MAX_PLUGINS), themes_more: Math.max(0, th.length - MAX_PLUGINS), scanned_assets: scanned, truncated };
+    // every plugin name whose files were loaded (names only, valid names, at most 100): the input of the known-conflict match (issue/live-conflicts.js); the display lists below stay capped
+    const plugin_names = all.filter(e => e.loaded).map(e => e.slug).sort().slice(0, MAX_NAMES);
+    return { wordpress, plugin_names, plugins: pl.slice(0, MAX_PLUGINS), plugins_more: Math.max(0, pl.length - MAX_PLUGINS), named_in_comments: named.slice(0, MAX_PLUGINS), named_in_comments_more: Math.max(0, named.length - MAX_PLUGINS), themes: th.slice(0, MAX_PLUGINS), themes_more: Math.max(0, th.length - MAX_PLUGINS), scanned_assets: scanned, truncated };
 }
 
 module.exports = { collect, fromPage, assetPart, COMMENTS, MAX_ASSETS, MAX_PLUGINS, MAX_VERSIONS, okSlug, okVersion, WP_VERSION };

@@ -428,6 +428,44 @@ const readJson = f => JSON.parse(fs.readFileSync(f, 'utf8'));
     ok(PL.hits.every(h => /^GET \//.test(h)) && !PL.hits.some(h => /ghost-sample|readme|plugins\/[^/]+\/?$|wp-json|xmlrpc|debug\.log/.test(h)) && new Set(PL.hits.map(h => h.split('?')[0])).size <= 7, `S3b: no new request: only GET, only the page and the files it asks for itself (${[...new Set(PL.hits.map(h => h.split('?')[0]))].join(' ')})`);
     ok(!/isn't it|Performance optimized by WP Rocket|yoast\.com/.test(PL.probeTxt + PL.files), 'S3b: the text of the page comments is not stored anywhere (probe.json, findings.json, the report)');
     ok(S200.f && S200.f.live_signals === undefined && !/The page loads files of|The page says it runs WordPress|A comment on the page names/.test(S200.r.stdout + S200.files), 'S3b: a page with no plugin, theme or generator in its files: no live_signals field and NO line');
+    // S3c: plugins whose FILES the page loaded, matched by name against three known conflicts: "possible, not confirmed", no site files only, the verdict is not touched
+    const pageOf = names => `<!doctype html><html><head><title>Fixture</title>${names.map(([n, v]) => `<script src="/wp-content/plugins/${n}/x.js${v ? `?ver=${v}` : ''}"></script>`).join('')}</head><body><h1>Fixture shop</h1><p>The page works and has enough text to look like a real page.</p><!-- This website is like a Rocket, isn't it? Performance optimized by WP Rocket. Learn more: https://wp-rocket.me --></body></html>`;
+    const confCase = async (html, code, extraArgs) => {
+        const sv = http.createServer((q, res) => { if (q.url === '/') { res.writeHead(code, { 'Content-Type': 'text/html' }); return res.end(html); } res.writeHead(200, { 'Content-Type': 'application/javascript' }); res.end('/* ok */'); });
+        await new Promise(r => sv.listen(0, '127.0.0.1', r));
+        const before = issueDirs();
+        try {
+            const r = await runAsync([...base, ...extraArgs, '--url', `http://127.0.0.1:${sv.address().port}/`, '--env', 'local']);
+            const dir = issueDirs().filter(n => !before.includes(n)).map(n => path.join(tmp, 'issues', n))[0] || path.join(tmp, 'none');
+            const f = fs.existsSync(path.join(dir, 'result', 'findings.json')) ? readJson(path.join(dir, 'result', 'findings.json')) : null;
+            const kbf = path.join(dir, 'work', 'kb-hits.json');
+            const files = ['ISSUE-REPORT.md', 'issue.html', 'findings.json'].map(n => { try { return fs.readFileSync(path.join(dir, 'result', n), 'utf8'); } catch { return ''; } }).join('\n');
+            return { r, f, files, kb: fs.existsSync(kbf) ? readJson(kbf) : null };
+        } finally { sv.close(); }
+    };
+    const KB = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'known-conflicts.json'), 'utf8')).entries;
+    const EL = KB.find(e => e.id === 'cache-plugin-with-elementor');
+    const wantEl = `Possible, not confirmed: the page loads files of elementor and litespeed-cache. ${EL.causes} Source: "${EL.sources[0].title}" (elementor.com), checked ${EL.sources[0].last_checked}. This does not show that it causes the problem you reported. The page shows only plugins that load files on this page, so other plugins may exist that were not seen.`;
+    const CF = await confCase(pageOf([['elementor', '3.18.2'], ['litespeed-cache', '6.0']]), 200, ['--no-files']);
+    ok(CF.f && CF.f.live_conflicts && J(CF.f.live_conflicts.lines) === J([wantEl]), 'S3c: a page that loads files of elementor and litespeed-cache: findings.json live_conflicts.lines is the exact entry sentence');
+    ok(CF.f && seeOf(CF).includes(wantEl) && CF.r.stdout.includes(wantEl) && !CF.f.confidence_text.includes('Possible, not confirmed') && !CF.f.verdict.label.includes('Possible'), 'S3c: the line is under WHAT YOU SEE and in the terminal text, and NOT in the verdict line or its sentence');
+    ok(CF.f && CF.f.verdict.label === 'No confirmed breaking cause was found' && CF.f.confidence_text === 'How sure we are: not very. Nothing that was checked points at a cause that could be confirmed.' && S200.f.verdict.label === CF.f.verdict.label && S200.f.confidence_text === CF.f.confidence_text, 'S3c: the verdict label and "how sure we are" are exactly those of a 200 page with no match');
+    ok(CF.f && !(CF.f.hypotheses || []).some(h => ['CONFIRMED', 'REPRODUCIBLE'].includes(h.status)) && CF.f.checkpoints.counts.pass === S200.f.checkpoints.counts.pass && CF.f.checkpoints.counts.not_checked === S200.f.checkpoints.counts.not_checked, 'S3c: no hypothesis, no CONFIRMED or REPRODUCIBLE, and the check counts are the same as without a match');
+    const ONE = await confCase(pageOf([['elementor', '3.18.2'], ['woo-sample', '8.0']]), 200, ['--no-files']);
+    ok(ONE.f && ONE.f.live_conflicts === undefined && !/Possible, not confirmed: the page loads files of/.test(ONE.r.stdout + ONE.files), 'S3c: only one of the two plugins: no live_conflicts field and no line');
+    const COM = await confCase(pageOf([['elementor', '3.18.2']]), 200, ['--no-files']);
+    ok(COM.f && J(COM.f.live_signals.named_in_comments.map(x => x.slug)) === J(['wp-rocket']) && COM.f.live_conflicts === undefined && !/Possible, not confirmed: the page loads files of/.test(COM.r.stdout + COM.files), 'S3c: elementor loads files and a page comment names wp-rocket: a comment-only name never matches');
+    const VER = await confCase(pageOf([['elementor', '1.0'], ['litespeed-cache', '9.9.9'], ['elementor', '2.0']]), 200, ['--no-files']);
+    ok(VER.f && VER.f.live_conflicts && VER.f.live_conflicts.lines.length === 1 && VER.f.live_conflicts.lines[0] === wantEl && !/1\.0|9\.9\.9|2\.0/.test(VER.f.live_conflicts.lines[0]), 'S3c: different versions of the same plugins: the same match, and no version in the sentence');
+    const FIVE = await confCase(pageOf([['wp-rocket', '1'], ['autoptimize', '2'], ['breeze', '3'], ['fast-velocity-minify', '4'], ['litespeed-cache', '5'], ['elementor', '6']]), 200, ['--no-files']);
+    ok(FIVE.f && FIVE.f.live_conflicts && FIVE.f.live_conflicts.lines.length === 3 && FIVE.f.live_conflicts.conflicts.map(c => c.id).join() === 'cache-plugin-with-elementor,multiple-full-page-cache-plugins,wp-rocket-with-incompatible-plugin' && FIVE.f.live_conflicts.lines.every(l => l.startsWith('Possible, not confirmed: the page loads files of ')), 'S3c: several matches: up to three lines, in entry id order');
+    const C500 = await confCase(pageOf([['elementor', '3.18.2'], ['litespeed-cache', '6.0']]), 500, ['--no-files']);
+    ok(C500.f && C500.f.verdict.label === 'A problem was seen on the live page' && C500.f.live_conflicts && C500.f.live_conflicts.lines[0] === wantEl && /No cause could be found from what was given/.test(C500.f.confidence_text) && !C500.f.confidence_text.includes('Possible'), 'S3c: a 500 page with a matching pair: the verdict is the usual 500 verdict, the possible conflict is a separate line under WHAT YOU SEE');
+    const CW = await confCase(pageOf([['elementor', '3.18.2'], ['litespeed-cache', '6.0']]), 200, ['--root', siteR, '--no-replica']);
+    ok(CW.f && CW.f.live_conflicts === undefined && CW.f.live_signals === undefined && !/Possible, not confirmed: the page loads files of/.test(CW.r.stdout + CW.files), 'S3c: a run WITH a site folder, same page: no live_conflicts field and no such line');
+    const siteK = path.join(tmp, 'siteK'); for (const pl of ['elementor', 'litespeed-cache']) { fs.mkdirSync(path.join(siteK, 'wp-content', 'plugins', pl), { recursive: true }); fs.writeFileSync(path.join(siteK, 'wp-content', 'plugins', pl, `${pl}.php`), `<?php\n/* Plugin Name: ${pl} */\n`); } fs.mkdirSync(path.join(siteK, 'wp-content', 'themes', 't'), { recursive: true });
+    const CK = await confCase(pageOf([['elementor', '3.18.2']]), 200, ['--root', siteK, '--no-replica']);
+    ok(CK.kb && (CK.kb.hits || []).some(h => h.id === 'cache-plugin-with-elementor') && CK.f && CK.f.live_conflicts === undefined, 'S3c: with a site folder the old kb path still finds the known conflict from the plugin folders (kb-hits.json), and the new field is absent');
     const PW = await plugCase(['--root', siteR, '--no-replica']);
     ok(PW.f && PW.f.live_signals === undefined && !/The page loads files of|The page says it runs WordPress|A comment on the page names/.test(PW.r.stdout + PW.files), 'S3b: a run WITH a site folder: no live_signals field and no such line');
     const site3 = path.join(tmp, 'site3'); fs.mkdirSync(path.join(site3, 'wp-content', 'plugins', 'demo'), { recursive: true }); fs.mkdirSync(path.join(site3, 'wp-content', 'themes', 't'), { recursive: true }); fs.writeFileSync(path.join(site3, 'wp-content', 'plugins', 'demo', 'demo.php'), '<?php\n/* Plugin Name: Demo */\n');
