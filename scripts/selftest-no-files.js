@@ -337,6 +337,29 @@ const readJson = f => JSON.parse(fs.readFileSync(f, 'utf8'));
         ok(x.status === 0 && /Log used: /.test(x.stdout), `${nm}: accepted, the log is read (exit ${x.status})`);
     }
 
+    // ---- S3a: the live page checks in one sentence (no site files only) ----
+    group('S3a: "<N> of 7 live page checks gave a result. <M> could not run: <reason>." (no site files only)');
+    const NP3 = 'A check that did not run is not a pass.';
+    const seeOf = r => (((r.f || {}).case_file || {}).see || []);
+    const S200 = await runCase(200, OK200, ['--no-files']);
+    ok(S200.f && S200.f.live_checks && S200.f.live_checks.sentence === '7 of 7 live page checks gave a result.' && S200.f.live_checks.total === 7 && S200.f.live_checks.could_not_run === 0, 'S3a (1): a 200 page: findings.json live_checks says "7 of 7 live page checks gave a result." (no "could not run" part)');
+    ok(S200.f && seeOf(S200).includes('7 of 7 live page checks gave a result.') && /7 of 7 live page checks gave a result\./.test(S200.r.stdout) && !/could not run/.test(S200.r.stdout), 'S3a (1): the sentence is under WHAT YOU SEE in the terminal text and in case_file.see');
+    ok(S200.f && S200.f.live_checks && S200.f.live_checks.gave_a_result === S200.f.checkpoints.items.filter(i => ['cp-38', 'cp-39', 'cp-40', 'cp-41', 'cp-43', 'cp-44', 'cp-45'].includes(i.id) && i.result !== 'NOT CHECKED').length, 'S3a: the count comes from the real check rows (PASS, FAIL or ALSO NOTICED), not from a fixed number');
+    const S500 = await runCase(500, CRIT, ['--no-files']);
+    const L500 = (S500.f && S500.f.live_checks) || {};
+    const want500 = `${L500.gave_a_result} of 7 live page checks gave a result. ${L500.could_not_run} could not run: the page answered with an error (HTTP 500), so it was not loaded again at the other screen size. ${NP3}`;
+    ok(L500.gave_a_result === 3 && L500.could_not_run === 4 && L500.sentence === want500 && String(L500.sentence).startsWith('3 of 7 live page checks gave a result. 4 could not run: '), `S3a (2): a 500 page: 3 of 7, with the real cause (the second screen size was not loaded), not "stopped early": "${L500.sentence}"`);
+    ok(L500.sentence && seeOf(S500).includes(want500) && S500.r.stdout.includes(want500) && !/stopped early/.test(want500), 'S3a (2): shown under WHAT YOU SEE and in case_file.see');
+    const S429 = await runCase(429, 'Slow down', ['--no-files']);
+    const w429 = `0 of 7 live page checks gave a result. 7 could not run: the website's protection or rate limiting stopped the test, so no more requests were sent: Repeated rate limiting (1 x HTTP 429). ${NP3}`;
+    ok(S429.f && S429.f.live_checks && S429.f.live_checks.sentence === w429 && !/no address, not allowed|switched off/.test(S429.f.live_checks.sentence), `S3a (3): a 429 with an address: the real reason in plain words ("${S429.f && S429.f.live_checks && S429.f.live_checks.sentence}")`);
+    ok(fA && fA.live_checks && fA.live_checks.sentence === `No live page check ran: no address was given. ${NP3}` && !/0 of 7/.test(fA.live_checks.sentence) && seeOf({ f: fA }).includes(fA.live_checks.sentence), 'S3a (4): no address (description only): "No live page check ran: no address was given." and never "0 of 7"');
+    const SOff = await runCase(200, OK200, ['--no-files', '--no-probe']);
+    ok(SOff.f && SOff.f.live_checks && SOff.f.live_checks.sentence === `No live page check ran: the live check was switched off. ${NP3}` && !/0 of 7/.test(SOff.f.live_checks.sentence), 'S3a (4): --no-probe: "No live page check ran: the live check was switched off."');
+    const site3 = path.join(tmp, 'site3'); fs.mkdirSync(path.join(site3, 'wp-content', 'plugins', 'demo'), { recursive: true }); fs.mkdirSync(path.join(site3, 'wp-content', 'themes', 't'), { recursive: true }); fs.writeFileSync(path.join(site3, 'wp-content', 'plugins', 'demo', 'demo.php'), '<?php\n/* Plugin Name: Demo */\n');
+    const W200 = await runCase(200, OK200, ['--root', site3, '--no-replica']), W500 = await runCase(500, CRIT, ['--root', site3, '--no-replica']);
+    ok(W200.f && W500.f && W200.f.live_checks === undefined && W500.f.live_checks === undefined && !/live page checks? gave a result|No live page check ran/.test(W200.r.stdout + W200.files + W500.r.stdout + W500.files), 'S3a: a run WITH a site folder has no live_checks field and none of the new sentences (old wording unchanged)');
+
     fs.rmSync(tmp, { recursive: true, force: true });
     console.log(failures ? `\n${failures} check(s) FAILED` : '\nAll no-files checks passed');
     process.exit(failures ? 1 : 0);

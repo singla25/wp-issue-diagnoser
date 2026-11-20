@@ -200,6 +200,39 @@ const T = rows => cpMod.tally(rows);
     const plain = PR([pageOf({})], 1);
     ok(LIVE7.every(id => plain[id].result === 'PASS'), 'S3a-fix: the plain number (older data) still works: complete probe PASS');
 
+    // S3a: the live page checks in one sentence (issue/checkpoints.js liveSummary + lib/plain-names.js liveChecksSentence), counted from the real rows
+    const plainNames = require('../lib/plain-names');
+    const NP = 'A check that did not run is not a pass.';
+    const sumOf = (probe, evidenceSteps, ranProbe = true) => { const w = { ...synth, ...(probe ? { probe } : {}), ...(evidenceSteps ? { evidence: { steps: evidenceSteps } } : {}) }; const rows = cpMod.evaluate({ work: w, validation: { hypotheses: [] }, ran: { probe: ranProbe }, hasRoot: false }); return typeof cpMod.liveSummary === 'function' ? cpMod.liveSummary(rows, w) : null; };
+    const sent = sm => (typeof plainNames.liveChecksSentence === 'function' ? plainNames.liveChecksSentence(sm) : null);
+    const cplete = sumOf({ schema: 1, planned: real(2), protection: null, pages: [pageOf({}), pageOf({ viewport: { name: 'mobile', width: 390 } })] });
+    ok(cplete && cplete.total === 7 && cplete.gave === 7 && cplete.not_run === 0 && sent(cplete) === '7 of 7 live page checks gave a result.', 'S3a (1): all 7 ran: "7 of 7 live page checks gave a result." and no "could not run" part');
+    const SK = { url: 'http://127.0.0.1:9/shop/', viewport: { name: 'mobile', width: 390 }, loaded: false, status: 0, skipped: 'answered HTTP 500 at laptop; not requested again at another screen size', reused_status: 500 };
+    const c500 = sumOf({ schema: 1, planned: real(2), protection: null, pages: [pageOf({ status: 500 }), SK] });
+    ok(c500 && c500.gave + c500.not_run === c500.total && c500.gave > 0 && c500.not_run > 0 && sent(c500) === `${c500.gave} of 7 live page checks gave a result. ${c500.not_run} could not run: the page answered with an error (HTTP 500), so it was not loaded again at the other screen size. ${NP}`, `S3a (2): a 500 page: gave a result counts PASS, FAIL and ALSO NOTICED only; the reason is the real cause, not "stopped early" (${c500 && sent(c500)})`);
+    const c429 = sumOf({ schema: 1, planned: real(2), protection: { kind: 'ProtectionStop', reason: 'Repeated rate limiting (1 x HTTP 429)' }, pages: [] }, [{ id: 'live-probe', status: 'BLOCKED', reason: 'Testing limited by site protection' }], false);
+    ok(c429 && sent(c429) === `0 of 7 live page checks gave a result. 7 could not run: the website's protection or rate limiting stopped the test, so no more requests were sent: Repeated rate limiting (1 x HTTP 429). ${NP}` && !/no address|switched off/.test(sent(c429)), 'S3a (3): a protection stop (429): the real reason in plain words, not "no address, not allowed, or switched off"');
+    const cNoUrl = sumOf(null, [{ id: 'live-probe', status: 'NOT_RUN', reason: 'no site address was given (--url), so no page could be loaded' }], false);
+    ok(cNoUrl && sent(cNoUrl) === `No live page check ran: no address was given. ${NP}` && !/0 of 7/.test(sent(cNoUrl)), 'S3a (4a): no address: never "0 of 7"; it says no live page check ran, and why');
+    const cOff = sumOf(null, [{ id: 'live-probe', status: 'NOT_RUN', reason: 'the live probe was switched off (--no-probe)' }], false);
+    ok(cOff && sent(cOff) === `No live page check ran: the live check was switched off. ${NP}`, 'S3a (4b): --no-probe: no live page check ran, the live check was switched off');
+    const cOld = sumOf({ schema: 1, protection: null, pages: [pageOf({})] });
+    ok(cOld && sent(cOld) === `0 of 7 live page checks gave a result. 7 could not run: the result of the live page test could not be read. ${NP}` && !/stopped early/.test(sent(cOld)), 'S3a (5): an old folder with no `planned`: the reason is that the result could not be read, not "stopped early"');
+    const cFew = sumOf({ schema: 1, planned: real(4), protection: null, pages: [pageOf({})] });
+    ok(cFew && /^0 of 7 live page checks gave a result\. 7 could not run: fewer page loads were completed than planned\./.test(sent(cFew)), 'S3a: fewer loads than planned with no known cause: the safe generic reason');
+    // S3a review round 1: the wording follows the KIND of stop; a cooldown sent no request; a reason is plain text cut at a word
+    const cTs = sumOf({ schema: 1, planned: real(2), protection: { kind: 'TestStopped', reason: 'Server instability (3 x 5xx)' }, pages: [] }, [{ id: 'live-probe', status: 'BLOCKED', reason: 'x' }], false);
+    ok(cTs && sent(cTs) === `0 of 7 live page checks gave a result. 7 could not run: the test was stopped to keep the website safe, so no more requests were sent: Server instability (3 x 5xx). ${NP}` && !/protection/.test(sent(cTs)), 'S3a review: a server-safety stop (5xx or connection errors) is not called site protection');
+    const cCd = sumOf({ schema: 1, planned: real(2), protection: { kind: 'cooldown', reason: 'cooling down after site protection at 2026-11-20T08:00:00.000Z (Repeated rate limiting (1 x HTTP 429)); next run allowed after 2026-11-20T08:30:00.000Z', requests_sent: 0 }, pages: [] }, [{ id: 'live-probe', status: 'BLOCKED', reason: 'x' }], false);
+    ok(cCd && sent(cCd) === `No live page check ran: an earlier run was stopped by the website's protection, so this run waited and sent no request. ${NP}` && !/0 of 7|2026/.test(sent(cCd)), 'S3a review: a cooldown sent no request: "No live page check ran ...", no "0 of 7", no raw timestamps');
+    const cWaf = sumOf({ schema: 1, planned: real(2), protection: { kind: 'ProtectionStop', reason: 'Cloudflare/WAF challenge page' }, pages: [] }, null, false);
+    ok(cWaf && /stopped the test, so no more requests were sent: Cloudflare\/WAF challenge page\./.test(sent(cWaf)), 'S3a review: a name that starts with a capital word ("Cloudflare/WAF") keeps its capital');
+    const longWords = 'word '.repeat(80);
+    const cLong = sumOf({ schema: 1, planned: real(2), protection: null, pages: [] }, [{ id: 'live-probe', status: 'FAILED', reason: `the site could not be reached (\u001b[31mERR ${longWords})` }], false);
+    ok(cLong && !/[\u0000-\u001f\u007f]/.test(sent(cLong)) && /word\. A check that did not run/.test(sent(cLong)) && sent(cLong).length < 400, 'S3a review: a step reason holds no control character and is cut at a word, not in the middle of one');
+    ok(typeof cpMod.liveSummary === 'function' && cpMod.liveSummary([], {}) === null && sent(null) === null && sent({ total: 0 }) === null, 'S3a: no live rows (or no summary): no sentence');
+    ok(c500 && c500.gave === cpMod.evaluate({ work: { ...synth, probe: { schema: 1, planned: real(2), protection: null, pages: [pageOf({ status: 500 }), SK] } }, validation: { hypotheses: [] }, ran: { probe: true }, hasRoot: false }).filter(r => r.live_row && r.result !== 'NOT CHECKED').length, 'S3a: the count is taken from the real rows (live_row, result other than NOT CHECKED)');
+
     group('5. NOT DETECTED rows are never PASS or FAIL');
     const nd = cps.filter(c => c.coverage === 'NOT DETECTED').map(c => c.id);
     const everything = [rEws, rClean, rNo, Object.values(rs), Object.values(p0), Object.values(p5)];

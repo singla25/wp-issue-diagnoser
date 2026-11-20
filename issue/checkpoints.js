@@ -197,6 +197,7 @@ function evaluate(inp = {}) {
         if (!ev) return { ...base, result: 'NOT CHECKED', reason: cp.no_evaluator_reason ? `not checked: ${cp.no_evaluator_reason}` : 'not checked: no check is wired to this yet' };
         let r;
         try { r = ev(c); } catch (e) { return { ...base, result: 'NOT CHECKED', reason: 'the check could not read its data' }; }
+        if (r.need.includes('probe')) base.live_row = true;   // a live page check (it reads the probe): liveSummary counts these rows
         // data of a source that did not run (stale files, no folder given) is never read: when none of the sources ran, the row is NOT CHECKED
         if (r.need.every(k => S[k] && !S[k].ok)) return { ...base, result: 'NOT CHECKED', reason: S[r.need[0]].why };
         const found = r.found.filter(Boolean).map(x => (typeof x === 'string' ? { t: x, c: [], f: [] } : x));
@@ -226,4 +227,33 @@ function evaluate(inp = {}) {
 
 const tally = rows => ({ pass: rows.filter(r => r.result === 'PASS').length, fail: rows.filter(r => r.result === 'FAIL').length, also_noticed: rows.filter(r => r.result === 'ALSO NOTICED').length, not_checked: rows.filter(r => r.result === 'NOT CHECKED').length, total: rows.length });
 
-module.exports = { SYMPTOM_ROWS, WEAK_TIE_ROWS, evaluate, loadWork, load, tally, EVALUATORS, PARTIAL_NOTE, FILE };
+// S3a: what the live page checks did, from the REAL rows and the probe data (never a fixed number). `live_row` marks the rows that read the probe.
+// gave = PASS, FAIL or ALSO NOTICED (never NOT CHECKED). The reason says why the others did not run, from the data; a case it cannot tell is "could not be read" or the safe generic one.
+// Used for a run WITHOUT site files only (issue/result.js); the row texts themselves are not changed.
+// plain text for a reader: no control or format characters, one space between words, cut at a word boundary (never mid-word)
+const cutText = (t, n) => { const x = String(t == null ? '' : t).replace(/[\p{Cc}\p{Cf}]/gu, ' ').replace(/\s+/g, ' ').trim(); if (x.length <= n) return x; const y = x.slice(0, n), sp = y.lastIndexOf(' '); return `${(sp > n / 2 ? y.slice(0, sp) : y).replace(/[\s,;:(]+$/, '')} ...`; };
+function liveSummary(rows, work = {}) {
+    const live = (rows || []).filter(r => r && r.live_row);
+    if (!live.length) return null;
+    const gave = live.filter(r => r.result !== 'NOT CHECKED').length, notRun = live.length - gave;
+    const pr = work.probe && typeof work.probe === 'object' ? work.probe : null, pages = pr && Array.isArray(pr.pages) ? pr.pages : [];
+    const loaded = pages.filter(p => p && p.loaded).length;
+    const step = (((work.evidence || {}).steps) || []).find(x => x && x.id === 'live-probe') || null;
+    let reason = null, none_ran = false;
+    if (notRun) {
+        const skipped = pages.filter(p => p && p.skipped), codes = [...new Set(skipped.map(p => Number(p.reused_status)).filter(n => n >= 100))].sort((a, b) => a - b);
+        if (pr && pr.protection && pr.protection.kind === 'cooldown') { none_ran = true; reason = 'an earlier run was stopped by the website\'s protection, so this run waited and sent no request'; }
+        else if (pr && pr.protection && ['TestStopped', 'breaker'].includes(pr.protection.kind)) reason = `the test was stopped to keep the website safe, so no more requests were sent: ${cutText(pr.protection.reason, 120) || 'no detail was given'}`;
+        else if (pr && pr.protection) reason = `the website's protection or rate limiting stopped the test, so no more requests were sent: ${cutText(pr.protection.reason, 120) || 'no detail was given'}`;
+        else if (!loaded && step && ['NOT_RUN', 'BLOCKED', 'FAILED'].includes(step.status)) {
+            const t = cutText(step.reason, 200);
+            none_ran = step.status !== 'FAILED';
+            reason = /no site address was given/.test(t) ? 'no address was given' : /switched off/.test(t) ? 'the live check was switched off' : t || 'the live page test did not run';
+        } else if (plannedLoads(pr && pr.planned) === null) reason = 'the result of the live page test could not be read';
+        else if (skipped.length && codes.length) reason = `the page answered with an error (${codes.map(n => `HTTP ${n}`).join(' and ')}), so it was not loaded again at the other screen size`;
+        else reason = 'fewer page loads were completed than planned';
+    }
+    return { total: live.length, gave, not_run: notRun, none_ran, reason };
+}
+
+module.exports = { liveSummary, SYMPTOM_ROWS, WEAK_TIE_ROWS, evaluate, loadWork, load, tally, EVALUATORS, PARTIAL_NOTE, FILE };
