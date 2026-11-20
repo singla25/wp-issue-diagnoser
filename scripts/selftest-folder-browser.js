@@ -103,6 +103,24 @@ async function drive(opts, answers) {
     ok(/This one is needed/.test(b6b.text) && /There is no number 99 in the list \(1 to 3\)/.test(b6b.text) && b6b.site, 'empty and out-of-range answers are explained');
     const b7 = await drive({ list, roots: [rA, rB, rC] }, ['1', html, path.join(rA, 'a2')]);
     ok(b7.site && b7.site.root === path.join(rA, 'a2') && /not a WordPress folder/.test(b7.text), 'typing works on a deeper screen too');
+    // ---- S2: "none" = no site files, only the website address (the wizard then runs like --no-files) ----
+    group('S2: "none" at the list: visible hint, a "none)" choice, case and spaces do not matter, a real folder called none is typed with a slash');
+    const NH = 'If you have no site files and only the website address, type none.';
+    const n1 = await drive({ list, roots: [rA, rB, rC] }, ['none']);
+    ok(n1.site && n1.site.none === true && !n1.err, 'none returns the "no site files" answer');
+    ok(n1.text.includes(`${NH}\nType the number, or type a path:`), 'the prompt text itself says the hint, right above "Type the number, or type a path:"');
+    ok(/\n {2}3\) [^\n]*\n {2}none\) I have no site files, only the website address\n/.test(n1.text), 'the list ends with "none) I have no site files, only the website address" after the numbered choices');
+    const n2 = await drive({ list, roots: [rA, rB, rC] }, [' None ']);
+    ok(n2.site && n2.site.none === true, '" None " (capital letter, spaces) works');
+    const n3 = await drive({ list, roots: [rA, rB, rC] }, ['', 'none']);
+    ok(n3.site && n3.site.none === true && n3.text.includes(`This one is needed: the code of the site is what gets analysed. ${NH}`), 'after an empty answer: "This one is needed" plus the hint, then none works');
+    const n4 = await drive({ list, roots: [rA, rB, rC] }, ['./none', 'none']);
+    ok(n4.site && n4.site.none === true && /none does not exist/.test(n4.text), './none is a path (here: it does not exist and is explained), not the word; the next answer none is the word');
+    const n5 = await drive({ list, roots: [rA, rB, rC] }, ['1', 'none']);
+    ok(n5.site && n5.site.none === true, 'none also works on a deeper screen');
+    const n6 = await drive({ list, roots: [rA, rB, rC] }, ['nonexistent', 'none']);
+    ok(n6.site && n6.site.none === true && /nonexistent does not exist/.test(n6.text), 'a word that only starts with none is a path, not the word');
+
     const b8 = await drive({ list, roots: [rA, rB, rC] }, []);
     ok(b8.err && /INPUT ENDED/.test(b8.err.message), 'an ended input is passed on to the caller (it is never answered for the user)');
 

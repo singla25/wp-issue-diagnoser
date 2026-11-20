@@ -186,6 +186,105 @@ async function wiz(answers, flags, extra = {}) {
     if (rf.error) console.log(rf.error.message);
     ok(!rf.error && fingerprint(fsite) === before, 'the site folder is byte-identical before and after, with the finder, the log copy and the kind question');
 
+    // ---- S2: the no-files branch of the wizard (type none), the log question and the honest summary before go. Fake values only. ----
+    const HINT = 'If you have no site files and only the website address, type none.';
+    const STATEMENT = 'Without the site folder the tool cannot read your code or test on a copy. It can only use what you give it: the description, screenshots, a log and the public page.';
+    const LOGQ = 'Do you have an error log file (for example debug.log)? Type its path, or press Enter to skip';
+    const TAIL4 = 'I will not change anything on your site. I have no code and no database, so I cannot test on a copy and no cause can be confirmed: at most I can say what looks possible. Go on? [Y/n]';
+    const STOPPED = 'Stopped. Nothing was saved, and no request was sent to the website.';
+    const countOf = (t, needle) => t.split(needle).length - 1;
+    const s2logs = path.join(tmp, 's2logs'); fs.mkdirSync(s2logs, { recursive: true });
+    const s2log = path.join(s2logs, 'debug.log'); fs.writeFileSync(s2log, '[19-Nov-2026 10:00:01 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function acme_missing() in /srv/example/wp-content/plugins/acme-slider/acme.php:12\n');
+    const s2sql = path.join(s2logs, 'dump.sql'); fs.writeFileSync(s2sql, 'DB_PASSWORD=FAKEmarker0003\n');
+    const s2shots = [path.join(s2logs, 'a.png'), path.join(s2logs, 'b.png')]; for (const f of s2shots) fs.writeFileSync(f, 'x');
+    const idsIn = d => issuesOf(d);
+
+    group('S2 (a) none at the found list, at the typed prompt and after "n": a no-files run');
+    const oA = path.join(tmp, 'oS2a');
+    const na = await wiz(['Pages break', '', '', 'none', '', ''], { out: oA }, { siteRoots: [sev] });
+    ok(!na.error && na.text.includes(STATEMENT) && !/Using /.test(na.text) && /NOT TESTED ON A COPY/.test(na.text), `none at the found list: the statement, no site, a level-2 report (${na.error ? na.error.message : 'ok'})`);
+    const iaId = idsIn(oA)[0], iaJson = iaId ? jl(oA, iaId) : {};
+    ok(idsIn(oA).length === 1 && !iaJson.root && !fs.existsSync(path.join(oA, iaId || 'x', 'site-copy')), 'one issue was made, with no site folder and no site copy');
+    const nb = await wiz(['Pages break', '', '', 'None', '', ''], { out: path.join(tmp, 'oS2b') }, { siteRoots: [sev] });
+    const nc = await wiz(['Pages break', '', '', '  none  ', '', ''], { out: path.join(tmp, 'oS2c') }, { siteRoots: [sev] });
+    ok(!nb.error && nb.text.includes(STATEMENT) && !nc.error && nc.text.includes(STATEMENT), '"None" and "  none  " work (case and spaces do not matter)');
+    const nd = await wiz(['Pages break', '', '', 'n', 'none', '', ''], { out: path.join(tmp, 'oS2d') }, { siteRoots: [one] });
+    ok(!nd.error && nd.text.includes(STATEMENT) && !/Using /.test(nd.text), 'one site found, "n", then none at the typed prompt');
+    const ne = await wiz(['Pages break', '', '', 'none', '', ''], { out: path.join(tmp, 'oS2e') }, { siteRoots: [one] });
+    ok(!ne.error && ne.text.includes(STATEMENT), 'one site found: none typed straight at the "Use it?" question works too');
+    const nf = await wiz(['Pages break', '', '', 'none', '', ''], { out: path.join(tmp, 'oS2f') }, { siteRoots: [empty] });
+    ok(!nf.error && nf.text.includes(STATEMENT), 'no site found on this computer: none at the typed prompt works');
+    // a REAL folder that is called none is typed with a slash: ./none is a path, not the word
+    const realNone = skeleton(path.join(work, 'none')); makeSite(realNone);
+    const ng = await wiz(['Pages break', '', '', './none'], { out: path.join(tmp, 'oS2g') }, { siteRoots: [sev] });
+    ok(!ng.error && /Using .*[\\/]none \(read-only/.test(ng.text) && !ng.text.includes(STATEMENT), './none is a normal path: the folder named none is used and the no-files branch is not taken');
+    fs.rmSync(realNone, { recursive: true, force: true });
+    const nh = await wiz(['Pages break', '', '', './none', 'none', '', ''], { out: path.join(tmp, 'oS2h') }, { siteRoots: [sev] });
+    ok(!nh.error && /none does not exist/.test(nh.text) && nh.text.includes(STATEMENT), 'without such a folder ./none is explained as a path ("does not exist") and the question is asked again');
+
+    group('S2 (b) the hint is visible: in the prompt, in the list and after an empty answer');
+    ok(na.text.includes(`${HINT}\nType the number, or type a path: `) && /\n  none\) I have no site files, only the website address\n/.test(na.text), 'the list prompt says the hint right above "Type the number, or type a path:", and the list ends with "none) ..."');
+    const nz = await wiz(['Pages break', '', '', '', 'none', '', ''], { out: path.join(tmp, 'oS2z') }, { siteRoots: [sev] });
+    ok(nz.text.includes(`This one is needed: the code of the site is what gets analysed. ${HINT}`), 'an empty answer at the list: "This one is needed" plus the hint');
+    ok(nd.text.includes(`${HINT}\nType the folder of the WordPress site (the wp-content folder, or the folder that contains it): `), 'the typed prompt says the hint right above "Type the folder of the WordPress site ..."');
+    const ny = await wiz(['Pages break', '', '', '', 'none', '', ''], { out: path.join(tmp, 'oS2y') }, { siteRoots: [empty] });
+    ok(ny.text.includes(`This one is needed: the code of the site is what gets analysed. ${HINT}`), 'an empty answer at the typed prompt: "This one is needed" plus the hint');
+
+    group('S2 (c) the log question: used like --log, the S1d refusals, Enter skips, an ended input skips');
+    const oL = path.join(tmp, 'oS2L');
+    const lcq = await wiz(['Pages break', '', '', 'none', s2log, ''], { out: oL }, { siteRoots: [sev] });
+    ok(!lcq.error && lcq.text.includes(LOGQ) && lcq.text.includes(`Log used: ${s2log} (you gave it).`) && /Looked at: your log\./.test(lcq.text) && /The log shows a possible cause/.test(lcq.text), 'a valid path is used: "Log used ... (you gave it)", "Looked at: your log", the S1d possible-cause verdict');
+    ok(fs.existsSync(path.join(oL, idsIn(oL)[0] || 'x', 'log-only', 'wp-content', 'debug.log')), 'the masked copy is under <issue>/log-only/ (the S1d path, not a second one)');
+    ok(countOf(na.text, LOGQ) === 1, 'Enter at the log question skips it (and it is asked once)');
+    const lrq = await wiz(['Pages break', '', '', 'none', s2sql, '', ''], { out: path.join(tmp, 'oS2R') }, { siteRoots: [sev] });
+    ok(!lrq.error && countOf(lrq.text, LOGQ) === 2 && /The file dump\.sql is not read: a database export, an environment file or wp-config is not a log\. Give an error log, for example debug\.log\./.test(lrq.text) && !/FAKEmarker0003/.test(lrq.text), 'a .sql name is refused with the S1d message (no file content) and the question is asked again');
+    const lmq = await wiz(['Pages break', '', '', 'none', path.join(s2logs, 'missing.log'), '', ''], { out: path.join(tmp, 'oS2M') }, { siteRoots: [sev] });
+    ok(!lmq.error && /The log file .*missing\.log does not exist or is not a file\./.test(lmq.text) && countOf(lmq.text, LOGQ) === 2, 'a missing file is explained and the question is asked again');
+    const oE = path.join(tmp, 'oS2E');
+    const leq = await wiz(['Pages break', '', '', 'none'], { out: oE }, { siteRoots: [sev] });
+    ok(countOf(leq.text, LOGQ) === 1 && !/Log used/.test(leq.text) && leq.error && /input ended before all questions/.test(leq.error.message) && idsIn(oE).length === 0 && !fs.existsSync(oE), 'when the scripted input ends at the log question it counts as skip; the next question ends the run and nothing was made');
+
+    group('S2 (d) phase 4: the summary is built from the data; Y and Enter go on; n stops, with nothing made and no request sent');
+    let hits = 0; const srv = require('http').createServer((q, r) => { hits++; r.writeHead(200); r.end('x'); });
+    await new Promise(r => srv.listen(0, '127.0.0.1', r)); const addr = `http://127.0.0.1:${srv.address().port}/`;
+    const p4 = async (flags, answers, tag) => wiz(answers, { out: path.join(tmp, `oP4${tag}`), env: 'local', 'no-probe': false, ...flags }, { siteRoots: [sev] });
+    const hostTxt = '127.0.0.1';
+    const headTxt = `load the page of ${hostTxt} a few times (GET requests only, nothing is clicked or submitted), `;
+    const A1 = await p4({ url: addr }, ['Pages break', '', 'none', '', 'n'], 'A1');
+    ok(A1.text.includes(`I will ${headTxt}read your description. ${TAIL4}`), 'address only: "I will load the page of <host> a few times (GET requests only, ...), read your description. I will not change ..."');
+    const A2 = await p4({ url: addr, images: s2shots.join(',') }, ['Pages break', 'none', '', 'n'], 'A2');
+    ok(A2.text.includes(`I will ${headTxt}read your description and your 2 screenshots. ${TAIL4}`), 'address and 2 screenshots: "... read your description and your 2 screenshots."');
+    const A3 = await p4({}, ['Pages break', '', '', 'none', s2log, 'n'], 'A3');
+    ok(A3.text.includes(`I will read your description and your log. ${TAIL4}`), 'log only: no address part, "... read your description and your log."');
+    const A4 = await p4({ url: addr, images: s2shots.join(',') }, ['Pages break', 'none', s2log, 'n'], 'A4');
+    ok(A4.text.includes(`I will ${headTxt}read your description, your 2 screenshots and your log. ${TAIL4}`), 'all three: "... read your description, your 2 screenshots and your log."');
+    ok([A1, A2, A3, A4].every((x, i) => x.text.includes(STOPPED) && x.code === 0 && !x.error && !fs.existsSync(path.join(tmp, `oP4${['A1', 'A2', 'A3', 'A4'][i]}`))), `"n" says "${STOPPED}", ends with exit code 0 and made no issue folder and no reports folder`);
+    ok(hits === 0, `no request reached the address while "n" was answered (the address was hit ${hits} times)`);
+    const Y1 = await p4({ 'no-probe': true }, ['Pages break', '', '', 'none', '', 'Y'], 'Y1');
+    const Y2 = await p4({ 'no-probe': true }, ['Pages break', '', '', 'none', '', ''], 'Y2');
+    ok(!Y1.error && !Y2.error && Y1.text.includes('NOT TESTED ON A COPY') && Y2.text.includes('NOT TESTED ON A COPY') && !Y2.text.includes('load the page'), '"Y" and Enter go on (and with --no-probe the summary does not promise a page load)');
+    const Yx = await wiz(['Pages break', '', '', 'none', '', 'maybe', 'n'], { out: path.join(tmp, 'oP4X') }, { siteRoots: [sev] });
+    ok(countOf(Yx.text, 'Go on? [Y/n]') === 2 && /Please type Y or n\./.test(Yx.text) && Yx.text.includes(STOPPED), 'an answer that is neither y nor n is asked again');
+    const F1 = await wiz(['Pages break', '', '', '', ''], { out: path.join(tmp, 'oP4F'), 'no-files': true }, {});
+    ok(!F1.error && /No site folder was given \(--no-files\)/.test(F1.text) && countOf(F1.text, LOGQ) === 1 && /Go on\? \[Y\/n\]/.test(F1.text), 'an interactive run with the --no-files flag gets the log question and the summary too');
+    srv.close();
+
+    group('S2 (e) nothing is asked with --yes, with --log on the command line, or without a terminal');
+    const Q1 = await wiz([], { out: path.join(tmp, 'oQ1'), 'no-files': true, yes: true, description: 'Pages break', images: '' }, {});
+    ok(!Q1.error && !Q1.text.includes(LOGQ) && !Q1.text.includes('Go on? [Y/n]') && /NOT TESTED ON A COPY/.test(Q1.text), '--yes: neither the log question nor the summary is asked');
+    const Q2 = await wiz(['Pages break', '', '', 'none', ''], { out: path.join(tmp, 'oQ2'), log: s2log }, { siteRoots: [sev] });
+    ok(!Q2.error && !Q2.text.includes(LOGQ) && /Go on\? \[Y\/n\]/.test(Q2.text) && /read your description and your log\./.test(Q2.text) && /Log used: .*\(given with --log\)\./.test(Q2.text), '--log on the command line: the log question is not asked, the log is used (given with --log), the summary says your log');
+    const Q3 = await wiz([], { out: path.join(tmp, 'oQ3'), 'no-files': true, description: 'Pages break', images: '', url: '' }, { tty: false });
+    ok(!Q3.error && !Q3.text.includes(LOGQ) && !Q3.text.includes('Go on? [Y/n]'), 'without a terminal: nothing is asked');
+    const Q4 = await wiz([], { out: path.join(tmp, 'oQ4'), yes: true, description: 'Pages break', images: '' }, { siteRoots: [sev] });
+    ok(Q4.error && /Missing required value: the site folder\. Pass --root <wp-content folder or WordPress root>\./.test(Q4.error.message), '--yes without a folder and without --no-files: the old refusal, unchanged');
+
+    group('S2 (f) --sandbox or --db-dump plus none is refused');
+    const R1 = await wiz(['Pages break', '', '', 'none'], { out: path.join(tmp, 'oR1'), sandbox: true }, { siteRoots: [sev] });
+    const R2 = await wiz(['Pages break', '', '', 'none'], { out: path.join(tmp, 'oR2'), 'db-dump': path.join(s2logs, 'x.sql') }, { siteRoots: [sev] });
+    ok(R1.error && R1.error.exitCode === 2 && /--sandbox and --db-dump need the site files, so they cannot be used when you type none\./.test(R1.error.message) && R2.error && R2.error.exitCode === 2 && /--sandbox and --db-dump need the site files/.test(R2.error.message), '--sandbox and --db-dump with none: refused with a plain message (exit 2)');
+    ok(idsIn(path.join(tmp, 'oR1')).length === 0 && idsIn(path.join(tmp, 'oR2')).length === 0, 'and no issue was made');
+
     fs.rmSync(tmp, { recursive: true, force: true });
     console.log(`\n${failures ? 'FAILED' : 'OK'}: ${failures} failure(s)`);
     process.exit(failures ? 1 : 0);
