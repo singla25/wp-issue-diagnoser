@@ -237,7 +237,7 @@ const T = rows => cpMod.tally(rows);
         const r429 = rowsOf({ schema: 1, planned: real(2), protection: { kind: 'ProtectionStop', reason: 'Repeated rate limiting (1 x HTTP 429)' }, pages: [] }, [{ id: 'live-probe', status: 'BLOCKED', reason: 'x' }], hasRoot);
         const live = r429.rows.filter(r => r.live_row);
         ok(live.length === 7 && live.every(r => r.result === 'NOT CHECKED' && r.reason === r429.sum.reason && !/no address|switched off|not allowed/.test(r.reason)), `S3a2 (${hasRoot ? 'with' : 'without'} a site folder): a 429 stop: every live row says the true reason, the same text as the live-check sentence ("${live[0] && live[0].reason}")`);
-        const rcd = rowsOf({ schema: 1, planned: real(2), protection: { kind: 'cooldown', reason: 'cooling down after site protection at 2026-11-20T08:00:00.000Z (x)', requests_sent: 0 }, pages: [] }, null, hasRoot).rows.filter(r => r.live_row);
+        const rcd = rowsOf({ schema: 1, planned: real(2), protection: { kind: 'cooldown', reason: 'cooling down after site protection at 2026-11-20T08:00:00.000Z (Repeated rate limiting (1 x HTTP 429)); next run allowed after 2026-11-20T08:30:00.000Z', requests_sent: 0 }, pages: [] }, null, hasRoot).rows.filter(r => r.live_row);
         ok(rcd.length === 7 && rcd.every(r => r.reason === 'an earlier run was stopped by the website\'s protection, so this run waited and sent no request'), `S3a2 (${hasRoot ? 'with' : 'without'} a site folder): a cooldown says that an earlier run was stopped and no request was sent`);
         const rno = rowsOf(null, [{ id: 'live-probe', status: 'NOT_RUN', reason: 'no site address was given (--url), so no page could be loaded' }], hasRoot).rows.filter(r => r.live_row);
         ok(rno.length === 7 && rno.every(r => r.reason === OLDROW), `S3a2 (${hasRoot ? 'with' : 'without'} a site folder): no address, no probe data: the old row text stays, it is true there`);
@@ -245,6 +245,28 @@ const T = rows => cpMod.tally(rows);
         ok(rnp.every(r => r.reason === OLDROW), `S3a2 (${hasRoot ? 'with' : 'without'} a site folder): a probe file with no page and no protection: the old row text stays`);
     }
     ok(rf['cp-39'].reason === 'the live page probe stopped early, so a quiet result cannot be trusted' && PR([pageOf({})], real(1), { protection: { kind: 'ProtectionStop', reason: '429' } })['cp-39'].reason === 'the live page probe stopped early, so a quiet result cannot be trusted', 'S3a2: "stopped early" stays where it is true (fewer loads than planned; a stop after a page loaded)');
+    // S3a2-fix: the wording follows the TEXT of the stop reason (the probe records kind ProtectionStop also for server errors); an unknown reason is NEUTRAL, never "protection"
+    const HEAD = { protection: "the website's protection or rate limiting stopped the test, so no more requests were sent: ", safety: 'the test was stopped to keep the website safe, so no more requests were sent: ', neutral: 'the test was stopped, so no more requests were sent: ' };
+    const CD = { protection: " by the website's protection", safety: ' to keep the website safe', neutral: '' };
+    const STOPS = [
+        ['ProtectionStop', 'Repeated rate limiting (1 x HTTP 429)', 'protection'], ['ProtectionStop', 'Cloudflare/WAF challenge, CAPTCHA or block page', 'protection'], ['ProtectionStop', 'Repeated challenges on page assets (2)', 'protection'],
+        ['TestStopped', 'HTTP 429 persisted after backoff on http://127.0.0.1:9/shop/', 'protection'],
+        ['ProtectionStop', 'Server instability (3 x 5xx)', 'safety'], ['breaker', 'Connection resets/timeouts (2)', 'safety'], ['ProtectionStop', 'Connection resets/timeouts (2)', 'safety'],
+        ['ProtectionStop', 'Increasing 403 Forbidden responses (3)', 'neutral'], ['ProtectionStop', 'Server asked us to wait 120s (Retry-After)', 'neutral'], ['ProtectionStop', 'a reason this tool has never written', 'neutral'], ['breaker', '', 'neutral']
+    ];
+    for (const hasRoot of [false, true]) {
+        const lab = hasRoot ? 'with' : 'without';
+        for (const [kind, reason, cls] of STOPS) {
+            const r = rowsOf({ schema: 1, planned: real(2), protection: { kind, reason }, pages: [] }, [{ id: 'live-probe', status: 'BLOCKED', reason: 'x' }], hasRoot);
+            const want = HEAD[cls] + (reason || 'no detail was given'), live = r.rows.filter(x => x.live_row);
+            ok(live.length === 7 && live.every(x => x.reason === want) && r.sum.reason === want && sent(r.sum) === `0 of 7 live page checks gave a result. 7 could not run: ${want.replace(/\.$/, '')}. ${NP}`, `S3a2-fix (${lab} a site folder): ${kind} "${reason || '(empty)'}" -> ${cls}: the rows and the sentence use the same ${cls} wording`);
+            const cd = rowsOf({ schema: 1, planned: real(2), protection: { kind: 'cooldown', reason: `cooling down after site protection at 2026-11-20T08:00:00.000Z (${reason}); next run allowed after 2026-11-20T08:30:00.000Z`, requests_sent: 0 }, pages: [] }, null, hasRoot);
+            const wantCd = `an earlier run was stopped${CD[cls]}, so this run waited and sent no request`;
+            ok(cd.rows.filter(x => x.live_row).every(x => x.reason === wantCd) && cd.sum.none_ran === true && sent(cd.sum) === `No live page check ran: ${wantCd}. ${NP}` && !/2026/.test(sent(cd.sum)), `S3a2-fix (${lab} a site folder): a cooldown after "${reason || '(empty)'}" -> ${cls}: "earlier run was stopped${CD[cls]}", no "0 of 7", no timestamps`);
+        }
+        const odd = rowsOf({ schema: 1, planned: real(2), protection: { kind: 'cooldown', reason: 'garbage without brackets', requests_sent: 0 }, pages: [] }, null, hasRoot).sum.reason;
+        ok(odd === 'an earlier run was stopped, so this run waited and sent no request', `S3a2-fix (${lab} a site folder): a cooldown whose earlier reason cannot be read is neutral`);
+    }
     ok(typeof cpMod.liveSummary === 'function' && cpMod.liveSummary([], {}) === null && sent(null) === null && sent({ total: 0 }) === null, 'S3a: no live rows (or no summary): no sentence');
     ok(c500 && c500.gave === cpMod.evaluate({ work: { ...synth, probe: { schema: 1, planned: real(2), protection: null, pages: [pageOf({ status: 500 }), SK] } }, validation: { hypotheses: [] }, ran: { probe: true }, hasRoot: false }).filter(r => r.live_row && r.result !== 'NOT CHECKED').length, 'S3a: the count is taken from the real rows (live_row, result other than NOT CHECKED)');
 

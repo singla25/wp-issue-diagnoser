@@ -232,15 +232,25 @@ const tally = rows => ({ pass: rows.filter(r => r.result === 'PASS').length, fai
 // Used for a run WITHOUT site files only (issue/result.js); the row texts themselves are not changed.
 // plain text for a reader: no control or format characters, one space between words, cut at a word boundary (never mid-word)
 const cutText = (t, n) => { const x = String(t == null ? '' : t).replace(/[\p{Cc}\p{Cf}]/gu, ' ').replace(/\s+/g, ' ').trim(); if (x.length <= n) return x; const y = x.slice(0, n), sp = y.lastIndexOf(' '); return `${(sp > n / 2 ? y.slice(0, sp) : y).replace(/[\s,;:(]+$/, '')} ...`; };
-// why a probe that was STOPPED by the site or for the server's safety did not give results (probe.json `protection`), in reader words; null when it was not stopped.
-// ONE helper for the live-check sentence (liveSummary) and for the reason of a live row (sourcesOf), so the two never differ. none_ran: no request was sent at all (a cooldown).
+// why a probe that was STOPPED (probe.json `protection`) did not give results, in reader words; null when it was not stopped.
+// The wording follows the TEXT of the stop reason, not the kind: the probe records kind ProtectionStop for every breaker stop, also for server errors.
+//   protection: rate limiting, a challenge or captcha ("Repeated rate limiting (n x HTTP 429)", "Cloudflare/WAF challenge, CAPTCHA or block page", "Repeated challenges on page assets (n)", "HTTP 429 persisted after backoff on <url>")
+//   safety:     the server itself failed ("Server instability (n x 5xx)", "Connection resets/timeouts (n)")
+//   anything else ("Increasing 403 Forbidden responses (n)", "Server asked us to wait Ns (Retry-After)", an unknown text): NEUTRAL, never claims protection
+// A cooldown (no request was sent) carries the earlier reason in brackets: "cooling down after site protection at <time> (<reason>); next run allowed after <time>". ONE helper for the live-check sentence and the live rows.
+const PROTECTION_TEXT = /rate limit|\b429\b|challenge|captcha|block page|\bWAF\b/i, SAFETY_TEXT = /server instability|connection resets|timeouts?\b/i;
+const stopClass = t => (PROTECTION_TEXT.test(t) ? 'protection' : SAFETY_TEXT.test(t) ? 'safety' : 'neutral');
 function protectionReason(pr) {
     const p = pr && typeof pr === 'object' ? pr.protection : null;
     if (!p || typeof p !== 'object') return null;
-    if (p.kind === 'cooldown') return { none_ran: true, reason: 'an earlier run was stopped by the website\'s protection, so this run waited and sent no request' };
-    const detail = cutText(p.reason, 120) || 'no detail was given';
-    if (['TestStopped', 'breaker'].includes(p.kind)) return { none_ran: false, reason: `the test was stopped to keep the website safe, so no more requests were sent: ${detail}` };
-    return { none_ran: false, reason: `the website's protection or rate limiting stopped the test, so no more requests were sent: ${detail}` };
+    if (p.kind === 'cooldown') {
+        const m = /\((.*)\); next run allowed/s.exec(String(p.reason == null ? '' : p.reason)), cls = m ? stopClass(m[1]) : 'neutral';
+        const by = cls === 'protection' ? ' by the website\'s protection' : cls === 'safety' ? ' to keep the website safe' : '';
+        return { none_ran: true, reason: `an earlier run was stopped${by}, so this run waited and sent no request` };
+    }
+    const detail = cutText(p.reason, 120) || 'no detail was given', cls = stopClass(String(p.reason == null ? '' : p.reason));
+    const head = cls === 'protection' ? 'the website\'s protection or rate limiting stopped the test' : cls === 'safety' ? 'the test was stopped to keep the website safe' : 'the test was stopped';
+    return { none_ran: false, reason: `${head}, so no more requests were sent: ${detail}` };
 }
 function liveSummary(rows, work = {}) {
     const live = (rows || []).filter(r => r && r.live_row);

@@ -365,6 +365,26 @@ const readJson = f => JSON.parse(fs.readFileSync(f, 'utf8'));
     ok(R429.f && R429.f.live_checks === undefined && ['cp-38', 'cp-39', 'cp-44'].every(id => /^the website's protection or rate limiting stopped the test, so no more requests were sent: Repeated rate limiting \(1 x HTTP 429\)$/.test(rowReason(R429, id) || '')), 'S3a2 (with a site folder, 429): the rows say the true reason; still no live_checks field and no S3a sentence');
     ok(rowReason({ f: fA }, 'cp-38') === OLDROW3 && rowReason(SOff, 'cp-38') === OLDROW3, 'S3a2: no address and --no-probe: the old row text stays');
     ok(/^the live page probe stopped early/.test(rowReason(S500, 'cp-44') || ''), 'S3a2: a 500 page keeps "the live page probe stopped early" on its quiet rows');
+    // S3a2-fix: a 200 page whose three scripts answer 503 (or drop the connection): the probe stops for the SERVER's sake and says so, it does not claim protection
+    const PAGE3 = '<!doctype html><html><head><title>Fixture</title><script src="/a.js"></script><script src="/b.js"></script><script src="/c.js"></script></head><body><h1>Fixture shop</h1><p>The page works and has enough text to look like a real page.</p></body></html>';
+    const stopCase = async (mode, extraArgs) => {
+        const sv = http.createServer((q, res) => { if (q.url === '/') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(PAGE3); } if (mode === 'reset') return q.socket.destroy(); res.writeHead(503, { 'Content-Type': 'text/plain' }); res.end('unavailable'); });
+        await new Promise(r => sv.listen(0, '127.0.0.1', r));
+        const before = issueDirs();
+        try {
+            const r = await runAsync([...base, ...extraArgs, '--url', `http://127.0.0.1:${sv.address().port}/`, '--env', 'local']);
+            const dir = issueDirs().filter(n => !before.includes(n)).map(n => path.join(tmp, 'issues', n))[0] || path.join(tmp, 'none');
+            const f = fs.existsSync(path.join(dir, 'result', 'findings.json')) ? readJson(path.join(dir, 'result', 'findings.json')) : null;
+            const pj = fs.existsSync(path.join(dir, 'work', 'probe.json')) ? readJson(path.join(dir, 'work', 'probe.json')) : null;
+            return { r, f, pj };
+        } finally { sv.close(); }
+    };
+    const X5 = await stopCase('5xx', ['--no-files']), XR = await stopCase('reset', ['--no-files']);
+    ok(X5.pj && X5.pj.protection && /Server instability/.test(X5.pj.protection.reason) && X5.f && X5.f.live_checks && /could not run: the test was stopped to keep the website safe, so no more requests were sent: Server instability \(3 x 5xx\)\. A check that did not run is not a pass\.$/.test(X5.f.live_checks.sentence) && !/protection/.test(X5.f.live_checks.sentence), `S3a2-fix: a server that answers 503 to its scripts: the sentence says the test was stopped to keep the website safe, not protection ("${X5.f && X5.f.live_checks && X5.f.live_checks.sentence}")`);
+    ok(XR.pj && XR.pj.protection && /Connection resets/.test(XR.pj.protection.reason) && XR.f && XR.f.live_checks && /the test was stopped to keep the website safe, so no more requests were sent: Connection resets\/timeouts \(2\)\./.test(XR.f.live_checks.sentence) && !/protection/.test(XR.f.live_checks.sentence), 'S3a2-fix: a server that drops the connection: the same safe wording');
+    ok(S429.f.live_checks.sentence.includes("the website's protection or rate limiting stopped the test, so no more requests were sent: Repeated rate limiting (1 x HTTP 429)."), 'S3a2-fix: a real 429 keeps the protection wording');
+    const X5r = await stopCase('5xx', ['--root', siteR, '--no-replica']);
+    ok(X5r.f && X5r.f.live_checks === undefined && X5r.pj && /Server instability/.test(X5r.pj.protection.reason) && !/live page checks? gave a result/.test(X5r.r.stdout), 'S3a2-fix (with a site folder, server errors): the probe stops, and still no live_checks field and no S3a sentence');
     const site3 = path.join(tmp, 'site3'); fs.mkdirSync(path.join(site3, 'wp-content', 'plugins', 'demo'), { recursive: true }); fs.mkdirSync(path.join(site3, 'wp-content', 'themes', 't'), { recursive: true }); fs.writeFileSync(path.join(site3, 'wp-content', 'plugins', 'demo', 'demo.php'), '<?php\n/* Plugin Name: Demo */\n');
     const W200 = await runCase(200, OK200, ['--root', site3, '--no-replica']), W500 = await runCase(500, CRIT, ['--root', site3, '--no-replica']);
     ok(W200.f && W500.f && W200.f.live_checks === undefined && W500.f.live_checks === undefined && !/live page checks? gave a result|No live page check ran/.test(W200.r.stdout + W200.files + W500.r.stdout + W500.files), 'S3a: a run WITH a site folder has no live_checks field and none of the new sentences (old wording unchanged)');
