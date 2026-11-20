@@ -1,6 +1,6 @@
 # Input modes and question phases
 
-**PROPOSAL, not built.** This is a design for the owner to approve. No code was changed for it. Everything under "What exists today" was read in the code on 2026-11-17 and has a file and line; everything else is a proposal.
+**PROPOSAL, partly built.** This is a design the owner approved. D1 itself changed no code. Everything under "What exists today" was read in the code on 2026-11-17 and has a file and line, so the line numbers there are the old ones; the build status is at the end of section 7. S1 (a run without a folder) and S2 (the branch, one log question and the summary) are built; S3 onwards are not.
 
 ## Goal
 
@@ -125,7 +125,7 @@ Written for a person who is not a developer. Every question can be skipped with 
 8b. "Which theme do you use, and is it a child theme?"
 9b. "Is there an error text? For example from the e-mail WordPress sent you, or from a debug log." (see section 4)
 
-**Phase 4: confirm and run**
+**Phase 4: confirm and run** (built in S2 for the no-files branch, interactive only)
 10. A short summary: "I will look at this address, read this text and these screenshots. I will not change anything on your site. I cannot test on a copy because I have no code and no database, so every cause will be marked possible, not confirmed. Go on? [Y/n]"
 11. The report, the plan, and the questions after it (as today).
 
@@ -177,3 +177,14 @@ Written for a person who is not a developer. Every question can be skipped with 
 **Build status (2026-11-18):** S1a is built (commit `2abfccc`: the option `--no-files`, the crash fix at `lib/issue-cli.js:289`, refusals with `--root`, `--sandbox`, `--db-dump` and `--log`, the end-to-end suite `scripts/selftest-no-files.js`). S1b is built (commit `ee782f4`: the zero-checks verdict, no "on this site" wording without a folder, the true last line, the reason "no site files were given", the NOT TESTED label from what was really read). S1c is this documentation. **S1d is built** (commit `7a9952a`; the refusal of unsuitable file names became a rule in S1d-fix, commit `4e56cd0`): `--no-files --log <file>` gives a log without a site folder, possible causes only, never confirmed. Mode E (only a log) now exists as a weak result ("The log shows a possible cause" or "No cause could be named from the log"), and mode D can combine the log with a description, screenshots and an address. Case (b) of the S1 plan can be run. Pasted log text is not built (a file path only).
 
 The order is S1, S2, S3, S4, then S5 to S7. D1 itself (this file) makes no code change. A full run is needed after S1 to S4, before the owner pushes.
+
+**S2 is built (commit `109bc49`, 2026-11-20; docs in S2-docs).** **Deviation from section 3, accepted by the owner when the S2 prompt was sent (2026-11-20):** the branch is NOT a first yes/no question. It is the typed answer `none` at the existing folder prompt. Reason: a new question before the folder step would shift the scripted answers of about 40 wizard calls in 6 suites. Phase 1 and its order stay as they were. What S2 built: the branch (`none`, any case, trimmed; `./none` is a real path; also accepted at the "Use it?" question and in the browse list); the hint "If you have no site files and only the website address, type none." (in the prompt, as the list line "none) I have no site files, only the website address", and again after an empty answer); the statement "Without the site folder the tool cannot read your code or test on a copy. It can only use what you give it: the description, screenshots, a log and the public page."; ONE optional log question "Do you have an error log file (for example debug.log)? Type its path, or press Enter to skip" (not with `--yes`, `--log` or without a terminal); the phase 4 summary and "Go on? [Y/n]" before anything is created ("n": "Stopped. Nothing was saved, and no request was sent to the website.", exit 0); the refusal of `--sandbox` and `--db-dump` with `none`. An interactive `--no-files` run gets the log question and phase 4 too.
+
+| Phase | Exists? |
+|---|---|
+| 1: description, screenshots, address (as before) | yes, unchanged |
+| 2: the branch | yes, as the typed answer `none` (not a yes/no question) |
+| 3a: with a folder | yes, as before |
+| 3b: plugin list (question 7b), theme (8b) | **no.** The plugin and theme questions move to S3 (nothing uses the answers yet, so asking them would be dishonest); the error-text question (9b) exists as the one log question |
+| 4: summary and go | yes, for the no-files branch with a terminal |
+| S5 to S7 (Site Health text, pasted plugin list, error e-mail, Plugins-page screenshot) | no; they move to S5 to S7 as before |
