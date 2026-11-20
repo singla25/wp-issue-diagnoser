@@ -50,7 +50,7 @@
         "date": "2026-10-28",
         "by": "excerpts read by the assistant in the session that ran this command"
       },
-      "beyond_sources": "That the two plugins 'break' each other is not stated; the page only says they are not compatible / cannot be used at the same time.",
+      "beyond_sources": "That the plugins 'break' each other is not stated; the page only says they are not compatible / cannot be used at the same time.",
       "family": "cache"
     },
     {

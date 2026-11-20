@@ -45,7 +45,7 @@ For a person to check `data/known-conflicts.json` against the pages it cites. Ge
 
 **Beyond the sources**
 
-> That the two plugins 'break' each other is not stated; the page only says they are not compatible / cannot be used at the same time.
+> That the plugins 'break' each other is not stated; the page only says they are not compatible / cannot be used at the same time.
 
 **Sources**
 
