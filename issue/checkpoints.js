@@ -45,7 +45,7 @@ function sourcesOf({ work = {}, ran = {}, hasRoot = false, hasCode = true, codeF
     S.logs = { ok: !!((hasRoot || logOnly) && logStep && logStep.status === 'PASSED'), why: !(hasRoot || logOnly) ? 'no site files were given, so no log was read' : 'no log file was found or read (turn on WP_DEBUG_LOG); that is not evidence that nothing went wrong' };
     S.hypotheses = { ok: !!(validation && Array.isArray(validation.hypotheses)), why: 'the hypotheses were not validated' };
     const pr = work.probe, loaded = pr && Array.isArray(pr.pages) ? pr.pages.filter(p => p.loaded) : [];
-    S.probe = { ok: !!(ran.probe && pr && Array.isArray(pr.pages) && pr.pages.length), why: 'the live page probe did not run (no address, not allowed, or switched off)' };
+    S.probe = { ok: !!(ran.probe && pr && Array.isArray(pr.pages) && pr.pages.length), why: (protectionReason(pr) || {}).reason || 'the live page probe did not run (no address, not allowed, or switched off)' };
     S.probeComplete = { ok: S.probe.ok && loaded.length > 0 && !pr.protection && plannedLoads(pr.planned) !== null && loaded.length >= plannedLoads(pr.planned), why: !S.probe.ok ? S.probe.why : !loaded.length ? 'the live page probe loaded no page' : 'the live page probe stopped early, so a quiet result cannot be trusted' };
     const phpInfo = compatStep && compatStep.php;
     S.php = { ok: !!(phpInfo && phpInfo.stated), why: `the site's PHP version is not known (--php); only the sandbox's PHP ${phpInfo && phpInfo.version ? phpInfo.version : '8.3'} could be compared` };
@@ -232,6 +232,16 @@ const tally = rows => ({ pass: rows.filter(r => r.result === 'PASS').length, fai
 // Used for a run WITHOUT site files only (issue/result.js); the row texts themselves are not changed.
 // plain text for a reader: no control or format characters, one space between words, cut at a word boundary (never mid-word)
 const cutText = (t, n) => { const x = String(t == null ? '' : t).replace(/[\p{Cc}\p{Cf}]/gu, ' ').replace(/\s+/g, ' ').trim(); if (x.length <= n) return x; const y = x.slice(0, n), sp = y.lastIndexOf(' '); return `${(sp > n / 2 ? y.slice(0, sp) : y).replace(/[\s,;:(]+$/, '')} ...`; };
+// why a probe that was STOPPED by the site or for the server's safety did not give results (probe.json `protection`), in reader words; null when it was not stopped.
+// ONE helper for the live-check sentence (liveSummary) and for the reason of a live row (sourcesOf), so the two never differ. none_ran: no request was sent at all (a cooldown).
+function protectionReason(pr) {
+    const p = pr && typeof pr === 'object' ? pr.protection : null;
+    if (!p || typeof p !== 'object') return null;
+    if (p.kind === 'cooldown') return { none_ran: true, reason: 'an earlier run was stopped by the website\'s protection, so this run waited and sent no request' };
+    const detail = cutText(p.reason, 120) || 'no detail was given';
+    if (['TestStopped', 'breaker'].includes(p.kind)) return { none_ran: false, reason: `the test was stopped to keep the website safe, so no more requests were sent: ${detail}` };
+    return { none_ran: false, reason: `the website's protection or rate limiting stopped the test, so no more requests were sent: ${detail}` };
+}
 function liveSummary(rows, work = {}) {
     const live = (rows || []).filter(r => r && r.live_row);
     if (!live.length) return null;
@@ -242,9 +252,8 @@ function liveSummary(rows, work = {}) {
     let reason = null, none_ran = false;
     if (notRun) {
         const skipped = pages.filter(p => p && p.skipped), codes = [...new Set(skipped.map(p => Number(p.reused_status)).filter(n => n >= 100))].sort((a, b) => a - b);
-        if (pr && pr.protection && pr.protection.kind === 'cooldown') { none_ran = true; reason = 'an earlier run was stopped by the website\'s protection, so this run waited and sent no request'; }
-        else if (pr && pr.protection && ['TestStopped', 'breaker'].includes(pr.protection.kind)) reason = `the test was stopped to keep the website safe, so no more requests were sent: ${cutText(pr.protection.reason, 120) || 'no detail was given'}`;
-        else if (pr && pr.protection) reason = `the website's protection or rate limiting stopped the test, so no more requests were sent: ${cutText(pr.protection.reason, 120) || 'no detail was given'}`;
+        const prot = protectionReason(pr);
+        if (prot) { reason = prot.reason; none_ran = prot.none_ran; }
         else if (!loaded && step && ['NOT_RUN', 'BLOCKED', 'FAILED'].includes(step.status)) {
             const t = cutText(step.reason, 200);
             none_ran = step.status !== 'FAILED';

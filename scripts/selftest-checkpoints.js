@@ -230,6 +230,21 @@ const T = rows => cpMod.tally(rows);
     const longWords = 'word '.repeat(80);
     const cLong = sumOf({ schema: 1, planned: real(2), protection: null, pages: [] }, [{ id: 'live-probe', status: 'FAILED', reason: `the site could not be reached (\u001b[31mERR ${longWords})` }], false);
     ok(cLong && !/[\u0000-\u001f\u007f]/.test(sent(cLong)) && /word\. A check that did not run/.test(sent(cLong)) && sent(cLong).length < 400, 'S3a review: a step reason holds no control character and is cut at a word, not in the middle of one');
+    // S3a2: a live ROW says the true reason when the probe was stopped by protection (it said "no address, not allowed, or switched off", which is untrue); the old texts stay where they are true
+    const OLDROW = 'the live page probe did not run (no address, not allowed, or switched off)';
+    const rowsOf = (probe, steps, hasRoot) => { const w = { ...synth, ...(probe ? { probe } : {}), ...(steps ? { evidence: { steps } } : {}) }; const rows = cpMod.evaluate({ work: w, validation: { hypotheses: [] }, ran: { probe: false }, hasRoot }); return { rows, sum: cpMod.liveSummary(rows, w) }; };
+    for (const hasRoot of [false, true]) {
+        const r429 = rowsOf({ schema: 1, planned: real(2), protection: { kind: 'ProtectionStop', reason: 'Repeated rate limiting (1 x HTTP 429)' }, pages: [] }, [{ id: 'live-probe', status: 'BLOCKED', reason: 'x' }], hasRoot);
+        const live = r429.rows.filter(r => r.live_row);
+        ok(live.length === 7 && live.every(r => r.result === 'NOT CHECKED' && r.reason === r429.sum.reason && !/no address|switched off|not allowed/.test(r.reason)), `S3a2 (${hasRoot ? 'with' : 'without'} a site folder): a 429 stop: every live row says the true reason, the same text as the live-check sentence ("${live[0] && live[0].reason}")`);
+        const rcd = rowsOf({ schema: 1, planned: real(2), protection: { kind: 'cooldown', reason: 'cooling down after site protection at 2026-11-20T08:00:00.000Z (x)', requests_sent: 0 }, pages: [] }, null, hasRoot).rows.filter(r => r.live_row);
+        ok(rcd.length === 7 && rcd.every(r => r.reason === 'an earlier run was stopped by the website\'s protection, so this run waited and sent no request'), `S3a2 (${hasRoot ? 'with' : 'without'} a site folder): a cooldown says that an earlier run was stopped and no request was sent`);
+        const rno = rowsOf(null, [{ id: 'live-probe', status: 'NOT_RUN', reason: 'no site address was given (--url), so no page could be loaded' }], hasRoot).rows.filter(r => r.live_row);
+        ok(rno.length === 7 && rno.every(r => r.reason === OLDROW), `S3a2 (${hasRoot ? 'with' : 'without'} a site folder): no address, no probe data: the old row text stays, it is true there`);
+        const rnp = rowsOf({ schema: 1, planned: real(2), protection: null, pages: [] }, null, hasRoot).rows.filter(r => r.live_row);
+        ok(rnp.every(r => r.reason === OLDROW), `S3a2 (${hasRoot ? 'with' : 'without'} a site folder): a probe file with no page and no protection: the old row text stays`);
+    }
+    ok(rf['cp-39'].reason === 'the live page probe stopped early, so a quiet result cannot be trusted' && PR([pageOf({})], real(1), { protection: { kind: 'ProtectionStop', reason: '429' } })['cp-39'].reason === 'the live page probe stopped early, so a quiet result cannot be trusted', 'S3a2: "stopped early" stays where it is true (fewer loads than planned; a stop after a page loaded)');
     ok(typeof cpMod.liveSummary === 'function' && cpMod.liveSummary([], {}) === null && sent(null) === null && sent({ total: 0 }) === null, 'S3a: no live rows (or no summary): no sentence');
     ok(c500 && c500.gave === cpMod.evaluate({ work: { ...synth, probe: { schema: 1, planned: real(2), protection: null, pages: [pageOf({ status: 500 }), SK] } }, validation: { hypotheses: [] }, ran: { probe: true }, hasRoot: false }).filter(r => r.live_row && r.result !== 'NOT CHECKED').length, 'S3a: the count is taken from the real rows (live_row, result other than NOT CHECKED)');
 
