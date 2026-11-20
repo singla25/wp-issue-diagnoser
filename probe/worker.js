@@ -101,6 +101,14 @@ const { NetworkRecorder, installReadOnlyGuard, installSandboxGuard, applyDenyLis
                 if (job.sandbox && job.click) rec.click = await sandboxActions.click({ page, spec: job.click, cut });
                 const wp = await pageContext(page).catch(() => null);
                 rec.context = wp ? { post_id: wp.postId, post_type: wp.postType, template: wp.template, builders: wp.builders, plugins: wp.plugins, themes: wp.themes } : null;
+                // READ ONLY, no request: the generator tag and the page comments are read from the page that is already loaded; issue/live-signals.js keeps only what a fixed pattern matches (the raw comments are never stored)
+                const rawSig = await page.evaluate(() => {
+                    const generators = [...document.querySelectorAll('meta[name="generator"]')].slice(0, 20).map(m => String(m.getAttribute('content') || '').slice(0, 80));
+                    const comments = [], walker = document.createTreeWalker(document, NodeFilter.SHOW_COMMENT);
+                    while (comments.length < 100 && walker.nextNode()) comments.push(String(walker.currentNode.nodeValue || '').slice(0, 300));
+                    return { generators, comments };
+                }).catch(() => null);
+                rec.signals = rawSig ? require('../issue/live-signals').fromPage(rawSig) : null;
                 rec.blocked_non_get = blocked.slice(blockedSeen).map(b => ({ method: b.method, url: b.url })); blockedSeen = blocked.length;
 
                 const shot = path.join(config.screenshotsDir, `p${String(pageIndex).padStart(2, '0')}-${slug(vp.name)}.png`);

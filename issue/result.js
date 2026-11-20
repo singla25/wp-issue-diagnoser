@@ -214,6 +214,14 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
     const cpCounts = cpMod.tally(cpRows);
     // NO site files: the live page checks in one sentence (how many gave a result, and why the others did not run); a run WITH a site folder is not touched
     const liveSum = !issue.root ? cpMod.liveSummary(cpRows, cpWork) : null, liveLine = liveSum ? plainNames.liveChecksSentence(liveSum) : null;
+    // NO site files: what the live page showed about plugins, theme and WordPress (issue/live-signals.js, from what the probe already loaded; no request). Stored through the mask, nothing when nothing was found.
+    const sigLines = [];
+    if (!issue.root) {
+        try {
+            const sg = require('./live-signals').collect((cpWork.probe || {}).pages), lines = plainNames.liveSignalsLines(sg);
+            if (lines.length) { const safe = redact.deep({ ...sg, lines }); f.live_signals = safe; sigLines.push(...safe.lines); }
+        } catch { /* the signals are an extra: a failure leaves them out and never stops the report */ }
+    }
     if (liveLine) f.live_checks = { total: liveSum.total, gave_a_result: liveSum.gave, could_not_run: liveSum.not_run, reason: liveSum.reason, sentence: liveLine };
     f.checkpoints = { counts: cpCounts, items: cpRows.map(r => ({ id: r.id, title: r.title, result: r.result, tied_to_crash: !!r.tied_to_crash, breaks_site: r.breaks_site, reason: r.reason, ...(r.same_as ? { same_as: r.same_as } : {}) })) };
     const cpText = plainNames.checkpointText(cpRows.map(r => ({ ...r, title: plainNames.plainText(r.title, comps), reason: plainNames.plainText(r.reason, comps) })), cpCounts);
@@ -347,7 +355,7 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
             activePlugins: sbx && sbx.sandbox ? cleanActivePlugins(W('active-plugins.json')) : null,
             // 6d-2: the fidelity check of a copy from a database file (the reader's sentence; and whether the copy may be named among the checks that counted)
             fidelity: fidelityOf(sbx, W),
-            facts: { liveChecksLine: liveLine, hasLog: !!((lg.files || []).length || (lg.entries || []).length), hasCode: !!issue.root && codeFilesRead > 0, noFiles: !issue.root, logSeeLines: lv ? lv.see : [], screenshotsRead: ((f.reported && f.reported.images) || []).some(i => i.ocr_text && String(i.ocr_text).trim()), codeFound: codeFilesFound, phpSkipped: phpSk.total > 0, phpSkippedDetail: phpSk, probeRan: ran.probe, sandboxRan: ran.sandbox, sandboxFailed: !!(sbx && sbx.could_not_run),
+            facts: { liveChecksLine: liveLine, liveSignalsLines: sigLines, hasLog: !!((lg.files || []).length || (lg.entries || []).length), hasCode: !!issue.root && codeFilesRead > 0, noFiles: !issue.root, logSeeLines: lv ? lv.see : [], screenshotsRead: ((f.reported && f.reported.images) || []).some(i => i.ocr_text && String(i.ocr_text).trim()), codeFound: codeFilesFound, phpSkipped: phpSk.total > 0, phpSkippedDetail: phpSk, probeRan: ran.probe, sandboxRan: ran.sandbox, sandboxFailed: !!(sbx && sbx.could_not_run),
                 sandboxReproduced: sbx ? sbx.reproduced_in_sandbox : null, php: issue.php_version || null, phpSource: issue.php_source || null, crash }
         });
         f.summary.text_report = caseFileMod.cli(f.case_file);

@@ -12,6 +12,7 @@ const { spawnSync, spawn } = require('child_process');
 
 let failures = 0;
 const ok = (c, m) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${m}`); if (!c) failures++; };
+const J = JSON.stringify;
 const group = t => console.log(`\n== ${t}`);
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pg-nofiles-'));
 const CMD = path.join(__dirname, 'plugin-guard.js');
@@ -385,6 +386,50 @@ const readJson = f => JSON.parse(fs.readFileSync(f, 'utf8'));
     ok(S429.f.live_checks.sentence.includes("the website's protection or rate limiting stopped the test, so no more requests were sent: Repeated rate limiting (1 x HTTP 429)."), 'S3a2-fix: a real 429 keeps the protection wording');
     const X5r = await stopCase('5xx', ['--root', siteR, '--no-replica']);
     ok(X5r.f && X5r.f.live_checks === undefined && X5r.pj && /Server instability/.test(X5r.pj.protection.reason) && !/live page checks? gave a result/.test(X5r.r.stdout), 'S3a2-fix (with a site folder, server errors): the probe stops, and still no live_checks field and no S3a sentence');
+    // S3b: plugin, theme and WordPress version from what the probe ALREADY loaded (no new request); no site files only
+    const PLUG = `<!doctype html><html><head><title>Fixture</title>
+<meta name="generator" content="WordPress 6.4.2" />
+<!-- This site is optimized with the Yoast SEO plugin v22.0 - https://yoast.com/wordpress/plugins/seo/ -->
+<link rel="stylesheet" href="/wp-content/themes/twentytwentyfour/style.css?ver=1.2" />
+<link rel="stylesheet" href="/wp-content/plugins/woo-sample/assets/a.css?ver=8.3.1&amp;nonce=abcdef123456" />
+<script src="/wp-content/plugins/elementor-sample/b.js?ver=3.18.2"></script>
+<script src="/wp-content/plugins/long-sample/c.js?ver=1234567890123456789012345"></script>
+<script src="/wp-content/plugins/bad%20slug/d.js?ver=1.0"></script>
+<script src="/wp-content/plugins/nover-sample/e.js"></script>
+</head><body><h1>Fixture shop</h1><p>The page works and has enough text to look like a real page.</p>
+<!-- <script src="/wp-content/plugins/ghost-sample/x.js?ver=9"></script> -->
+<!-- This website is like a Rocket, isn't it? Performance optimized by WP Rocket. Learn more: https://wp-rocket.me -->
+</body></html>`;
+    const plugCase = async extraArgs => {
+        const hits = [];
+        const sv = http.createServer((q, res) => { hits.push(`${q.method} ${q.url}`); if (q.url === '/') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(PLUG); } res.writeHead(200, { 'Content-Type': /\.css/.test(q.url) ? 'text/css' : 'application/javascript' }); res.end(/\.css/.test(q.url) ? 'body{}' : '/* ok */'); });
+        await new Promise(r => sv.listen(0, '127.0.0.1', r));
+        const before = issueDirs();
+        try {
+            const r = await runAsync([...base, ...extraArgs, '--url', `http://127.0.0.1:${sv.address().port}/`, '--env', 'local']);
+            const dir = issueDirs().filter(n => !before.includes(n)).map(n => path.join(tmp, 'issues', n))[0] || path.join(tmp, 'none');
+            const f = fs.existsSync(path.join(dir, 'result', 'findings.json')) ? readJson(path.join(dir, 'result', 'findings.json')) : null;
+            const probeTxt = fs.existsSync(path.join(dir, 'work', 'probe.json')) ? fs.readFileSync(path.join(dir, 'work', 'probe.json'), 'utf8') : '';
+            const files = ['ISSUE-REPORT.md', 'issue.html', 'findings.json'].map(n => { try { return fs.readFileSync(path.join(dir, 'result', n), 'utf8'); } catch { return ''; } }).join('\n');
+            return { r, f, hits, probeTxt, files };
+        } finally { sv.close(); }
+    };
+    const PL = await plugCase(['--no-files']);
+    const wantSig = [
+        'The page says it runs WordPress 6.4.2 (from the generator tag, which can be hidden or changed).',
+        'The page loads files of: elementor-sample 3.18.2, long-sample, nover-sample and woo-sample 8.3.1 (a number after a name is a version from a file address or a page comment, and can be a cache number). Plugins that load nothing on this page are not shown.',
+        'A comment on the page names: wordpress-seo 22.0 and wp-rocket. A comment is not proof that the plugin is active.',
+        'The page loads files of the theme: twentytwentyfour (version 1.2 in the file address, which can be a cache number).'
+    ];
+    ok(PL.f && PL.f.live_signals && J(PL.f.live_signals.lines) === J(wantSig), `S3b: a page with several plugins, a theme, a bad slug, a very long version and a script tag in a comment: findings.json live_signals.lines is exactly the four sentences ${PL.f && PL.f.live_signals ? '' : '(no live_signals field)'}`);
+    ok(PL.f && wantSig.every(l => seeOf(PL).includes(l) && PL.r.stdout.includes(l)), 'S3b: every sentence is under WHAT YOU SEE (case_file.see) and in the terminal text');
+    ok(PL.f && !wantSig.some(l => PL.f.confidence_text.includes(l) || PL.f.verdict.label.includes(l)), 'S3b: none of them is in the verdict line or its sentence');
+    ok(PL.f && PL.f.live_signals && !/ghost-sample|bad%20slug|bad slug|abcdef123456/.test(J(PL.f.live_signals)) && PL.f.live_signals.plugins.length === 4 && PL.f.live_signals.named_in_comments.length === 2, 'S3b: the script tag inside a comment, the bad slug and the query values are not in live_signals');
+    ok(PL.hits.every(h => /^GET \//.test(h)) && !PL.hits.some(h => /ghost-sample|readme|plugins\/[^/]+\/?$|wp-json|xmlrpc|debug\.log/.test(h)) && new Set(PL.hits.map(h => h.split('?')[0])).size <= 7, `S3b: no new request: only GET, only the page and the files it asks for itself (${[...new Set(PL.hits.map(h => h.split('?')[0]))].join(' ')})`);
+    ok(!/isn't it|Performance optimized by WP Rocket|yoast\.com/.test(PL.probeTxt + PL.files), 'S3b: the text of the page comments is not stored anywhere (probe.json, findings.json, the report)');
+    ok(S200.f && S200.f.live_signals === undefined && !/The page loads files of|The page says it runs WordPress|A comment on the page names/.test(S200.r.stdout + S200.files), 'S3b: a page with no plugin, theme or generator in its files: no live_signals field and NO line');
+    const PW = await plugCase(['--root', siteR, '--no-replica']);
+    ok(PW.f && PW.f.live_signals === undefined && !/The page loads files of|The page says it runs WordPress|A comment on the page names/.test(PW.r.stdout + PW.files), 'S3b: a run WITH a site folder: no live_signals field and no such line');
     const site3 = path.join(tmp, 'site3'); fs.mkdirSync(path.join(site3, 'wp-content', 'plugins', 'demo'), { recursive: true }); fs.mkdirSync(path.join(site3, 'wp-content', 'themes', 't'), { recursive: true }); fs.writeFileSync(path.join(site3, 'wp-content', 'plugins', 'demo', 'demo.php'), '<?php\n/* Plugin Name: Demo */\n');
     const W200 = await runCase(200, OK200, ['--root', site3, '--no-replica']), W500 = await runCase(500, CRIT, ['--root', site3, '--no-replica']);
     ok(W200.f && W500.f && W200.f.live_checks === undefined && W500.f.live_checks === undefined && !/live page checks? gave a result|No live page check ran/.test(W200.r.stdout + W200.files + W500.r.stdout + W500.files), 'S3a: a run WITH a site folder has no live_checks field and none of the new sentences (old wording unchanged)');

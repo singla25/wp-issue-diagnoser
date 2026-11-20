@@ -272,6 +272,8 @@ function build(f, ctx) {
     // a log without site files: its possible causes (fatal errors that name a plugin or a theme), said as possible, not confirmed
     // no site files: how many of the live page checks gave a result, and why the others did not run (issue/checkpoints.js liveSummary; the sentence is built in lib/plain-names.js)
     if (ctx.facts && ctx.facts.liveChecksLine) see.push(ctx.facts.liveChecksLine);
+    // no site files: plugins, theme and WordPress version the live page showed (issue/live-signals.js; nothing when nothing was found)
+    if (ctx.facts && Array.isArray(ctx.facts.liveSignalsLines) && ctx.facts.liveSignalsLines.length) see.push(...ctx.facts.liveSignalsLines);
     if (ctx.facts && ctx.facts.logSeeLines && ctx.facts.logSeeLines.length) see.push(...ctx.facts.logSeeLines);
     const cp = f.checkpoints ? f.checkpoints.counts : null;
     // the counts are ONE dot line (the old "We looked at N things" sentence is gone); the full list only with --verbose
