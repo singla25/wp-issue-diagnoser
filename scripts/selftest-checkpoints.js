@@ -180,6 +180,26 @@ const T = rows => cpMod.tally(rows);
     const ps = P([pageOf({ status: 500 })], { protection: { reason: '5xx' } });
     ok(ps['cp-39'].result === 'FAIL', 'a stopped probe that did see a 5xx still reports it (a finding wins over a missing source)');
 
+    // S3a-fix: the REAL probe.json shape. issue/probe.js writes `planned` as an object { pages, viewports, loads, notes }, not a number; a complete probe must give real results
+    const PR = (pages, planned, extra = {}) => by(cpMod.evaluate({ work: { ...synth, probe: { schema: 1, planned, protection: null, pages, ...extra } }, validation: { hypotheses: [] }, ran: { probe: true }, hasRoot: true }));
+    const real = loads => ({ pages: ['http://127.0.0.1:9/shop/'], viewports: ['laptop 1280x800', 'mobile 390x844'], loads, notes: [] });
+    const LIVE7 = ['cp-38', 'cp-39', 'cp-40', 'cp-41', 'cp-43', 'cp-44', 'cp-45'];
+    const rc = PR([pageOf({}), pageOf({ viewport: { name: 'mobile', width: 390 } })], real(2));
+    ok(LIVE7.every(id => rc[id].result === 'PASS'), 'S3a-fix: a complete probe in the real shape (planned.loads 2, 2 pages loaded): the seven live rows PASS');
+    const rf = PR([pageOf({})], real(2));
+    ok(LIVE7.every(id => rf[id].result === 'NOT CHECKED' && /stopped early/.test(rf[id].reason)), 'S3a-fix: fewer pages loaded than planned.loads (1 of 2) and nothing found: all seven rows NOT CHECKED with the stopped-early reason');
+    const rg = PR([pageOf({ status: 500 })], real(2));
+    ok(rg['cp-39'].result === 'FAIL' && rg['cp-38'].result === 'FAIL' && rg['cp-44'].result === 'NOT CHECKED', 'S3a-fix: the same partial probe that saw a 500: the finding rows FAIL, the quiet rows stay NOT CHECKED');
+    const rp = PR([pageOf({})], real(1), { protection: { reason: '429' } });
+    ok(LIVE7.every(id => rp[id].result === 'NOT CHECKED'), 'S3a-fix: planned.loads met but the site protection stopped the probe: NOT CHECKED');
+    const odd = [undefined, null, 0, -1, 1.5, '1', NaN, {}, { loads: 0 }, { loads: '1' }, { loads: 1.5 }, { loads: null }, [], true];
+    ok(odd.every(v => LIVE7.every(id => PR([pageOf({})], v)[id].result === 'NOT CHECKED')), `S3a-fix: a missing or unusable planned (${odd.length} odd values) gives NOT CHECKED on every live row, never PASS`);
+    ok(odd.every(v => /stopped early/.test(PR([pageOf({})], v)['cp-39'].reason)), 'S3a-fix: and the reason is the same safe one ("the live page probe stopped early, so a quiet result cannot be trusted")');
+    const oddNoKey = by(cpMod.evaluate({ work: { ...synth, probe: { schema: 1, protection: null, pages: [pageOf({})] } }, validation: { hypotheses: [] }, ran: { probe: true }, hasRoot: true }));
+    ok(LIVE7.every(id => oddNoKey[id].result === 'NOT CHECKED'), 'S3a-fix: a probe.json with no planned key at all: NOT CHECKED');
+    const plain = PR([pageOf({})], 1);
+    ok(LIVE7.every(id => plain[id].result === 'PASS'), 'S3a-fix: the plain number (older data) still works: complete probe PASS');
+
     group('5. NOT DETECTED rows are never PASS or FAIL');
     const nd = cps.filter(c => c.coverage === 'NOT DETECTED').map(c => c.id);
     const everything = [rEws, rClean, rNo, Object.values(rs), Object.values(p0), Object.values(p5)];

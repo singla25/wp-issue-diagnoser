@@ -46,7 +46,7 @@ function sourcesOf({ work = {}, ran = {}, hasRoot = false, hasCode = true, codeF
     S.hypotheses = { ok: !!(validation && Array.isArray(validation.hypotheses)), why: 'the hypotheses were not validated' };
     const pr = work.probe, loaded = pr && Array.isArray(pr.pages) ? pr.pages.filter(p => p.loaded) : [];
     S.probe = { ok: !!(ran.probe && pr && Array.isArray(pr.pages) && pr.pages.length), why: 'the live page probe did not run (no address, not allowed, or switched off)' };
-    S.probeComplete = { ok: S.probe.ok && loaded.length > 0 && !pr.protection && loaded.length >= (pr.planned || loaded.length), why: !S.probe.ok ? S.probe.why : !loaded.length ? 'the live page probe loaded no page' : 'the live page probe stopped early, so a quiet result cannot be trusted' };
+    S.probeComplete = { ok: S.probe.ok && loaded.length > 0 && !pr.protection && plannedLoads(pr.planned) !== null && loaded.length >= plannedLoads(pr.planned), why: !S.probe.ok ? S.probe.why : !loaded.length ? 'the live page probe loaded no page' : 'the live page probe stopped early, so a quiet result cannot be trusted' };
     const phpInfo = compatStep && compatStep.php;
     S.php = { ok: !!(phpInfo && phpInfo.stated), why: `the site's PHP version is not known (--php); only the sandbox's PHP ${phpInfo && phpInfo.version ? phpInfo.version : '8.3'} could be compared` };
     return S;
@@ -179,6 +179,9 @@ const SAME_AS = { 'content-hooks': 'hook-same-priority', 'php-version-code': 're
 
 // ---------------------------------------------------------------- the evaluation
 // inp: { work, validation, ran:{probe,sandbox}, hasRoot, issue?, checkpoints? } -> [{ id, title, result, reason }] for EVERY checkpoint, in id order
+// the number of page loads the probe planned: a plain number (older data) or the object probe.json really holds ({ pages, viewports, loads }).
+// Anything else (missing, zero, not a whole number) is null: the probe is then NOT "complete", so a quiet result is NOT CHECKED, never a pass.
+const plannedLoads = v => { const n = typeof v === 'number' ? v : v && typeof v === 'object' ? v.loads : null; return Number.isInteger(n) && n > 0 ? n : null; };
 function evaluate(inp = {}) {
     const input = { work: inp.work || {}, validation: inp.validation || null, ran: inp.ran || {}, hasRoot: !!inp.hasRoot, hasCode: inp.hasCode !== false, codeFound: Number(inp.codeFound) || 0, issue: inp.issue || null, logOnly: !!inp.logOnly };
     const tie = inp.tie ? makeTie(inp.tie) : null;

@@ -110,7 +110,7 @@ const readJson = f => JSON.parse(fs.readFileSync(f, 'utf8'));
         ok(/Looked at: [^.\n]*the live page/.test(c.stdout) && /Not looked at: [^.\n]*the code/.test(c.stdout), 'the status line says the live page was looked at and the code was not');
         ok(!fs.existsSync(path.join(dirC, 'site-copy')), 'no site copy was made');
         const fC = fs.existsSync(path.join(dirC, 'result', 'findings.json')) ? readJson(path.join(dirC, 'result', 'findings.json')) : null;
-        ok(fC && fC.verdict.label === 'Nothing could be checked' && /the live page was loaded, but none of the 53 checks ran on it/.test(fC.confidence_text), 'S1b (a)/(case c): 0 checks ran, so the verdict says nothing could be checked and that the page was loaded but no check ran on it');
+        ok(fC && fC.verdict.label === 'No confirmed breaking cause was found' && /Nothing that was checked points at a cause that could be confirmed/.test(fC.confidence_text) && fC.checkpoints.counts.pass === 7, 'S3a-fix (case c): the page was loaded and the 7 live checks passed, so the verdict is the plain "No confirmed breaking cause was found" with 7 pass (it was "Nothing could be checked" while a wrong planned-loads test made every live check NOT CHECKED)');
         ok(fC && !(fC.hypotheses || []).some(h => ['CONFIRMED', 'REPRODUCIBLE'].includes(h.status)), 'no cause is CONFIRMED or REPRODUCIBLE without any site files');
     } finally { server.close(); }
 
@@ -177,7 +177,7 @@ const readJson = f => JSON.parse(fs.readFileSync(f, 'utf8'));
 
     group('S1b-fix (d, e): status 200 and nothing failed (case c) and a description only (case a) are unchanged');
     const OK = await runCase(200, OK200, ['--no-files']);
-    ok(OK.f && OK.f.verdict.label === 'Nothing could be checked' && OK.f.confidence_text === 'How sure we are: not at all. Nothing could be checked, so this report does not say whether your site is healthy: no site files were given, no log was read and the live page was loaded, but none of the 53 checks ran on it.', `case (c) text is exactly the S1b text: "${OK.f && OK.f.confidence_text}"`);
+    ok(OK.f && OK.f.verdict.label === 'No confirmed breaking cause was found' && OK.f.confidence_text === 'How sure we are: not very. Nothing that was checked points at a cause that could be confirmed.', `S3a-fix (case c) text is exactly: "${OK.f && OK.f.confidence_text}"`);
     ok(fA && fA.verdict.label === 'Nothing could be checked' && fA.confidence_text === 'How sure we are: not at all. Nothing could be checked, so this report does not say whether your site is healthy: no site files were given, no log was read and no live check was run.', 'case (a) text is exactly the S1b text');
 
     group('S1b-fix (f): WITH a site folder and failing checks the old verdict text is exactly the old text');
