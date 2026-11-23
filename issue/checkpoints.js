@@ -257,7 +257,7 @@ function liveSummary(rows, work = {}) {
     const pr = work.probe && typeof work.probe === 'object' ? work.probe : null, pages = pr && Array.isArray(pr.pages) ? pr.pages : [];
     const loaded = pages.filter(p => p && p.loaded).length;
     const step = (((work.evidence || {}).steps) || []).find(x => x && x.id === 'live-probe') || null;
-    let reason = null, none_ran = false, attempted = false, reason_short = null;   // attempted: the probe was started and then stopped, the site could not be reached, or the live-probe step FAILED for another reason (a cooldown counts: the run began and sent no request); false for no address, switched off, not allowed. reason_short: a plain short form for the verdict sentence
+    let reason = null, none_ran = false, attempted = false;   // attempted: the probe was started and then stopped, the site could not be reached, or the live-probe step FAILED for another reason (a cooldown counts: the run began and sent no request); false for no address, switched off, not allowed.
     if (notRun) {
         const skipped = pages.filter(p => p && p.skipped), codes = [...new Set(skipped.map(p => Number(p.reused_status)).filter(n => n >= 100))].sort((a, b) => a - b);
         const prot = protectionReason(pr);
@@ -265,13 +265,13 @@ function liveSummary(rows, work = {}) {
         else if (!loaded && step && ['NOT_RUN', 'BLOCKED', 'FAILED'].includes(step.status)) {
             const t = cutText(step.reason, 200);
             none_ran = step.status !== 'FAILED'; attempted = step.status === 'FAILED';
-            if (attempted) reason_short = /could not be reached|unreachable/i.test(step.reason) ? 'the site could not be reached' : 'no page could be loaded';
-            reason = /no site address was given/.test(t) ? 'no address was given' : /switched off/.test(t) ? 'the live check was switched off' : t || 'the live page test did not run';
+            // a failed start or a failed page load: a short plain reason, never the raw error text or the address (the step text keeps them for a developer)
+            reason = attempted ? (/could not be reached|unreachable/i.test(step.reason) ? 'the site could not be reached' : 'no page result could be used') : /no site address was given/.test(t) ? 'no address was given' : /switched off/.test(t) ? 'the live check was switched off' : t || 'the live page test did not run';
         } else if (plannedLoads(pr && pr.planned) === null) reason = 'the result of the live page test could not be read';
         else if (skipped.length && codes.length) reason = `the page answered with an error (${codes.map(n => `HTTP ${n}`).join(' and ')}), so it was not loaded again at the other screen size`;
         else reason = 'fewer page loads were completed than planned';
     }
-    return { total: live.length, gave, not_run: notRun, none_ran, attempted, reason, reason_short: reason_short || reason };
+    return { total: live.length, gave, not_run: notRun, none_ran, attempted, reason };
 }
 
 module.exports = { liveSummary, SYMPTOM_ROWS, WEAK_TIE_ROWS, evaluate, loadWork, load, tally, EVALUATORS, PARTIAL_NOTE, FILE };
