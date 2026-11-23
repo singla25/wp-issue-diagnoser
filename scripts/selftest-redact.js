@@ -339,7 +339,7 @@ group('S0b: the last pass over the files the report writes');
         });
         await new Promise(r => server.listen(0, '127.0.0.1', r));
         const url = `http://127.0.0.1:${server.address().port}`;
-        const ENV = { ...process.env, PG_PROBE_NAV_DELAY_MS: '0', PG_PROBE_REQUEST_DELAY_MS: '0', PG_PROBE_COOLDOWN_FILE: path.join(tmp2, 'cool.json') };
+        const ENV = { ...process.env, PG_PROBE_NAV_DELAY_MS: '0', PG_PROBE_REQUEST_DELAY_MS: '0', PG_PROBE_5XX_RETRY_DELAY_MS: '0', PG_PROBE_COOLDOWN_FILE: path.join(tmp2, 'cool.json') };
         const PAGE = '/cart/?token=abcdef123&page=2';
         const make = () => store2.create({ title: 'Cart fails', description: 'the cart shows an error', symptom: 'white-screen', environment: 'local', url, pages: [PAGE], oracle: { type: 'http-5xx' } });
         try {

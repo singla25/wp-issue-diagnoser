@@ -16,7 +16,7 @@ const J = JSON.stringify;
 const group = t => console.log(`\n== ${t}`);
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pg-nofiles-'));
 const CMD = path.join(__dirname, 'plugin-guard.js');
-const ENV = (extra = {}) => ({ ...process.env, PLUGIN_GUARD_ISSUES: path.join(tmp, 'issues'), PG_PROBE_NAV_DELAY_MS: '0', PG_PROBE_REQUEST_DELAY_MS: '0', PG_PROBE_COOLDOWN_FILE: path.join(tmp, 'cool.json'), ...extra });
+const ENV = (extra = {}) => ({ ...process.env, PLUGIN_GUARD_ISSUES: path.join(tmp, 'issues'), PG_PROBE_NAV_DELAY_MS: '0', PG_PROBE_REQUEST_DELAY_MS: '0', PG_PROBE_5XX_RETRY_DELAY_MS: '0', PG_PROBE_COOLDOWN_FILE: path.join(tmp, 'cool.json'), ...extra });
 const run = (args, extra) => spawnSync(process.execPath, [CMD, ...args], { encoding: 'utf8', cwd: tmp, env: ENV(extra), timeout: 240000 });
 // the fixture server lives in THIS process, so a run that visits it must not block the event loop: spawn, not spawnSync
 const runAsync = (args, extra) => new Promise(resolve => { const c = spawn(process.execPath, [CMD, ...args], { cwd: tmp, env: ENV(extra) }); let stdout = '', stderr = ''; c.stdout.on('data', d => { stdout += d; }); c.stderr.on('data', d => { stderr += d; }); const t = setTimeout(() => c.kill('SIGKILL'), 240000); c.on('close', status => { clearTimeout(t); resolve({ status, stdout, stderr }); }); });
