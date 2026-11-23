@@ -32,7 +32,7 @@ npm run demo [-- --sandbox] [-- --keep] # the worked example end to end on a fix
 npm run checkpoints [-- --check]        # regenerate data/checkpoints.json from the COVERAGE table (--check exits 1 if stale)
 npm run verify-knowledge                # re-fetch the official pages cited by the knowledge data files
 npm run knowledge-review                # regenerate KNOWLEDGE-REVIEW.md for a person to review; a test fails if it is stale
-npm test                                # every suite: test:offline (68 suites), then test:docker (10 suites, real containers)
+npm test                                # every suite: test:offline (70 suites), then test:docker (10 suites, real containers)
 npm run test:offline                    # the offline suites only
 npm run test:docker                     # the Docker suites only (they skip loudly when Docker is unusable)
 scripts/run-full.sh <label>             # the ONE full run on a snapshot; logs in ~/pg-runs/<label>/

@@ -14,9 +14,9 @@ Written 2026-11-18 for a new chat that knows nothing. Every fact has its source 
 | `npm run guard -- issue new / investigate / show / list / open / index / cleanup` | Issue mode in steps. |
 | `npm run guard -- issue retest <id> --root <fixed copy> [--sandbox]` | Repeats the oracle after a fix on a COPY. Only this can set FIXED_VERIFIED. |
 | `npm run guard -- doctor`, `scan --root .`, `npm run demo` | Prerequisite check, the older classic scan, a worked example. |
-| `npm test`, `npm run test:offline`, `scripts/run-full.sh <label>` | All suites; the offline suites (68); the ONE full run on a snapshot with a Docker baseline check [CLAUDE.md; TESTING]. |
+| `npm test`, `npm run test:offline`, `scripts/run-full.sh <label>` | All suites; the offline suites (70); the ONE full run on a snapshot with a Docker baseline check [CLAUDE.md; TESTING]. |
 
-**New since 2026-11-18:** `--no-files` runs the wizard with NO site folder (description, screenshots and an address only). It is refused together with `--root`, `--sandbox`, `--db-dump` and `--log`. Without either `--root` or `--no-files` the old refusal stays: "Missing required value: the site folder." [HANDOFF 87; git 2abfccc, ee782f4].
+**New since 2026-11-18:** `--no-files` runs the wizard with NO site folder (description, screenshots and an address only). It is refused together with `--root`, `--sandbox` and `--db-dump`; `--log <file>` is allowed with it since S1d (7a9952a). Without either `--root` or `--no-files` the old refusal stays: "Missing required value: the site folder." [HANDOFF 87; git 2abfccc, ee782f4].
 
 **Input modes** (the target list) [ROADMAP, "Input modes"; IM section 3]:
 
@@ -25,14 +25,14 @@ Written 2026-11-18 for a new chat that knows nothing. Every fact has its source 
 | A | files, database file, sandbox allowed | Yes: test copy from a database file in Docker, with a fidelity check [HANDOFF 47 to 54] |
 | B | files only | Yes: a test site built from the files, report level 4 [git 88d8b9b] |
 | C | files, no sandbox | Yes: report level 2 [README] |
-| D | live address, description, screenshots, log, no files | Partly: `--no-files` (or typing `none` at the folder question) with a description, screenshots, an address and a log file (`--log <file>`, or the one log question); the page is loaded with GET only; the log is read as masked text and may give a possible cause, not confirmed [HANDOFF 87, 90] |
+| D | live address, description, screenshots, log, no files | Partly: `--no-files` (or typing `none` at the folder question) with a description, screenshots, an address and a log file (`--log <file>`, or the one log question); the page is loaded with GET only; the log is read as masked text and may give a possible cause, not confirmed; since S3 the report also says how many live page checks gave a result, names the plugins, theme and WordPress version the page loaded and shows possible known conflicts (all "possible, not confirmed") [HANDOFF 87, 90, 92 to 95] |
 | E | only a description or a log | Partly: a description only gives "Nothing could be checked"; a log file alone gives "The log shows a possible cause" or "No cause could be named from the log" (a file path, not pasted text) [HANDOFF 87, 90] |
 
 **Report levels** [ROADMAP, "Report levels"; HANDOFF 54]: 1 "Tested on a copy of your site"; 2 "Not tested on a copy"; 3 "The test copy could not confirm this"; 4 "Tested on a test site built from your files" (no database file).
 
 **Verdict owners** (one each) [CLAUDE.md, Hard constraints]: `issue/hypotheses.js` only proposes; `issue/validate.js` alone assigns CONFIRMED, REPRODUCIBLE or REJECTED_FALSE_POSITIVE; only `issue/retest.js` can give FIXED_VERIFIED. Issue mode is deterministic and offline: no LLM or API call.
 
-**What is NOT built** [ROADMAP; IM section 7; HANDOFF 87]: live observations such as plugin versions from the page and known-conflict matching (S3); the report layout for modes D and E (S4); pasted log text (a log is given as a file path only); Site Health text, a pasted plugin list, a public debug.log check, the error e-mail text and a Plugins-page screenshot as inputs (S5 to S7); masking of real user accounts in a test copy (6c-3); checkpoint step B (`wp_head`, `wp_footer`, `wp_body_open`, `DISABLE_WP_CRON`); real-site runs by the owner.
+**What is NOT built** [ROADMAP; IM section 7; HANDOFF 87]: console warnings under "For a developer" (not in S3); the report layout for modes D and E (S4); pasted log text (a log is given as a file path only); Site Health text, a pasted plugin list, a public debug.log check, the error e-mail text and a Plugins-page screenshot as inputs (S5 to S7); masking of real user accounts in a test copy (6c-3); checkpoint step B (`wp_head`, `wp_footer`, `wp_body_open`, `DISABLE_WP_CRON`); real-site runs by the owner.
 
 ## 2. Timeline, oldest first
 
@@ -74,6 +74,15 @@ Dates are commit dates [git]. Hashes are from this repository's history; HANDOFF
 | 2026-11-19 | S1d-fix: the log refusal as a rule (packed files, dotted dump names, trailing junk) | 4e56cd0 | 138 checks; `test:offline` 4810 PASS, 0 FAIL, 2 SKIP [HANDOFF 90] |
 | 2026-11-19 | S1d-docs: docs for S1d, and the commit that records its hash | 51d77b4, 27c4c17 | docs only [HANDOFF 90; git] |
 | 2026-11-20 | S2: the no-files branch in the wizard (type `none`), one optional log question, the summary before go | 109bc49 | `selftest-wizard-plain` 49 -> 82, `selftest-folder-browser` 63 -> 71; `test:offline` 4851 PASS, 0 FAIL, 2 SKIP; deep review PASS in round 1 [HANDOFF 91] |
+| 2026-11-20 | S2-docs: docs for S2 | e083252, b30e725 | docs only; pushed by the owner [git] |
+| 2026-11-20 | S3a-fix: the probe's planned page loads are read in their real shape (an object `{pages, viewports, loads, notes}`, not a number); before, every live check on a complete probe was NOT CHECKED "stopped early" | c611e59 | `test:offline` 4859 PASS, 0 FAIL, 2 SKIP; two existing assertions changed with approval (`selftest-no-files.js`, case c, 200 page) [HANDOFF 92] |
+| 2026-11-20 | S3a: no site files: "<N> of 7 live page checks gave a result. <M> could not run: <reason>. A check that did not run is not a pass." (`findings.json` `live_checks`, under WHAT YOU SEE) | 4bc32b5 | `test:offline` 4881 PASS; deep review: 4 wording defects fixed in round 1, round 2 PASS [HANDOFF 93] |
+| 2026-11-20 | S3a2: a live check row after a protection stop says why, not "no address, not allowed, or switched off" | 05da294 | `test:offline` 4894 PASS [HANDOFF 93] |
+| 2026-11-20 | S3a2-fix: the stop wording follows the reason text (protection, "to keep the website safe", neutral) | 716993c | `test:offline` 4944 PASS; one fixture input changed with approval (`selftest-checkpoints.js:240`) [HANDOFF 93] |
+| 2026-11-20 | S3b: plugin and theme names and versions and the WordPress version from what the probe already loaded (`live_signals`) | 0327d15 | `test:offline` 5007 PASS; new suite `selftest-live-signals`; deep review: 2 defects fixed in round 1, round 2 PASS [HANDOFF 94] |
+| 2026-11-20 | S3c: the plugins whose files the page loaded matched by name against three known conflicts, "possible, not confirmed" (`live_conflicts`) | 050c1d4 | `test:offline` 5041 PASS; new suite `selftest-live-conflicts` [HANDOFF 95] |
+| 2026-11-20 | S3c-fix: only names that the entry's claims back, pair entries first, the lead-in "What the source says:", data text "the two plugins" to "the plugins" | 688ee6d | `test:offline` 5063 PASS, 0 FAIL, 2 SKIP; 11 existing assertions changed with approval; deep review rounds 2 (1 defect fixed) and 3 PASS [HANDOFF 95] |
+| 2026-11-23 | CI-2: `PG_PROBE_5XX_RETRY_DELAY_MS=0` in the environment of two suites that serve 5xx pages; CI-1: a timing wrapper outside the repo | 55c5433 | offline chain 815.0 s to 714.4 s, the same 5063 PASS, 0 FAIL, 2 SKIP and the same check lines; review PASS [HANDOFF 96] |
 
 ## 3. Decision log
 
@@ -104,15 +113,15 @@ Decisions 1 to 19 and 21 to 27 are recorded as "approved by the owner" without a
 ## 4. Current status
 
 - **Last green full run:** `p-s0`, 2026-11-18, HEAD 68e8f62: 76 suites (66 offline and 10 Docker), 4692 PASS, 0 FAIL, 6 SKIP, 38 min 56 s; Docker 5/0/11 before and after; no restart [TESTING; ROADMAP]. The 6 SKIPs are loud: two git checks of the snapshot, the hints suite in standalone mode, PHP 7.4, 8.0 and 8.1 images.
-- **Since that run:** M1, S0d, S1, S1b-fix, S1d, S1d-fix and S2 are covered by `test:offline` only (68 offline suites, last result 4851 PASS, 0 FAIL, 2 SKIP, 2026-11-20) [HANDOFF 85 to 91]. A new full run is still to be done after S4 [IM section 7].
-- **Pushed:** the owner pushed up to commit 27c4c17 (the remote-tracking branch points there, as last fetched) [git]. **Not pushed:** the S2 commit (109bc49) and the S2-docs commits (see git log) [git].
-- **In progress:** nothing is running. S2 and S2-docs are finished; the Coder waits for the owner's next prompt [CLAUDE.md; HANDOFF 91].
+- **Since that run:** M1, S0d, S1, S1b-fix, S1d, S1d-fix, S2, S3 (S3a-fix, S3a, S3a2, S3a2-fix, S3b, S3c, S3c-fix) and CI-2 are covered by `test:offline` only (70 offline suites; last result 5063 PASS, 0 FAIL, 2 SKIP, 2026-11-23) [HANDOFF 85 to 96]. A new full run is still to be done after S4 [IM section 7].
+- **Pushed:** the owner pushed up to commit b30e725 (S2 and S2-docs; the remote-tracking branch points there, as last fetched) [git]. **Committed and not pushed:** the 8 later commits c611e59, 4bc32b5, 05da294, 716993c, 0327d15, 050c1d4, 688ee6d and 55c5433, and the S3-docs commits (see git log) [git].
+- **In progress:** nothing is running. S3 and CI-1 and CI-2 are finished; the Coder waits for the owner's next prompt (next: S4) [CLAUDE.md; HANDOFF 92 to 96].
 
 ## 5. What is left (roadmap rows in order) [ROADMAP]
 
 | Row | Task | Status |
 |---|---|---|
-| 3a | No-code mode, part 1: S3 live observations, plugin versions and known conflicts, S4 report layout for modes D and E, then ONE full run | S0 to S0d, S1a to S1d and S2 done; S3 and S4 waiting |
+| 3a | No-code mode, part 1: S4 report layout for modes D and E, then ONE full run | S0 to S0d, S1a to S1d, S2 and S3 done (S3 not pushed); S4 waiting |
 | 3b | No-code mode, part 2: S5 Site Health text and pasted plugin list, S6 public debug.log check, S7 error e-mail text and Plugins-page screenshot | waiting for 3a |
 | 4 | Real-site runs by the owner on 2 or 3 real sites, then review | waiting for 3a and 3b |
 | 5a | C6: docs leftovers, naming, GET-only wording, git-skip message, comments | waiting |
@@ -133,7 +142,9 @@ Decisions 1 to 19 and 21 to 27 are recorded as "approved by the owner" without a
 - **Name leftovers:** internal names (Docker labels, `PG_*` variables, the reports folder, the config file name) still use the old product name until Stage 2 [ROADMAP, Leftovers]. A local project nickname is still in tests and in old commits (C8) [HANDOFF 72].
 - **Test chain:** the `isolated-copy` suite is left out of the chain until C7 [CLAUDE.md; HANDOFF 69].
 - **Probe:** the live probe sends only GET requests, never logs in, and stops at the first 429 or challenge [CLAUDE.md].
-- **Wizard, no-files branch (S2):** with exactly one site found, the "Use it?" question does not show the `none` hint (typing `none` still works, and the hint shows after `n`); the plugin and theme questions are not asked yet (they move to S3 and S5 to S7) [HANDOFF 91].
+- **Wizard, no-files branch (S2):** with exactly one site found, the "Use it?" question does not show the `none` hint (typing `none` still works, and the hint shows after `n`); the plugin and theme questions are not asked yet (they go to S5, owner decision 2026-11-20) [HANDOFF 91, 93].
+- **Fixed in S3a-fix (c611e59): the `planned` shape.** `issue/checkpoints.js` compared the loaded pages with `probe.json` `planned`, which holds an object (`issue/probe.js:178`), so every live check on a complete probe was NOT CHECKED "stopped early"; the helper `plannedLoads` now reads both shapes. **Still open:** `issue/validate.js:107` passes `probe.planned || probe.pages.length` to the oracle, so the oracle never sees "partial" (a plan step is next) [HANDOFF 92].
+- **No-files live page report (S3):** the limits are in `docs/REPORT-SPEC.md` 4.0a: only the loaded page; files from another host (a CDN) are not read; a plugin that loads nothing is not shown; versions can be cache numbers; a conflict line needs both plugins to load files and never says what caused the problem; fewer matches on purpose for names the entry claims do not back; the 6 page-comment samples are unverified on a live site [HANDOFF 94, 95].
 - **Log without site files:** a leading space in the file name, a trailing `~` and a hard link are not caught by the name rule; `env.log` is refused (accepted false refusal); a log is read as a file path only (no pasted text); the masking is best effort [SAFETY 6; HANDOFF 90].
 
 ## 7. Where to find things

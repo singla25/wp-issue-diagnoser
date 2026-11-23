@@ -3,7 +3,7 @@
 ## The commands
 
 - `npm test` runs every suite: `npm run test:offline`, then `npm run test:docker`. It stops at the first failing suite.
-- `npm run test:offline`: 68 suites that need no Docker (pure logic, a fake `docker`, fixture sites on 127.0.0.1, the browser report checks, the docs and hygiene checks).
+- `npm run test:offline`: 70 suites that need no Docker (pure logic, a fake `docker`, fixture sites on 127.0.0.1, the browser report checks, the docs and hygiene checks).
 - `npm run test:docker`: the 10 suites that start real containers (`selftest:issue-sandbox-docker`, `issue-resolve-docker`, `issue-verify-docker`, `6a-docker`, `6b-docker`, `6c1-docker`, `6c2-docker`, `6d1-docker`, `6d2-docker`, `second-site-docker`). When Docker is not usable they skip, loudly (a SKIP line says why). They need the sandbox images from `npm run setup-sandbox`.
 - One suite: a script named `selftest:` plus the suite name (the names are in `package.json`), for example `npm run selftest:docs` or `npm run selftest:hygiene`. Each suite is a standalone script, `scripts/selftest-<name>.js`.
 
@@ -25,6 +25,13 @@ Full runs are done by the runner role only (see [WORKFLOW.md](WORKFLOW.md)), wit
 Logs are in `~/pg-runs/<label>/`: `started.txt`, `tree.sha`, `progress.txt` (Docker before and after), `test.log`, `test.exit` ("test exit N") and `result.txt`. An optional `~/pg-runs/env.sh` is read first; it is never stored in the repository.
 
 A run is **valid** only if `test.exit` says `test exit 0` AND the Docker state after the run equals the baseline. A computer restart during a run makes it invalid; start a new run instead of repairing the old one.
+
+## Timing (CI-1 and CI-2, 2026-11-23)
+
+- `~/pg-runs/measure.sh <label>` (outside the repository) runs every suite of `test:offline` alone, in the `package.json` order, and writes `~/pg-runs/ci/<label>.csv` (suite, seconds, PASS, FAIL, SKIP, exit) and the sorted PASS, FAIL and SKIP lines of every suite in `~/pg-runs/ci/<label>.txt`. Nothing else may run on the machine while it runs.
+- `~/pg-runs/ci/run-full-timed.sh` is a copy of `scripts/run-full.sh` that puts the time before every line of `test.log`; the next full run gives the Docker suite times with it. It has not been run yet.
+- Measured on one machine: the offline chain took 815 s before and 714 s after CI-2 (about 12 to 13.6 minutes), with the same 5063 PASS, 0 FAIL, 2 SKIP and the same check lines (30 lines differ only in ports, random temp folder names, timestamps and millisecond timings). The slowest suite is `no-files` (about 150 to 194 s); the next are `6c2`, `issue-probe`, `6d3-fixes` and `second-site` (about 43 to 68 s).
+- `PG_PROBE_5XX_RETRY_DELAY_MS=0` is set inside `scripts/selftest-no-files.js` and `scripts/selftest-redact.js` (where they build the environment of their child processes), so a 5xx fixture page does not wait the default 5 seconds before the probe's one retry. `selftest-issue-probe.js` keeps the default: its pacing check measures the gaps between page requests.
 
 ## The baseline (latest valid full run)
 

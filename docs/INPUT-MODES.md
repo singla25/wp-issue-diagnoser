@@ -1,6 +1,6 @@
 # Input modes and question phases
 
-**PROPOSAL, partly built.** This is a design the owner approved. D1 itself changed no code. Everything under "What exists today" was read in the code on 2026-11-17 and has a file and line, so the line numbers there are the old ones; the build status is at the end of section 7. S1 (a run without a folder) and S2 (the branch, one log question and the summary) are built; S3 onwards are not.
+**PROPOSAL, partly built.** (Status 2026-11-23: S1, S2 and S3 are built, S4 onwards are not; see the end of section 7.) This is a design the owner approved. D1 itself changed no code. Everything under "What exists today" was read in the code on 2026-11-17 and has a file and line, so the line numbers there are the old ones; the build status is at the end of section 7. S1 (a run without a folder) and S2 (the branch, one log question and the summary) are built; S3 onwards are not.
 
 ## Goal
 
@@ -51,7 +51,7 @@ It does not keep the page source, cookies or any other header. Nothing is clicke
 
 ### 1c. Plugins and themes from the public page
 
-- **In issue mode:** the probe finds plugin and theme folder names from the asset addresses and the page's body classes, and the page builder (`probe/wp.js:48` to `:68`), and names the component of a failing file (`assetSource`, `probe/wp.js:71` onwards). It does **not** read versions. The slugs are saved in `probe.json` but nothing in the analysis uses them: the known-conflicts check works on the plugins found in the code (`issue/kb.js:12` to `:15`, `ctx.installed`).
+- **In issue mode:** the probe finds plugin and theme folder names from the asset addresses and the page's body classes, and the page builder (`probe/wp.js:48` to `:68`), and names the component of a failing file (`assetSource`, `probe/wp.js:71` onwards). It does **not** read versions. The slugs are saved in `probe.json` (`context.plugins`, `context.themes`) and still nothing uses them: with a site folder the known-conflicts check works on the plugins found in the code (`issue/kb.js:12` to `:15`, `ctx.installed`). **Since S3b and S3c, in a run WITHOUT site files** `issue/live-signals.js` reads names and `?ver=` versions from the addresses of the files the page loaded (not from these stored names), and `issue/live-conflicts.js` matches the names against three known conflicts (REPORT-SPEC 4.0a).
 - **In the older scan only** (`npm run guard -- scan <project>` with an address): `lib/live.js` reads plugin versions from `?ver=` (`lib/live.js:117` to `:118`, with the note that it may be a cache number), the generator tag (`:123`), REST namespaces (`:133` to `:140`) and plugin `readme.txt` files (`:175`). It is not part of the question flow.
 
 ### 1d. A public `debug.log`
@@ -73,7 +73,7 @@ Case: a site folder with no code, a log and (second run) a live address, tested 
 | Group | Count | Which |
 |---|---|---|
 | Work without code (log) | 2 | cp-30 (memory and execution limits), cp-31 (missing PHP extensions). They read the log. |
-| Work without code (live page, with an address) | 7 | cp-38 white screen, cp-39 HTTP 5xx, cp-40, cp-41, cp-43, cp-44 and cp-45 (cp-45 is "Failed asset requests"). They can only give a result when the page probe ran to the end. With an address that answers 500 the probe stopped early: only 3 of the 7 gave a result (2 FAIL: cp-38 and cp-39, 1 ALSO NOTICED: cp-45); cp-40, cp-41, cp-43 and cp-44 stayed NOT CHECKED ("the live page probe stopped early"). |
+| Work without code (live page, with an address) | 7 | cp-38 white screen, cp-39 HTTP 5xx, cp-40, cp-41, cp-43, cp-44 and cp-45 (cp-45 is "Failed asset requests"). They give a result only when the page probe ran to the end (every planned page load completed, no stop); since S3a-fix (c611e59) a complete probe on a 200 page gives results (when this was written they were all NOT CHECKED, because the planned page loads were read in the wrong shape). With an address that answers 500 the probe stopped early: only 3 of the 7 gave a result (2 FAIL: cp-38 and cp-39, 1 ALSO NOTICED: cp-45); cp-40, cp-41, cp-43 and cp-44 stayed NOT CHECKED ("the live page probe stopped early"). |
 | Need code | 29 | "the site folder holds no code files, so no code was read" (`issue/checkpoints.js:32`) |
 | Only the older scan | 4 | "only the classic scan checks this" |
 | Not built yet | 11 | for example REST invalid JSON, `.htaccess`, cron, the real plugin load order |
@@ -84,7 +84,7 @@ The 53 are in `data/checkpoints.json` (generated from `docs/COVERAGE.md`).
 
 From the runs of 2026-11-17 (`~/pg-runs/s0/`):
 
-- The command **refuses** to start without a site folder: exit 2, "Missing required value: the site folder." (case e, thrown in `lib/wizard.js:116`, pinned by `selftest-plugin-guard.js:157`).
+- (Status: this section describes the runs of 2026-11-17. Without `--no-files` and without typing `none` the refusal below is still true; the two "Found while writing this" items were fixed in S1a, `2abfccc`, and S1b, `ee782f4`.) The command **refuses** to start without a site folder: exit 2, "Missing required value: the site folder." (case e, thrown in `lib/wizard.js:116`, pinned by `selftest-plugin-guard.js:157`).
 - With an empty folder and a log: "VERDICT: No confirmed breaking cause was found. How sure we are: not very.", "Looked at: your log. Not looked at: the live page, the code, a throwaway test copy.", "NOT TESTED ON A COPY", "NOT TESTED: what this report says comes from reading your log.", "2 pass, 0 fail, 51 not checked", and the cause "defined twice (the log says so; no code file was read to show where)".
 - **Found while writing this:** the advanced command `issue investigate <id>` **crashes** when no folder is given ("Cannot read properties of undefined (reading 'components')", `lib/issue-cli.js:289`). The pipeline itself is written for a missing folder (`issue/evidence.js:91`, `issue/probe.js:156`), only this line does not handle it.
 - **Found while writing this:** with a live address and no code, the label still says "comes from reading your log" although the live page was also looked at (`issue/case-file.js`, `notTestedLabel` knows only the log and the code).
@@ -99,7 +99,7 @@ From the runs of 2026-11-17 (`~/pg-runs/s0/`):
 | **D** | address, description, screenshots, maybe a log text; **no folder** | Look at the live page (status, console errors, failed files, which plugins and theme the page loads), read the log and the screenshots, match what it saw against the known-conflict list | Level 2, "possible causes, not confirmed"; "Looked at: the live page, your log"; "Not looked at: the code, a test copy" | plugins, theme, what changed last, which page, since when |
 | **E** | only a description, or a log text | Read the text (log lines are certain about what the log says; prose is only a hint) | Level 2, very weak, says so in the first line | the address, a screenshot, the plugin list |
 
-Today only A, B and C exist, and each needs a site folder. D and E are not available (1g). The wording for D and E can reuse the "no code" rules of 2026-11-17: "Looked at" names only what was really read, checks that need code are "not checked", and a mismatch sentence says what the confirmation rests on.
+When this section was written only A, B and C existed, each with a site folder. Since S1 and S2 D and E exist as weak results (no site folder: type `none` or `--no-files`); see the build status at the end of section 7. The wording for D and E can reuse the "no code" rules of 2026-11-17: "Looked at" names only what was really read, checks that need code are "not checked", and a mismatch sentence says what the confirmation rests on.
 
 ## 3. The question phases (proposed)
 
@@ -168,7 +168,7 @@ Written for a person who is not a developer. Every question can be skipped with 
 |---|---|---|---|
 | S1 | Allow a run without a folder: fix `lib/issue-cli.js:289`, accept "no folder" in the command, and make "Looked at", the NOT TESTED label and the counts name only what was read (the live page counts) | a fixture run with only a description and a log; the same with a local address | 0.5 day |
 | S2 | The question phases in the terminal (phase 1, the branch, phase 4) | scripted answers for each branch, with and without a terminal | 0.5 to 1 day |
-| S3 | Live observations in the report: plugin and theme slugs with `?ver=` versions from the page, the generator tag, console warnings under "For a developer"; feed the slugs to the known-conflicts check as "possible" | a fixture site with known plugins and a known conflict | 1 day |
+| S3 (built as S3a, S3b, S3c; console warnings were not built) | Live observations in the report: plugin and theme slugs with `?ver=` versions from the page, the generator tag, console warnings under "For a developer"; feed the slugs to the known-conflicts check as "possible" | a fixture site with known plugins and a known conflict | 1 day |
 | S4 | The report layout for D and E: ranked "possible causes, not confirmed", a "What I could not do" box, "What you can give to go further" | golden report for a fixture; the wording scan | 0.5 to 1 day |
 | S5 | Site Health text and a pasted plugin list as the plugin source (names mapped by a fixed table, confirmed by the person) | parser tests with hostile text; the mapping table test | 0.5 day |
 | S6 | A public `debug.log` check with a GET (redacted, reported as exposure) | fixture server with and without a log; the redaction test | 0.5 day |
@@ -185,6 +185,8 @@ The order is S1, S2, S3, S4, then S5 to S7. D1 itself (this file) makes no code 
 | 1: description, screenshots, address (as before) | yes, unchanged |
 | 2: the branch | yes, as the typed answer `none` (not a yes/no question) |
 | 3a: with a folder | yes, as before |
-| 3b: plugin list (question 7b), theme (8b) | **no.** The plugin and theme questions move to S3 (nothing uses the answers yet, so asking them would be dishonest); the error-text question (9b) exists as the one log question |
+| 3b: plugin list (question 7b), theme (8b) | **no.** The plugin and theme questions move to S5, as the owner decided on 2026-11-20 (nothing uses the answers yet, so asking them would be dishonest); the error-text question (9b) exists as the one log question |
 | 4: summary and go | yes, for the no-files branch with a terminal |
 | S5 to S7 (Site Health text, pasted plugin list, error e-mail, Plugins-page screenshot) | no; they move to S5 to S7 as before |
+
+**S3 is built (2026-11-20; docs in S3-docs), all of it without site files and with no new request.** S3a-fix (`c611e59`): the probe's planned page loads are read in their real shape, so a complete probe gives live check results (before, every live check was NOT CHECKED "stopped early"). S3a (`4bc32b5`), S3a2 (`05da294`), S3a2-fix (`716993c`): the sentence "<N> of 7 live page checks gave a result ..." with the true reason, and the same reason on the live check rows after a stop. S3b (`0327d15`): plugin and theme names and versions and the WordPress version from what the probe already loaded. S3c (`050c1d4`) and S3c-fix (`688ee6d`): a plugin list matched by name against three known conflicts, "possible, not confirmed", level 2. The exact wording, where it shows and the known limits are in `docs/REPORT-SPEC.md` 4.0a. **Decisions of the owner for S3:** base page only (no `--pages` flag in the wizard); the public `debug.log` check stays in S6; the plugin and theme questions go to S5; console warnings are not in S3; no cache-folder source. Phases: phase 3b (plugin and theme questions) is still not built; phase 4 exists for the no-files branch.
