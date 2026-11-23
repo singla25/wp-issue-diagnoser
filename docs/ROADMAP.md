@@ -61,7 +61,7 @@ Last green full run: p-s0 on 2026-11-18 (HEAD 68e8f62). 76 suites (66 offline an
 | 3a-S3b: plugin, theme and WordPress version from what the probe already loaded (no site files, no new request) | 0327d15 |
 | 3a-S3c and S3c-fix: the plugins the page loaded matched by name against three known conflicts, "possible, not confirmed" | 050c1d4, 688ee6d |
 | CI-1 (timing wrapper outside the repository) and CI-2 (5xx retry delay 0 in two suites; offline 815 s to 714 s) | 55c5433 |
-| 3a-S3-docs: docs for S3 and CI (README, CLAUDE.md, INPUT-MODES, REPORT-SPEC, SAFETY, TESTING, HANDOFF rows 92 to 96, PROJECT-HISTORY, this roadmap) | see git log |
+| 3a-S3-docs: docs for S3 and CI (README, CLAUDE.md, INPUT-MODES, REPORT-SPEC, SAFETY, TESTING, HANDOFF rows 92 to 96, PROJECT-HISTORY, this roadmap) | 88b3049 |
 
 Push status: check with `git log origin/main..HEAD`. The owner pushes only a green state.
 
