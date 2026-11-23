@@ -111,7 +111,7 @@ const readJson = f => JSON.parse(fs.readFileSync(f, 'utf8'));
         ok(/Looked at: [^.\n]*the live page/.test(c.stdout) && /Not looked at: [^.\n]*the code/.test(c.stdout), 'the status line says the live page was looked at and the code was not');
         ok(!fs.existsSync(path.join(dirC, 'site-copy')), 'no site copy was made');
         const fC = fs.existsSync(path.join(dirC, 'result', 'findings.json')) ? readJson(path.join(dirC, 'result', 'findings.json')) : null;
-        ok(fC && fC.verdict.label === 'No confirmed breaking cause was found' && /Nothing that was checked points at a cause that could be confirmed/.test(fC.confidence_text) && fC.checkpoints.counts.pass === 7, 'S3a-fix (case c): the page was loaded and the 7 live checks passed, so the verdict is the plain "No confirmed breaking cause was found" with 7 pass (it was "Nothing could be checked" while a wrong planned-loads test made every live check NOT CHECKED)');
+        ok(fC && fC.verdict.label === 'The live page checks found nothing wrong' && /Only the public page at the address was loaded, without logging in\./.test(fC.confidence_text) && fC.checkpoints.counts.pass === 7, 'S3a-fix and S4c (case c): the page was loaded and the 7 live checks passed, so the label is "The live page checks found nothing wrong" and the sentence says what was looked at, with 7 pass (it was "Nothing could be checked" while a wrong planned-loads test made every live check NOT CHECKED)');
         ok(fC && !(fC.hypotheses || []).some(h => ['CONFIRMED', 'REPRODUCIBLE'].includes(h.status)), 'no cause is CONFIRMED or REPRODUCIBLE without any site files');
     } finally { server.close(); }
 
@@ -178,7 +178,7 @@ const readJson = f => JSON.parse(fs.readFileSync(f, 'utf8'));
 
     group('S1b-fix (d, e): status 200 and nothing failed (case c) and a description only (case a) are unchanged');
     const OK = await runCase(200, OK200, ['--no-files']);
-    ok(OK.f && OK.f.verdict.label === 'No confirmed breaking cause was found' && OK.f.confidence_text === 'How sure we are: not very. Nothing that was checked points at a cause that could be confirmed.', `S3a-fix (case c) text is exactly: "${OK.f && OK.f.confidence_text}"`);
+    ok(OK.f && OK.f.verdict.label === 'The live page checks found nothing wrong' && OK.f.confidence_text === 'How sure we are: not very. Only the public page at the address was loaded, without logging in. What was not looked at is listed below. This does not mean the site is fine, and it does not mean your problem is not real.', `S3a-fix and S4c (case c) text is exactly: "${OK.f && OK.f.confidence_text}"`);
     ok(fA && fA.verdict.label === 'Nothing could be checked' && fA.confidence_text === 'How sure we are: not at all. Nothing could be checked, so this report does not say whether your site is healthy: no site files were given, no log was read and no live check was run.', 'case (a) text is exactly the S1b text');
 
     group('S1b-fix (f): WITH a site folder and failing checks the old verdict text is exactly the old text');
@@ -449,7 +449,7 @@ const readJson = f => JSON.parse(fs.readFileSync(f, 'utf8'));
     const CF = await confCase(pageOf([['elementor', '3.18.2'], ['litespeed-cache', '6.0']]), 200, ['--no-files']);
     ok(CF.f && CF.f.live_conflicts && J(CF.f.live_conflicts.lines) === J([wantEl]), 'S3c: a page that loads files of elementor and litespeed-cache: findings.json live_conflicts.lines is the exact entry sentence');
     ok(CF.f && seeOf(CF).includes(wantEl) && CF.r.stdout.includes(wantEl) && !CF.f.confidence_text.includes('Possible, not confirmed') && !CF.f.verdict.label.includes('Possible'), 'S3c: the line is under WHAT YOU SEE and in the terminal text, and NOT in the verdict line or its sentence');
-    ok(CF.f && CF.f.verdict.label === 'No confirmed breaking cause was found' && CF.f.confidence_text === 'How sure we are: not very. Nothing that was checked points at a cause that could be confirmed.' && S200.f.verdict.label === CF.f.verdict.label && S200.f.confidence_text === CF.f.confidence_text, 'S3c: the verdict label and "how sure we are" are exactly those of a 200 page with no match');
+    ok(CF.f && CF.f.verdict.label === 'The live page checks found nothing wrong' && CF.f.confidence_text === 'How sure we are: not very. Only the public page at the address was loaded, without logging in. What was not looked at is listed below. This does not mean the site is fine, and it does not mean your problem is not real. A possible conflict is listed below; it is not confirmed.' && S200.f.verdict.label === CF.f.verdict.label && `${S200.f.confidence_text} A possible conflict is listed below; it is not confirmed.` === CF.f.confidence_text, 'S3c and S4c: the verdict label and "how sure we are" are those of a 200 page with no match, plus the one sentence about the possible conflict');
     ok(CF.f && !(CF.f.hypotheses || []).some(h => ['CONFIRMED', 'REPRODUCIBLE'].includes(h.status)) && CF.f.checkpoints.counts.pass === S200.f.checkpoints.counts.pass && CF.f.checkpoints.counts.not_checked === S200.f.checkpoints.counts.not_checked, 'S3c: no hypothesis, no CONFIRMED or REPRODUCIBLE, and the check counts are the same as without a match');
     const ONE = await confCase(pageOf([['elementor', '3.18.2'], ['woo-sample', '8.0']]), 200, ['--no-files']);
     ok(ONE.f && ONE.f.live_conflicts === undefined && !/Possible, not confirmed: the page loads files of/.test(ONE.r.stdout + ONE.files), 'S3c: only one of the two plugins: no live_conflicts field and no line');
@@ -529,6 +529,47 @@ const readJson = f => JSON.parse(fs.readFileSync(f, 'utf8'));
     ok(W429.f && !NEWSTR.test(four(W429)) && !/Repeated rate limiting \(1 x HTTP 429\)\)\./.test(W429.f.confidence_text), 'S4: with a site folder a 429 stop: none of the new wording');
     const W500c = await confCase(pageOf([['elementor', '3.18.2'], ['litespeed-cache', '6.0']]), 500, ['--root', siteR, '--no-replica']);
     ok(W500c.f && !NEWSTR.test(four(W500c)) && W500c.f.live_conflicts === undefined, 'S4: with a site folder a 500 page with the same plugins: none of the new wording');
+
+    // ---- S4c: a quiet live page (200, no failed live check), no site files: what was looked at, never a clean bill of health ----
+    group('S4c: a quiet live page');
+    const QT = 'How sure we are: not very. Only the public page at the address was loaded, without logging in. What was not looked at is listed below. This does not mean the site is fine, and it does not mean your problem is not real.';
+    const NT = 'How sure we are: not very. A check noticed something that is not tied to the problem you reported (see below). Nothing is confirmed.';
+    const CT = ' A possible conflict is listed below; it is not confirmed.';
+    const OLDQ = 'How sure we are: not very. Nothing that was checked points at a cause that could be confirmed.';
+    const sumOk = (r, txt) => r.f && JSON.stringify(r.f.summary).includes(txt) && !JSON.stringify(r.f.summary).includes('No confirmed breaking cause was found.') && !JSON.stringify(r.f.summary).includes('Nothing else stood out');
+    ok(S200.f && S200.f.verdict.label === 'The live page checks found nothing wrong' && S200.f.confidence_text === QT && S200.f.live_conflicts === undefined && S200.f.checkpoints.counts.fail === 0 && S200.f.live_checks.gave_a_result === 7, 'S4c: a 200 page, 7 of 7 gave a result, none failed, no conflict line: the label "The live page checks found nothing wrong" and the sentence');
+    ok(S200.r.stdout.includes('VERDICT: The live page checks found nothing wrong') && S200.r.stdout.includes(QT) && S200.files.includes('The live page checks found nothing wrong') && S200.files.split(QT).length >= 3 && sumOk(S200, QT), 'S4c: the same label and sentence in the terminal VERDICT line, issue.html and findings.json (verdict, confidence_text, summary); the old headline and "Nothing else stood out." are gone');
+    ok(CF.f && CF.f.live_conflicts && CF.f.confidence_text === QT + CT && CF.r.stdout.includes(QT + CT) && sumOk(CF, QT + CT), 'S4c: with a conflict line the sentence ends with "A possible conflict is listed below; it is not confirmed.", in all places');
+    const customCase = async (handler, extraArgs) => {
+        const sv = http.createServer(handler); await new Promise(r => sv.listen(0, '127.0.0.1', r));
+        const before = issueDirs();
+        try {
+            const r = await runAsync([...base, ...extraArgs, '--url', `http://127.0.0.1:${sv.address().port}/`, '--env', 'local']);
+            const dir = issueDirs().filter(n => !before.includes(n)).map(n => path.join(tmp, 'issues', n))[0] || path.join(tmp, 'none');
+            const f = fs.existsSync(path.join(dir, 'result', 'findings.json')) ? readJson(path.join(dir, 'result', 'findings.json')) : null;
+            const files = ['ISSUE-REPORT.md', 'issue.html', 'findings.json'].map(n => { try { return fs.readFileSync(path.join(dir, 'result', n), 'utf8'); } catch { return ''; } }).join('\n');
+            return { r, f, files };
+        } finally { sv.close(); }
+    };
+    const missingScript = html => (q, res) => { if (q.url === '/') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(html); } if (q.url === '/missing.js') { res.writeHead(404, { 'Content-Type': 'text/plain' }); return res.end('nope'); } res.writeHead(200, { 'Content-Type': 'application/javascript' }); res.end('/* ok */'); };
+    const PAGE404 = '<!doctype html><html><head><title>Fixture</title><script src="/missing.js"></script></head><body><h1>Fixture shop</h1><p>The page works and has enough text to look like a real page.</p></body></html>';
+    const N1 = await customCase(missingScript(PAGE404), ['--no-files']);
+    ok(N1.f && N1.f.checkpoints.counts.fail === 0 && N1.f.checkpoints.counts.also_noticed >= 1 && N1.f.verdict.label === 'No confirmed breaking cause was found' && N1.f.confidence_text === NT && N1.r.stdout.includes(NT) && N1.files.split(NT).length >= 3 && sumOk(N1, NT), 'S4c: a 200 page with only "also noticed" rows (a script that is a 404): the "A check noticed something ..." sentence, in all places; the label stays');
+    const N2 = await customCase(missingScript(pageOf([['elementor', '3.18.2'], ['litespeed-cache', '6.0']]).replace('</head>', '<script src="/missing.js"></script></head>')), ['--no-files']);
+    ok(N2.f && N2.f.live_conflicts && N2.f.checkpoints.counts.also_noticed >= 1 && N2.f.confidence_text === NT + CT, 'S4c: also-noticed rows together with a conflict line: the same sentence plus the conflict sentence');
+    const qv = plain.quietPageVerdict;
+    ok(J(qv({ gave: 7, total: 7 })) === J({ label: 'The live page checks found nothing wrong', text: QT }) && qv({ gave: 5, total: 7 }).label === 'The live page checks that ran found nothing wrong (5 of 7)' && qv({ gave: 5, total: 7 }).text === QT && qv({ gave: 5, total: 7, conflict: true }).text === QT + CT && J(qv({ gave: 6, total: 7, noticed: 1 })) === J({ label: 'No confirmed breaking cause was found', text: NT }) && qv({ gave: 6, total: 7, noticed: 2, conflict: true }).text === NT + CT, 'S4c: the sentence builder, every case: 7 of 7; fewer than 7 gave a result and none failed ("N of 7"; not reachable in a real run today, a pass needs a complete probe); noticed; each with and without a conflict');
+    ok(qv({ gave: 7, total: 7, symptomSeen: true }) === null && qv({ gave: 6, total: 7, noticed: 1, symptomSeen: true }) === null, 'S4c: when the report already says the problem was seen on the site (the oracle), no quiet-page wording is used: the old verdict stays');
+    const LC = await runLogCase(['--log', LOG_CLEAN], { code: 200, body: OK200 });
+    ok(LC.f && LC.f.verdict.label === 'No cause could be named from the log' && !/found nothing wrong/.test(LC.r.stdout), 'S4c: a log was given: the log verdict is used, not the quiet page label');
+    group('S4c: a run WITH a site folder is byte for byte as before');
+    const WQ = await runCase(200, OK200, ['--root', siteR, '--no-replica']);
+    const NEWQ = /found nothing wrong|Only the public page at the address|A check noticed something that is not tied/;
+    ok(WQ.f && WQ.f.verdict.label === 'No confirmed breaking cause was found' && WQ.f.confidence_text === OLDQ && !NEWQ.test(four(WQ)), 'S4c: with a site folder a quiet 200 page: the old label and sentence, none of the new wording');
+    const WN = await customCase(missingScript(PAGE404), ['--root', siteR, '--no-replica']);
+    ok(WN.f && WN.f.verdict.label === 'No confirmed breaking cause was found' && WN.f.confidence_text === OLDQ && !NEWQ.test(four(WN)), 'S4c: with a site folder a 200 page with a failed script: the old text, none of the new wording');
+    const WC = await confCase(pageOf([['elementor', '3.18.2'], ['litespeed-cache', '6.0']]), 200, ['--root', siteR, '--no-replica']);
+    ok(WC.f && WC.f.confidence_text === OLDQ && !NEWQ.test(four(WC)) && WC.f.live_conflicts === undefined, 'S4c: with a site folder a 200 page with a matching pair: the old text, no conflict line, none of the new wording');
 
     const site3 = path.join(tmp, 'site3'); fs.mkdirSync(path.join(site3, 'wp-content', 'plugins', 'demo'), { recursive: true }); fs.mkdirSync(path.join(site3, 'wp-content', 'themes', 't'), { recursive: true }); fs.writeFileSync(path.join(site3, 'wp-content', 'plugins', 'demo', 'demo.php'), '<?php\n/* Plugin Name: Demo */\n');
     const W200 = await runCase(200, OK200, ['--root', site3, '--no-replica']), W500 = await runCase(500, CRIT, ['--root', site3, '--no-replica']);

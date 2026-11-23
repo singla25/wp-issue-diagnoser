@@ -384,6 +384,14 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
             f.verdict = { ...f.verdict, label: plainNames.NOTHING_CHECKED_LABEL };
             f.confidence_text = plainNames.zeroChecksSentence({ hasRoot: !!issue.root, hasCode: !!issue.root && codeFilesRead > 0, hasLog: !!((lg.files || []).length || (lg.entries || []).length), probeRan: !!ran.probe, total: cpRows.length, liveStop: !issue.root && liveSum ? liveSum : null });
         }
+        // S4c, NO site files, no log: the live page was reachable, no live check failed, at least one live check gave a result: say what was looked at, never "no cause" as a clean result
+        const qv = !issue.root && !logOnly && liveSum && liveSum.gave > 0 && failedLive === 0 && !errStatuses.length && f.verdict.label === 'No confirmed breaking cause was found' ? plainNames.quietPageVerdict({ gave: liveSum.gave, total: liveSum.total, noticed: cpCounts.also_noticed || 0, conflict: !!f.live_conflicts, symptomSeen: f.verdict.symptom_reproduced === 'yes' }) : null;
+        if (qv) {
+            f.verdict = { ...f.verdict, label: qv.label }; f.confidence_text = qv.text;
+            const NEW_Q = qv.text;
+            const rewriteQ = v => typeof v === 'string' ? v.split('No confirmed breaking cause was found.').join(NEW_Q).replace(/\n?Nothing else stood out\./g, '') : Array.isArray(v) ? v.filter(x => x !== 'Nothing else stood out.').map(rewriteQ) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, rewriteQ(x)])) : v;
+            f.summary = rewriteQ(f.summary);
+        }
         // the Limits in reader words (findings.json `limits` keeps the internal text): the first sentence says what "confirmed" means and whether a test copy was used, from the data
         f.limits_text = [limitsFirst(ran.sandbox ? 'ran' : sbx && sbx.could_not_run ? 'failed' : 'none'), ...f.limits.slice(1)];
     }
