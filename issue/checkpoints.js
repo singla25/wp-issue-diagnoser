@@ -179,9 +179,7 @@ const SAME_AS = { 'content-hooks': 'hook-same-priority', 'php-version-code': 're
 
 // ---------------------------------------------------------------- the evaluation
 // inp: { work, validation, ran:{probe,sandbox}, hasRoot, issue?, checkpoints? } -> [{ id, title, result, reason }] for EVERY checkpoint, in id order
-// the number of page loads the probe planned: a plain number (older data) or the object probe.json really holds ({ pages, viewports, loads }).
-// Anything else (missing, zero, not a whole number) is null: the probe is then NOT "complete", so a quiet result is NOT CHECKED, never a pass.
-const plannedLoads = v => { const n = typeof v === 'number' ? v : v && typeof v === 'object' ? v.loads : null; return Number.isInteger(n) && n > 0 ? n : null; };
+const { plannedLoads } = require('./probe-plan');   // the planned page loads (a number or the probe.json object); one shared helper
 function evaluate(inp = {}) {
     const input = { work: inp.work || {}, validation: inp.validation || null, ran: inp.ran || {}, hasRoot: !!inp.hasRoot, hasCode: inp.hasCode !== false, codeFound: Number(inp.codeFound) || 0, issue: inp.issue || null, logOnly: !!inp.logOnly };
     const tie = inp.tie ? makeTie(inp.tie) : null;

@@ -15,6 +15,7 @@ const schema = require('../lib/schema');
 const oracleMod = require('./oracle');
 const imgdiff = require('./imgdiff');
 const ownership = require('../lib/ownership');
+const { observedPlanned } = require('./probe-plan');
 
 const WORKER = path.join(__dirname, '..', 'probe', 'worker.js');
 const VIEWPORTS = { desktop: [1440, 900], laptop: [1280, 800], tablet: [768, 1024], mobile: [390, 844], 'small-mobile': [375, 812] };
@@ -214,7 +215,7 @@ async function run(id, { root = null, options = {}, env = process.env, imageFile
     if (pl.expected && !raw.image_diff && !raw.protection) result.image_diff = { ...(result.image_diff || {}), mode: 'probe', ok: false, reason: 'the page for the expected image was not loaded' };
 
     const loaded = pagesFull.filter(p => p.loaded);
-    const plannedLoads = typeof raw.planned === 'number' ? raw.planned : pl.planned; // pages already seen answering 5xx are not loaded again
+    const plannedLoads = observedPlanned({ planned: result.planned, pages: pagesFull }); // pages already seen answering 5xx are not loaded again: the same number the oracle is recomputed with (issue/probe-plan.js)
     const probeStatus = raw.unreachable ? 'FAILED' : raw.protection ? 'BLOCKED' : loaded.length ? 'PASSED' : 'FAILED';
     const reqs = raw.governor ? raw.governor.requests_made : 0;
     steps.push(step('live-probe', 'Live page probe', probeStatus,
