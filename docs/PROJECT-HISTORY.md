@@ -14,7 +14,7 @@ Written 2026-11-18 for a new chat that knows nothing. Every fact has its source 
 | `npm run guard -- issue new / investigate / show / list / open / index / cleanup` | Issue mode in steps. |
 | `npm run guard -- issue retest <id> --root <fixed copy> [--sandbox]` | Repeats the oracle after a fix on a COPY. Only this can set FIXED_VERIFIED. |
 | `npm run guard -- doctor`, `scan --root .`, `npm run demo` | Prerequisite check, the older classic scan, a worked example. |
-| `npm test`, `npm run test:offline`, `scripts/run-full.sh <label>` | All suites; the offline suites (70); the ONE full run on a snapshot with a Docker baseline check [CLAUDE.md; TESTING]. |
+| `npm test`, `npm run test:offline`, `scripts/run-full.sh <label>` | All suites; the offline suites (71); the ONE full run on a snapshot with a Docker baseline check [CLAUDE.md; TESTING]. |
 
 **New since 2026-11-18:** `--no-files` runs the wizard with NO site folder (description, screenshots and an address only). It is refused together with `--root`, `--sandbox` and `--db-dump`; `--log <file>` is allowed with it since S1d (7a9952a). Without either `--root` or `--no-files` the old refusal stays: "Missing required value: the site folder." [HANDOFF 87; git 2abfccc, ee782f4].
 
@@ -66,6 +66,7 @@ Dates are commit dates [git]. Hashes are from this repository's history; HANDOFF
 | 2026-11-17 | S0 and S0b: recovery keys, nonces, cookies, passwords, tokens and URL passwords are masked; a last pass over the report files | f1a794c, 83d952b, f49a796, 0053fd9, e130f73 | New suite `selftest-redact` (63 checks); the extra review of 83d952b then found four real defects (D1 to D4) [HANDOFF 81 to 83; history]. |
 | 2026-11-18 | S0c: the four defects fixed (retest compares masked pages; probe output masked and fail closed; whole-run masks; JSON, colon and PHP-dump forms) | a490e22, 68e8f62 | `selftest-redact` grew to 181 checks; `test:offline` 4354 PASS, 0 FAIL, 3 SKIP [HANDOFF 84]. |
 | 2026-11-18 | Full run `p-s0` and the baseline | 0c27ded | Valid: 76 suites, 4692 PASS, 0 FAIL, 6 SKIP, 38 min 56 s, Docker 5/0/11 before and after [TESTING; history]. |
+| 2026-11-23 | Full run `p-s4` after S4 | the S4-docs commit | Valid: 81 suites, 5466 PASS, 0 FAIL, 6 SKIP, 47 min 4 s, Docker 5/0/11 before and after; per-suite times are not in the log [TESTING]. |
 | 2026-11-18 | M1: roles, models, step size and token budget (a second reviewer agent for docs-only diffs) | 809f1ed | Docs and one agent file; the light reviewer found 5 wording defects in two rounds [HANDOFF 85]. |
 | 2026-11-18 | S0d: masking corpus test (173 secret forms, 137 benign texts) and the short-value rule; exact exception for the database error text | 3a85421, a9528dc, f0badde, 9ea0480, 020c778 | `test:offline` 4670 PASS, 0 FAIL, 2 SKIP [HANDOFF 86; history]. |
 | 2026-11-18 | S1a, S1b, S1c: `--no-files`, honest wording without a site folder, docs | 2abfccc, ee782f4, 9383889, 5c2174e | `test:offline` 4717 PASS, 0 FAIL, 2 SKIP [HANDOFF 87]. |
@@ -83,6 +84,12 @@ Dates are commit dates [git]. Hashes are from this repository's history; HANDOFF
 | 2026-11-20 | S3c: the plugins whose files the page loaded matched by name against three known conflicts, "possible, not confirmed" (`live_conflicts`) | 050c1d4 | `test:offline` 5041 PASS; new suite `selftest-live-conflicts` [HANDOFF 95] |
 | 2026-11-20 | S3c-fix: only names that the entry's claims back, pair entries first, the lead-in "What the source says:", data text "the two plugins" to "the plugins" | 688ee6d | `test:offline` 5063 PASS, 0 FAIL, 2 SKIP; 11 existing assertions changed with approval; deep review rounds 2 (1 defect fixed) and 3 PASS [HANDOFF 95] |
 | 2026-11-23 | CI-2: `PG_PROBE_5XX_RETRY_DELAY_MS=0` in the environment of two suites that serve 5xx pages; CI-1: a timing wrapper outside the repo | 55c5433 | offline chain 815.0 s to 714.4 s, the same 5063 PASS, 0 FAIL, 2 SKIP and the same check lines; review PASS [HANDOFF 96] |
+| 2026-11-23 | S3-docs: docs for S3 and CI; roadmap hash | 88b3049, a590893 | docs commits; the figures are in the rows above [HANDOFF 92 to 96; ROADMAP] |
+| 2026-11-23 | V1: one place for the planned page loads (`issue/probe-plan.js`); the oracle gets the number the probe stored (`validate.js` no longer passes the planned object) | 2a3a189 | clean HEAD check: `test:offline` 5086 PASS, 0 FAIL, 2 SKIP, 71 suites (owner figure); new suite `selftest-probe-plan` (23 checks) [HANDOFF 97] |
+| 2026-11-23 | S4ab: honest verdict after a stop, for a 4xx page (the code is named), a 500 page with a conflict line, a 4xx page with a log; one live line instead of two | b44ab8a | `selftest-no-files` groups S4ab; total not recorded; no run figure exists for b44ab8a alone [HANDOFF 98] |
+| 2026-11-23 | S4ab-fix: a site that could not be reached gives a short plain reason, without the raw error text and the address | 8818ff8 | `test:offline` 5114 PASS, 0 FAIL, 2 SKIP (owner figure) [HANDOFF 99] |
+| 2026-11-23 | S4c: a quiet live page (no site files, no log) says what was looked at: "The live page checks found nothing wrong", never a clean bill of health; "also noticed" sentence | f576c7f | `test:offline` 5125 PASS (owner figure) [HANDOFF 99] |
+| 2026-11-23 | S4c-fix: "listed in this report", the page count ("Only <n> public pages"), the noticed sentence says why it could not be linked | 79ae3de | `test:offline` 5129 PASS, 0 FAIL, 2 SKIP, all exit 0 (owner figures); last result of the offline chain, not a full run [HANDOFF 99] |
 
 ## 3. Decision log
 
@@ -109,21 +116,25 @@ Decisions 1 to 19 and 21 to 27 are recorded as "approved by the owner" without a
 | "ONE agent at a time" means one agent that edits files, runs tests or commits; read-only helpers may run in parallel; reviewer-deep and reviewer-light; 3 review rounds for security code, 2 otherwise; step sizes S, M, L | Cost and safety | 2026-11-18 | [HANDOFF 85; WORKFLOW] |
 | After a restart or in a new session do not start the next roadmap row; wait for the owner's prompt | The owner decides the order | 2026-11-18 | [CLAUDE.md] |
 | S1 split into S1a, S1b, S1c; `--no-files` with `--env live` gets no new rule | Size L became three steps | 2026-11-18 | [HANDOFF 87] |
+| A quiet live page (no site files, no log, page loaded, no failed check) is never called "nothing wrong" as a clean result: the label and sentence say what was looked at | One loaded page is not a site check | owner's S4 wording list (ROADMAP, since batch commit 0053fd9); built 2026-11-23 | [ROADMAP S4 point 8; HANDOFF 99; REPORT-SPEC 4.0a] |
 
 ## 4. Current status
 
-- **Last green full run:** `p-s0`, 2026-11-18, HEAD 68e8f62: 76 suites (66 offline and 10 Docker), 4692 PASS, 0 FAIL, 6 SKIP, 38 min 56 s; Docker 5/0/11 before and after; no restart [TESTING; ROADMAP]. The 6 SKIPs are loud: two git checks of the snapshot, the hints suite in standalone mode, PHP 7.4, 8.0 and 8.1 images.
-- **Since that run:** M1, S0d, S1, S1b-fix, S1d, S1d-fix, S2, S3 (S3a-fix, S3a, S3a2, S3a2-fix, S3b, S3c, S3c-fix) and CI-2 are covered by `test:offline` only (70 offline suites; last result 5063 PASS, 0 FAIL, 2 SKIP, 2026-11-23) [HANDOFF 85 to 96]. A new full run is still to be done after S4 [IM section 7].
-- **Pushed:** the owner pushed up to commit b30e725 (S2 and S2-docs; the remote-tracking branch points there, as last fetched) [git]. **Committed and not pushed:** the 8 later commits c611e59, 4bc32b5, 05da294, 716993c, 0327d15, 050c1d4, 688ee6d and 55c5433, and the S3-docs commits (see git log) [git].
-- **In progress:** nothing is running. S3 and CI-1 and CI-2 are finished; the Coder waits for the owner's next prompt (next: S4) [CLAUDE.md; HANDOFF 92 to 96].
+- **Last green full run:** `p-s4`, 2026-11-23, HEAD 79ae3de (not pushed): 81 suites (71 offline and 10 Docker), 5466 PASS, 0 FAIL, 6 SKIP, 47 min 4 s; Docker 5/0/11 before and after; no restart [TESTING; ROADMAP]. Before it: `p-s0`, 2026-11-18, 76 suites, 4692 PASS, 38 min 56 s. The 6 SKIPs are loud: two git checks of the snapshot, the hints suite in standalone mode, PHP 7.4, 8.0 and 8.1 images.
+- **Since that run:** M1, S0d, S1, S1b-fix, S1d, S1d-fix, S2, S3 (S3a-fix, S3a, S3a2, S3a2-fix, S3b, S3c, S3c-fix), CI-2, V1 and S4 (S4ab, S4ab-fix, S4c, S4c-fix) are covered by `test:offline` only (71 offline suites; last result 5129 PASS, 0 FAIL, 2 SKIP, 2026-11-23, at 79ae3de; owner figures, not a full run) [HANDOFF 85 to 99]. The full run `p-s4` after S4 is valid: 81 suites, 5466 PASS, 0 FAIL, 6 SKIP [TESTING].
+- **Pushed:** the owner pushed up to commit b30e725 (S2 and S2-docs; the remote-tracking branch points there, as last fetched) [git]. **Committed and not pushed:** everything after b30e725: c611e59 to 55c5433, the S3-docs commits 88b3049 and a590893, V1 (2a3a189) and S4 (b44ab8a, 8818ff8, f576c7f, 79ae3de) [git].
+- **In progress:** nothing is running. S3, V1, S4 and CI-2 are finished in code and docs; the Coder waits for the owner's next prompt (next: the owner's real-site runs) [CLAUDE.md; HANDOFF 92 to 99].
 
 ## 5. What is left (roadmap rows in order) [ROADMAP]
 
 | Row | Task | Status |
 |---|---|---|
-| 3a | No-code mode, part 1: S4 report layout for modes D and E, then ONE full run | S0 to S0d, S1a to S1d, S2 and S3 done (S3 not pushed); S4 waiting |
-| 3b | No-code mode, part 2: S5 Site Health text and pasted plugin list, S6 public debug.log check, S7 error e-mail text and Plugins-page screenshot | waiting for 3a |
-| 4 | Real-site runs by the owner on 2 or 3 real sites, then review | waiting for 3a and 3b |
+| 3a | No-code mode, part 1: S4 report layout for modes D and E, then ONE full run | S0 to S0d, S1a to S1d, S2, S3 and S4 done in code (not pushed); the full run after S4 (`p-s4`) is valid; S4 point 7 (the "Repeated" label, `probe/safety.js:91`) still open |
+| 3b | No-code mode, part 2: S5 Site Health text and pasted plugin list, S6 public debug.log check, S7 error e-mail text and Plugins-page screenshot | waiting (after the owner's real-site runs) |
+| 4 | Real-site runs by the owner on 2 or 3 real sites, then review | next, the owner's step |
+| 4a | Masking of e-mail addresses, IP addresses and the website address in the reports (the address and the raw step text are unmasked now; see section 6) | own step, not started |
+| 4b | The "Repeated rate limiting (1 x HTTP 429)" label at `probe/safety.js:91` | own small step (a safety file), not started |
+| CI-C, CI-D, CI-E | Timing: Docker suites with delay 0, a parallel offline runner, a direct `node` loop (ROADMAP) | open, not started |
 | 5a | C6: docs leftovers, naming, GET-only wording, git-skip message, comments | waiting |
 | 5b | C7: clean-checkout test replaces the isolated-copy test; hints suite for standalone mode; Stage 2 messages | waiting |
 | 5c | C8: remove the local project name from tests; check files and history for real client names | waiting |
@@ -143,9 +154,13 @@ Decisions 1 to 19 and 21 to 27 are recorded as "approved by the owner" without a
 - **Test chain:** the `isolated-copy` suite is left out of the chain until C7 [CLAUDE.md; HANDOFF 69].
 - **Probe:** the live probe sends only GET requests, never logs in, and stops at the first 429 or challenge [CLAUDE.md].
 - **Wizard, no-files branch (S2):** with exactly one site found, the "Use it?" question does not show the `none` hint (typing `none` still works, and the hint shows after `n`); the plugin and theme questions are not asked yet (they go to S5, owner decision 2026-11-20) [HANDOFF 91, 93].
-- **Fixed in S3a-fix (c611e59): the `planned` shape.** `issue/checkpoints.js` compared the loaded pages with `probe.json` `planned`, which holds an object (`issue/probe.js:178`), so every live check on a complete probe was NOT CHECKED "stopped early"; the helper `plannedLoads` now reads both shapes. **Still open:** `issue/validate.js:107` passes `probe.planned || probe.pages.length` to the oracle, so the oracle never sees "partial" (a plan step is next) [HANDOFF 92].
+- **Fixed in S3a-fix (c611e59): the `planned` shape.** `issue/checkpoints.js` compared the loaded pages with `probe.json` `planned`, which holds an object (`issue/probe.js:178`), so every live check on a complete probe was NOT CHECKED "stopped early"; the helper `plannedLoads` now reads both shapes. **Fixed in V1 (2a3a189):** `issue/validate.js` passed `probe.planned || probe.pages.length` to the oracle, so the oracle never saw "partial"; it now uses `observedPlanned` (`issue/probe-plan.js`) [HANDOFF 92, 97].
 - **No-files live page report (S3):** the limits are in `docs/REPORT-SPEC.md` 4.0a: only the loaded page; files from another host (a CDN) are not read; a plugin that loads nothing is not shown; versions can be cache numbers; a conflict line needs both plugins to load files and never says what caused the problem; fewer matches on purpose for names the entry claims do not back; the 6 page-comment samples are unverified on a live site [HANDOFF 94, 95].
 - **Log without site files:** a leading space in the file name, a trailing `~` and a hard link are not caught by the name rule; `env.log` is refused (accepted false refusal); a log is read as a file path only (no pasted text); the masking is best effort [SAFETY 6; HANDOFF 90].
+- **Not masked in the reports (known, not changed):** the website address and the raw step text (`issue/probe.js:222`, `lib/plain-names.js:143`) appear as they are in `ISSUE-REPORT.md`, `issue.html`, the steps of `findings.json`, `evidence.json` and `probe/result.json`; the address alone is also in `probe.json`, `issue.json` and `issue.md`. Replace the address and any client name by hand before sharing a report. Step 4a is the masking step [HANDOFF 92, 93; SAFETY 6].
+- **Wording (known, not changed):** `probe/safety.js:91` writes "Repeated rate limiting (1 x HTTP 429)" for one 429 (step 4b) [HANDOFF 93, 99].
+- **Quiet live page (S4c):** "The live page checks found nothing wrong" is said only for what ran; a probe of one page is the common case, so the report says "Only the public page at the address was loaded" and lists what was not looked at [REPORT-SPEC 4.0a; HANDOFF 99].
+- **What is NOT built yet:** masking of e-mail, IP and website address (4a); the "Repeated" label (4b); plugin and theme questions (S5); the Site Health text and the pasted plugin list (S5); the public `debug.log` check (S6); the error e-mail text and the Plugins-page screenshot (S7); console warnings and the cache-folder source for the live checks (not built in S3; the owner decided there is no cache-folder source, HANDOFF 95); CI-C, CI-D, CI-E (timing, ROADMAP) [ROADMAP; HANDOFF 93, 95].
 
 ## 7. Where to find things
 

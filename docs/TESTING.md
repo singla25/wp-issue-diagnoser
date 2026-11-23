@@ -3,7 +3,7 @@
 ## The commands
 
 - `npm test` runs every suite: `npm run test:offline`, then `npm run test:docker`. It stops at the first failing suite.
-- `npm run test:offline`: 70 suites that need no Docker (pure logic, a fake `docker`, fixture sites on 127.0.0.1, the browser report checks, the docs and hygiene checks).
+- `npm run test:offline`: 71 suites that need no Docker (pure logic, a fake `docker`, fixture sites on 127.0.0.1, the browser report checks, the docs and hygiene checks). The newest one is `selftest:probe-plan` (V1, `scripts/selftest-probe-plan.js`, the planned page loads).
 - `npm run test:docker`: the 10 suites that start real containers (`selftest:issue-sandbox-docker`, `issue-resolve-docker`, `issue-verify-docker`, `6a-docker`, `6b-docker`, `6c1-docker`, `6c2-docker`, `6d1-docker`, `6d2-docker`, `second-site-docker`). When Docker is not usable they skip, loudly (a SKIP line says why). They need the sandbox images from `npm run setup-sandbox`.
 - One suite: a script named `selftest:` plus the suite name (the names are in `package.json`), for example `npm run selftest:docs` or `npm run selftest:hygiene`. Each suite is a standalone script, `scripts/selftest-<name>.js`.
 
@@ -35,10 +35,12 @@ A run is **valid** only if `test.exit` says `test exit 0` AND the Docker state a
 
 ## The baseline (latest valid full run)
 
-Run `p-s0`, 2026-11-18, on the working tree after the S0c redact change (HEAD `68e8f62`; snapshot tree `0123eab`), valid: `test exit 0` and Docker back at 5/0/11 (5 containers, 0 labelled, 11 volumes, before and after). The machine was not restarted during the run (up since 2026-11-18 10:00, before the run started).
+Run `p-s4`, 2026-11-23, on the working tree at HEAD `79ae3de` (S4c-fix; snapshot tree `e9e9c9e`; the docs of S4-docs were edited only after the snapshot was made), valid: `test exit 0` and Docker back at 5/0/11 (5 containers, 0 labelled, 11 volumes, before and after). The machine was not restarted during the run (up since 2026-11-23 10:35, before the run started 18:30:31).
 
-- Suites: 76 (66 offline + 10 Docker). Duration: 38 min 56 s (12:41:00 to 13:19:56).
-- Checks: **4692 PASS, 0 FAIL, 6 SKIP**. The 6 SKIPs are loud: the two git checks of the snapshot (it is not a git work tree), the hints suite in standalone mode, and PHP 7.4, 8.0 and 8.1 (no pinned image). The network-namespace check did not skip this time.
+- Suites: 81 (71 offline + 10 Docker). Duration: 47 min 4 s (18:30:31 to 19:17:35).
+- Checks: **5466 PASS, 0 FAIL, 6 SKIP** (3061 PASS in the offline part, 2405 PASS and the 6 SKIP lines in the Docker part). The 6 SKIPs are the same as in `p-s0` and are loud: the two git checks of the snapshot (it is not a git work tree), the hints suite in standalone mode, and PHP 7.4, 8.0 and 8.1 (no pinned image).
+- Times: the log `~/pg-runs/p-s4/test.log` has only two time stamps, because the output of each part reaches the stamping step in one block: the offline part ends at 18:39:19 (about 8 min 49 s) and the Docker part at 19:17:35 (about 38 min 16 s). **Per-suite times are NOT in this log**, so no list of the 10 slowest suites including the Docker ones can be given from it. The slowest OFFLINE suites, from the separate one-by-one measurement after CI-2 (`~/pg-runs/ci/after.csv`, a different run, 70 suites): `no-files` 147.9 s, `6c2` 63.1 s, `issue-probe` 59.6 s, `6d3-fixes` 48.3 s, `second-site` 47.0 s, `6a-fake` 41.6 s, `6d1` 35.7 s, `issue-evidence` 28.9 s, `issue-sandbox-lifecycle` 27.0 s, `6d2` 18.3 s. The Docker suites have no per-suite figure yet; a timed run that stamps each suite is a later CI step.
+- Earlier baseline: `p-s0` (2026-11-18, HEAD `68e8f62`): 76 suites, 4692 PASS, 0 FAIL, 6 SKIP, 38 min 56 s.
 - History: `p-h1` (2026-11-17, honest wording): 4489 PASS, 0 FAIL, 7 SKIP, 43 min 34 s (75 suites). `p-n1` (2026-11-16, the rename): 4478 PASS, 0 FAIL, 7 SKIP, 38 min 12 s. `p-c2b` (the first valid run): 4468 PASS, 0 FAIL, 7 SKIP, 38 min 43 s. `p-c2` was not valid. The 11 more checks than `p-n1` are the new no-code tests (7 in `selftest-case-file.js`, 4 in `selftest-checkpoints.js`).
 
 Every SKIP, with its reason (all are loud skips that name their reason):
