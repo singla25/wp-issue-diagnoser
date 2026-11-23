@@ -372,8 +372,8 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
         // only when the old label would be "No confirmed breaking cause was found" (a cause found by other means keeps its own verdict); a run WITH a site folder is not touched
         if (!issue.root && (errStatuses.length || failedLive > 0 || logOnly) && f.verdict.label === 'No confirmed breaking cause was found') {
             if (logOnly) f.log_only = { possible_causes: lc.causes.map(c => ({ name: c.name, kind: c.kind, last_seen: c.last_seen })), log_checks: checkFinds, fatal_outside: lc.fatalOutside };
-            f.verdict = { ...f.verdict, label: lv ? lv.label : plainNames.ERROR_PAGE_LABEL };
-            f.confidence_text = lv ? lv.text : plainNames.errorPageSentence({ statuses: errStatuses, failedLive, hasRoot: false, hasLog: !!((lg.files || []).length || (lg.entries || []).length) });
+            f.verdict = { ...f.verdict, label: lv ? lv.label : plainNames.errorPageLabel({ statuses: errStatuses, failedLive }) };
+            f.confidence_text = lv ? lv.text : plainNames.errorPageSentence({ statuses: errStatuses, failedLive, hasRoot: false, hasLog: !!((lg.files || []).length || (lg.entries || []).length), conflict: !!f.live_conflicts });
             // the summary data repeats the old headline ("No confirmed breaking cause was found." and "Nothing else stood out."): it says the same new sentence, so the old words are nowhere in the output
             const NEW_HEAD = f.confidence_text;
             const rewrite = v => typeof v === 'string' ? v.split('No confirmed breaking cause was found.').join(NEW_HEAD).replace(/\n?Nothing else stood out\./g, '') : Array.isArray(v) ? v.filter(x => x !== 'Nothing else stood out.').map(rewrite) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, rewrite(x)])) : v;
@@ -382,7 +382,7 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
         // zero checks ran: the verdict says nothing could be checked, and why (from the counts and the facts, not from the mode); a cause found by other means keeps its own verdict
         if (cpCounts.pass + cpCounts.fail + cpCounts.also_noticed === 0 && f.verdict.label === 'No confirmed breaking cause was found') {
             f.verdict = { ...f.verdict, label: plainNames.NOTHING_CHECKED_LABEL };
-            f.confidence_text = plainNames.zeroChecksSentence({ hasRoot: !!issue.root, hasCode: !!issue.root && codeFilesRead > 0, hasLog: !!((lg.files || []).length || (lg.entries || []).length), probeRan: !!ran.probe, total: cpRows.length });
+            f.confidence_text = plainNames.zeroChecksSentence({ hasRoot: !!issue.root, hasCode: !!issue.root && codeFilesRead > 0, hasLog: !!((lg.files || []).length || (lg.entries || []).length), probeRan: !!ran.probe, total: cpRows.length, liveStop: !issue.root && liveSum ? liveSum : null });
         }
         // the Limits in reader words (findings.json `limits` keeps the internal text): the first sentence says what "confirmed" means and whether a test copy was used, from the data
         f.limits_text = [limitsFirst(ran.sandbox ? 'ran' : sbx && sbx.could_not_run ? 'failed' : 'none'), ...f.limits.slice(1)];

@@ -268,7 +268,7 @@ function build(f, ctx) {
     // every error answer is said (5xx, the address page's 4xx with its advice, other 4xx pages without advice); never "did not answer with an error" then
     if (answers.any || loops.length) see.push(...answers.lines, ...loops);
     else if (ctx.facts && ctx.facts.probeRan) see.push('The live pages that were loaded did not answer with an error.');
-    else see.push('No live check was run, so nothing was seen on the live page.');
+    else if (!(ctx.facts && ctx.facts.liveChecksLine)) see.push('No live check was run, so nothing was seen on the live page.');   // no files: the "N of 7" / "No live page check ran" line says it
     // a log without site files: its possible causes (fatal errors that name a plugin or a theme), said as possible, not confirmed
     // no site files: how many of the live page checks gave a result, and why the others did not run (issue/checkpoints.js liveSummary; the sentence is built in lib/plain-names.js)
     if (ctx.facts && ctx.facts.liveChecksLine) see.push(ctx.facts.liveChecksLine);
