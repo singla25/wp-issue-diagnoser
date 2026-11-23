@@ -43,7 +43,7 @@ Last green full run: p-s4 on 2026-11-23 (HEAD 79ae3de, not pushed). 81 suites (7
 | 3a-S0b docs: what is masked, screenshots are not (SAFETY.md, README) | f49a796 |
 | 3a-S0c: redact defects D1 to D4 and the minor items (retest compares masked pages, probe output masked and fail closed, whole-run masks, JSON / colon / PHP-dump forms) | a490e22, 68e8f62 |
 | FR1: full run p-s0 after S0c, baseline updated (TESTING.md) | 0c27ded |
-| FR2: full run p-s4 after S4, baseline updated (TESTING.md) | the S4-docs commit (not pushed) |
+| FR2: full run p-s4 after S4, baseline updated (TESTING.md) | ddff184 (not pushed) |
 | M1: roles, models, step size and token budget (docs/WORKFLOW.md, CLAUDE.md, reviewer-light agent; docs only, no full run) | 809f1ed |
 | 3a-S0d: masking corpus test (173 secret forms, 137 benign texts), the short-value rule, the exact exception for "(using password: YES or NO)" | 3a85421, a9528dc, f0badde (round 4 fix) |
 | 3a-S1a: `--no-files` (run without a site folder) and the crash fix | 2abfccc |
