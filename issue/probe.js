@@ -10,6 +10,7 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const store = require('../lib/issue-store');
+const addrCheck = require('../lib/address-check');
 const redact = require('../lib/redact');
 const schema = require('../lib/schema');
 const oracleMod = require('./oracle');
@@ -155,6 +156,9 @@ async function run(id, { root = null, options = {}, env = process.env, imageFile
     const gate = (() => {
         if (options.probe === false) return { status: 'NOT_RUN', reason: 'the live probe was switched off (--no-probe)' };
         if (!issue.url) return { status: 'NOT_RUN', reason: 'no site address was given (--url), so no page could be loaded' };
+        // an address saved with hidden characters (old data, an edited file) is never probed, and the step says so plainly (lib/address-check.js); no address is echoed
+        if (addrCheck.addressProblem(issue.url)) return { status: 'NOT_RUN', reason: addrCheck.SAVED_MESSAGE };
+        if ((issue.pages || []).some(p => addrCheck.addressProblem(p))) return { status: 'NOT_RUN', reason: addrCheck.SAVED_PAGE_MESSAGE };
         const a = store.authorization(issue);
         if (!a.ok) return { status: 'BLOCKED', reason: a.message };
         const br = browserReady(); if (!br.ok) return { status: 'NOT_RUN', reason: br.reason };
@@ -287,6 +291,7 @@ const absPages = (list, base, max) => (list.length ? list : ['/']).slice(0, max)
 
 async function runSandbox(id, { url, stateDir, options = {}, env = process.env, tag = 'probe', login = false }) {
     const issue = store.load(id);
+    if ((issue.pages || []).some(p => addrCheck.addressProblem(p))) return { ok: false, reason: addrCheck.SAVED_PAGE_MESSAGE, oracle: null, pages: [] };
     const base = sandboxBase(url);
     const pages = absPages(issue.pages, base, options.probePages || 2);
     const vp = viewportsFor(issue.oracle, options);

@@ -14,6 +14,7 @@ const oracleMod = require('./oracle');
 const phase = require('./sandbox-phase');
 const { WpCli } = require('../lib/wpcli');
 const readdir = require('../lib/sorted-dir');
+const addrCheck = require('../lib/address-check');
 
 const { step, names, pluginFolders, makeApplier } = phase;
 const MAX_UNION_PAGES = 12;
@@ -33,6 +34,9 @@ async function runMany(ids, { root, options = {}, env = process.env, sandboxOpti
     const fidelityFor = (id, copy) => { const issue = issues.find(i => i.id === id), dir = store.dirOf(id), fd = fid.compare({ real: phase.realSide(dir, issue), copy }); phase.writeFidelity(dir, fd); return fd; };
     const none = (reason, copy = { error: reason }) => { out.unavailable = reason; for (const id of ids) { out.per[id] = { reproduced_in_sandbox: null, bisect: null, baseline: null, steps: [step('sandbox', 'Sandbox (throwaway copy in Docker)', 'NOT_RUN', reason)] }; if (dbIntent) { const fd = fidelityFor(id, copy); out.per[id].fidelity = fd; out.per[id].steps.push(phase.fidelityStep(fd)); } } return out; };
     if (!ids.length) return none('there is no issue to test');
+    // a saved page address with hidden characters (lib/address-check.js) is never loaded: the test copy is not run for this batch, and nothing is cleaned or guessed
+    const hiddenIssue = issues.find(i => (i.pages || []).some(p => addrCheck.addressProblem(p)));
+    if (hiddenIssue) return none(`${addrCheck.SAVED_PAGE_MESSAGE.replace('so the live page was not checked', 'so the test copy was not run')} (issue ${hiddenIssue.id})`);
     if (!root) return none('a local copy of the site (--root) is needed', { built: false });
     const pf = sandbox.preflight(sandboxOptions);
     if (!pf.ok) return none(`${pf.reason} Static-only mode: not reproduced, sandbox unavailable.`, { error: pf.reason });

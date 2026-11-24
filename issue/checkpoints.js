@@ -45,7 +45,9 @@ function sourcesOf({ work = {}, ran = {}, hasRoot = false, hasCode = true, codeF
     S.logs = { ok: !!((hasRoot || logOnly) && logStep && logStep.status === 'PASSED'), why: !(hasRoot || logOnly) ? 'no site files were given, so no log was read' : 'no log file was found or read (turn on WP_DEBUG_LOG); that is not evidence that nothing went wrong' };
     S.hypotheses = { ok: !!(validation && Array.isArray(validation.hypotheses)), why: 'the hypotheses were not validated' };
     const pr = work.probe, loaded = pr && Array.isArray(pr.pages) ? pr.pages.filter(p => p.loaded) : [];
-    S.probe = { ok: !!(ran.probe && pr && Array.isArray(pr.pages) && pr.pages.length), why: (protectionReason(pr) || {}).reason || 'the live page probe did not run (no address, not allowed, or switched off)' };
+    // a saved address with hidden characters (lib/address-check.js) is its own reason: it must never read as "no address"
+    const liveStepNow = stepOf(work.evidence && work.evidence.steps, 'live-probe'), hiddenAddr = !!liveStepNow && /hidden characters/.test(String(liveStepNow.reason || ''));
+    S.probe = { ok: !!(ran.probe && pr && Array.isArray(pr.pages) && pr.pages.length), why: (protectionReason(pr) || {}).reason || (hiddenAddr ? 'the live page was not checked: a saved address has hidden characters' : 'the live page probe did not run (no address, not allowed, or switched off)') };
     S.probeComplete = { ok: S.probe.ok && loaded.length > 0 && !pr.protection && plannedLoads(pr.planned) !== null && loaded.length >= plannedLoads(pr.planned), why: !S.probe.ok ? S.probe.why : !loaded.length ? 'the live page probe loaded no page' : 'the live page probe stopped early, so a quiet result cannot be trusted' };
     const phpInfo = compatStep && compatStep.php;
     S.php = { ok: !!(phpInfo && phpInfo.stated), why: `the site's PHP version is not known (--php); only the sandbox's PHP ${phpInfo && phpInfo.version ? phpInfo.version : '8.3'} could be compared` };
@@ -266,7 +268,7 @@ function liveSummary(rows, work = {}) {
             const t = cutText(step.reason, 200);
             none_ran = step.status !== 'FAILED'; attempted = step.status === 'FAILED';
             // a failed start or a failed page load: a short plain reason, never the raw error text or the address (the step text keeps them for a developer)
-            reason = attempted ? (/could not be reached|unreachable/i.test(step.reason) ? 'the site could not be reached' : 'no page result could be used') : /no site address was given/.test(t) ? 'no address was given' : /switched off/.test(t) ? 'the live check was switched off' : t || 'the live page test did not run';
+            reason = attempted ? (/could not be reached|unreachable/i.test(step.reason) ? 'the site could not be reached' : 'no page result could be used') : /hidden characters/.test(t) ? 'a saved address has hidden characters' : /no site address was given/.test(t) ? 'no address was given' : /switched off/.test(t) ? 'the live check was switched off' : t || 'the live page test did not run';
         } else if (plannedLoads(pr && pr.planned) === null) reason = 'the result of the live page test could not be read';
         else if (skipped.length && codes.length) reason = `the page answered with an error (${codes.map(n => `HTTP ${n}`).join(' and ')}), so it was not loaded again at the other screen size`;
         else reason = 'fewer page loads were completed than planned';
