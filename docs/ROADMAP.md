@@ -1,6 +1,6 @@
 # Roadmap: wp-issue-diagnoser
 
-Last updated: 2026-11-23, after S3 (S3a-fix, S3a, S3a2, S3a2-fix, S3b, S3c, S3c-fix), CI-1, CI-2, the S3-docs step, V1 (2a3a189) and S4 (S4ab b44ab8a, S4ab-fix 8818ff8, S4c f576c7f, S4c-fix 79ae3de). Last commit a432c98 (pushed). origin/main = HEAD. The next step is the owner's real-site runs; the owner decides the order. The full run after S4 (`p-s4`) is done and valid (5466 PASS). Update the status columns after every step.
+Last updated: 2026-11-24, after S3 (S3a-fix, S3a, S3a2, S3a2-fix, S3b, S3c, S3c-fix), CI-1, CI-2, the S3-docs step, V1 (2a3a189) and S4 (S4ab b44ab8a, S4ab-fix 8818ff8, S4c f576c7f, S4c-fix 79ae3de). The address check (eeab1d1) came after S4-docs. origin/main was 07a6929 when this was written; the address check and its docs step are not pushed. The next step is the owner's real-site runs; the owner decides the order. The full run after S4 (`p-s4`) is done and valid (5466 PASS). Update the status columns after every step.
 
 ## How to use this file
 
@@ -44,6 +44,7 @@ Last green full run: p-s4 on 2026-11-23 (ran at HEAD 79ae3de; the later commits 
 | 3a-S0c: redact defects D1 to D4 and the minor items (retest compares masked pages, probe output masked and fail closed, whole-run masks, JSON / colon / PHP-dump forms) | a490e22, 68e8f62 |
 | FR1: full run p-s0 after S0c, baseline updated (TESTING.md) | 0c27ded |
 | FR2: full run p-s4 after S4, baseline updated (TESTING.md) | ddff184 |
+| AC: address check: an address with hidden characters or spaces is refused, a saved one is never probed (`lib/address-check.js`, `selftest-address.js`; docs in the step after it) | eeab1d1 |
 | M1: roles, models, step size and token budget (docs/WORKFLOW.md, CLAUDE.md, reviewer-light agent; docs only, no full run) | 809f1ed |
 | 3a-S0d: masking corpus test (173 secret forms, 137 benign texts), the short-value rule, the exact exception for "(using password: YES or NO)" | 3a85421, a9528dc, f0badde (round 4 fix) |
 | 3a-S1a: `--no-files` (run without a site folder) and the crash fix | 2abfccc |
@@ -88,6 +89,11 @@ Push status: check with `git log origin/main..HEAD`. The owner pushes only a gre
 | 4 | Real-site runs by the owner on 2 or 3 real sites, then review of the reports | 1 to 2 h | Tests use made-up sites. Real sites find what tests miss. After 3a, so the new mode is tested too. | next: the owner's step (3a is done in code; the full run `p-s4` after S4 is valid) |
 | 4a | Masking of e-mail addresses, IP addresses and the website address in the reports. Now unmasked: the address and the raw step text in `ISSUE-REPORT.md`, `issue.html`, the steps of `findings.json`, `evidence.json`, `probe/result.json` (text and address); the address alone in `probe.json`, `issue.json`, `issue.md` (see SAFETY 6, HANDOFF 92) | size to set by the owner | Reports may be shared; a client's address must not leak. | own step, not started |
 | 4b | The label "Repeated rate limiting (1 x HTTP 429)" at `probe/safety.js:91`: one 429 says "Repeated" (a safety file; the stop itself is correct) | S | Wording must be true. | own step, not started |
+| 4c | The classic scan `--url` check (`lib/config.js:52`): the address check did not change it; an address with hidden characters or spaces should be refused there too (found by the deep review of the address check) | S | The same rule for every address that enters the tool. | own step, not started |
+| 4d | The oracle line "symptom reproduced: no" for a 404 page that the verdict itself reports (found on a real run) | S | One report must not say two things about the same page. | own step, not started; to be looked at |
+| 4e | The sentence "Your address answered HTTP 404" is shown twice in the report (found on a real run) | S | A sentence once. | own step, not started; to be looked at |
+| 4f | The message shown after Enter at the folder question (found on a real run) | S | The wording must be plain and true. | own step, not started; to be looked at |
+| 4g | A `%20` in a screenshot path is not decoded (found on a real run) | S | A screenshot path with an encoded space should be found. | own step, not started; to be looked at |
 | 5a | C6: docs leftovers, naming, GET-only wording, git-skip message, comments, `.claude/scheduled_tasks.lock` line in `.gitignore`, case-file versus HEAD comparison | 1 to 1.5 h | Small and safe. | waiting |
 | 5b | C7: clean-checkout test replaces the isolated-copy test, rewrite `selftest:hints` for standalone mode, fix the Stage 2 messages that tests still pin | 1.5 to 2.5 h | Proves that a fresh clone works. | waiting |
 | 5c | C8: remove the local project name from tests, check files and history for real client names or domains | 1 to 1.5 h | Needed only before the repository can be public. | waiting |

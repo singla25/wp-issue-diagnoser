@@ -90,6 +90,8 @@ Dates are commit dates [git]. Hashes are from this repository's history; HANDOFF
 | 2026-11-23 | S4ab-fix: a site that could not be reached gives a short plain reason, without the raw error text and the address | 8818ff8 | `test:offline` 5114 PASS, 0 FAIL, 2 SKIP (owner figure) [HANDOFF 99] |
 | 2026-11-23 | S4c: a quiet live page (no site files, no log) says what was looked at: "The live page checks found nothing wrong", never a clean bill of health; "also noticed" sentence | f576c7f | `test:offline` 5125 PASS (owner figure) [HANDOFF 99] |
 | 2026-11-23 | S4c-fix: "listed in this report", the page count ("Only <n> public pages"), the noticed sentence says why it could not be linked | 79ae3de | `test:offline` 5129 PASS, 0 FAIL, 2 SKIP, all exit 0 (owner figures); last result of the offline chain, not a full run [HANDOFF 99] |
+| 2026-11-24 | Docs after the push: S4 built, nothing pending (INPUT-MODES, PROJECT-HISTORY, ROADMAP) | 07a6929 | docs only; `selftest:docs` 30 PASS, `selftest:hygiene` 17 PASS [git] |
+| 2026-11-24 | Address check: an address with hidden characters or spaces is refused, never cleaned; a saved bad address is never probed (after a real run showed arrow-key codes accepted and a false "HTTP 404") | eeab1d1 | `test:offline` 5197 PASS, 0 FAIL, 2 SKIP, 72 suites; new suite `selftest-address` (68 checks, 60 FAIL on old code, 8 guards PASS); deep review 2 rounds [HANDOFF 100] |
 
 ## 3. Decision log
 
@@ -121,8 +123,8 @@ Decisions 1 to 19 and 21 to 27 are recorded as "approved by the owner" without a
 ## 4. Current status
 
 - **Last green full run:** `p-s4`, 2026-11-23, HEAD 79ae3de (the commits after it, ddff184 and a432c98, are docs only; all are pushed): 81 suites (71 offline and 10 Docker), 5466 PASS, 0 FAIL, 6 SKIP, 47 min 4 s; Docker 5/0/11 before and after; no restart [TESTING; ROADMAP]. Before it: `p-s0`, 2026-11-18, 76 suites, 4692 PASS, 38 min 56 s. The 6 SKIPs are loud: two git checks of the snapshot, the hints suite in standalone mode, PHP 7.4, 8.0 and 8.1 images.
-- **Since that run:** M1, S0d, S1, S1b-fix, S1d, S1d-fix, S2, S3 (S3a-fix, S3a, S3a2, S3a2-fix, S3b, S3c, S3c-fix), CI-2, V1 and S4 (S4ab, S4ab-fix, S4c, S4c-fix) are covered by `test:offline` only (71 offline suites; last result 5129 PASS, 0 FAIL, 2 SKIP, 2026-11-23, at 79ae3de; owner figures, not a full run) [HANDOFF 85 to 99]. The full run `p-s4` after S4 is valid: 81 suites, 5466 PASS, 0 FAIL, 6 SKIP [TESTING].
-- **Pushed:** everything up to commit a432c98 is pushed (`origin/main` = HEAD). The commits ddff184 (S4-docs, includes the p-s4 record) and a432c98 are docs only [git].
+- **Since that run:** M1, S0d, S1, S1b-fix, S1d, S1d-fix, S2, S3 (S3a-fix, S3a, S3a2, S3a2-fix, S3b, S3c, S3c-fix), CI-2, V1 and S4 (S4ab, S4ab-fix, S4c, S4c-fix) are covered by `test:offline` only (72 offline suites; last result 5197 PASS, 0 FAIL, 2 SKIP, 2026-11-24, at eeab1d1; not a full run) [HANDOFF 85 to 99]. The full run `p-s4` after S4 is valid: 81 suites, 5466 PASS, 0 FAIL, 6 SKIP [TESTING].
+- **Pushed:** `origin/main` was 07a6929 (the docs after the push) when this was written, so S3, CI-2, V1, S4, S4-docs (ddff184, a432c98) and that docs commit are pushed. **Committed and not pushed:** the address check (eeab1d1) and its docs step [git].
 - **In progress:** nothing is running. S3, V1, S4 and CI-2 are finished in code and docs; the Coder waits for the owner's next prompt (next: the owner's real-site runs) [CLAUDE.md; HANDOFF 92 to 99].
 
 ## 5. What is left (roadmap rows in order) [ROADMAP]

@@ -3,7 +3,7 @@
 ## The commands
 
 - `npm test` runs every suite: `npm run test:offline`, then `npm run test:docker`. It stops at the first failing suite.
-- `npm run test:offline`: 71 suites that need no Docker (pure logic, a fake `docker`, fixture sites on 127.0.0.1, the browser report checks, the docs and hygiene checks). The newest one is `selftest:probe-plan` (V1, `scripts/selftest-probe-plan.js`, the planned page loads).
+- `npm run test:offline`: 72 suites that need no Docker (pure logic, a fake `docker`, fixture sites on 127.0.0.1, the browser report checks, the docs and hygiene checks). The newest one is `selftest:address` (the address check, `scripts/selftest-address.js`, 68 checks); before it `selftest:probe-plan` (V1, `scripts/selftest-probe-plan.js`, the planned page loads).
 - `npm run test:docker`: the 10 suites that start real containers (`selftest:issue-sandbox-docker`, `issue-resolve-docker`, `issue-verify-docker`, `6a-docker`, `6b-docker`, `6c1-docker`, `6c2-docker`, `6d1-docker`, `6d2-docker`, `second-site-docker`). When Docker is not usable they skip, loudly (a SKIP line says why). They need the sandbox images from `npm run setup-sandbox`.
 - One suite: a script named `selftest:` plus the suite name (the names are in `package.json`), for example `npm run selftest:docs` or `npm run selftest:hygiene`. Each suite is a standalone script, `scripts/selftest-<name>.js`.
 
