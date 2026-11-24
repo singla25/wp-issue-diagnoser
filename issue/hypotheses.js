@@ -4,6 +4,7 @@
 // a re-read of the file) may do that. The score is the sum of the rules in SCORING, printed with every hypothesis; there are no hidden weights.
 
 const schema = require('../lib/schema');
+const { isOtherLike } = require('../lib/symptoms');
 
 const MAX_HYPOTHESES = 5;
 const MAX_LOG_FATAL = 3;               // extra places for log-backed fatals that did not make the top five
@@ -264,7 +265,7 @@ function build(ctx) {
         const custom = c.components.some(x => refOf[x] && !refOf[x].inspection_only);
         if (custom) bd.push({ rule: 'custom', points: W.custom, why: `custom code involved: ${c.components.filter(x => refOf[x] && !refOf[x].inspection_only).join(', ')}` });
         const fam = c.family || 'hook';
-        if (issue.symptom !== 'other' && FAMILY_SYMPTOMS[fam] && !FAMILY_SYMPTOMS[fam].includes(issue.symptom)) bd.push({ rule: 'symptom-mismatch', points: W['symptom-mismatch'], why: `a ${fam} problem does not normally produce the reported symptom "${issue.symptom}"` });
+        if (!isOtherLike(issue.symptom) && FAMILY_SYMPTOMS[fam] && !FAMILY_SYMPTOMS[fam].includes(issue.symptom)) bd.push({ rule: 'symptom-mismatch', points: W['symptom-mismatch'], why: `a ${fam} problem does not normally produce the reported symptom "${issue.symptom}"` });
         if (fam === 'fatal' && logPassed && !anyFatalInLog && !bestOf('log').length) { c.contradicts.push({ kind: 'log', text: 'the log was read and contains no fatal error' }); bd.push({ rule: 'contradiction', points: W.contradiction, why: 'the log was read and contains no fatal error' }); }
         const score = round(bd.reduce((s, x) => s + x.points, 0));
         const deterministic = ['log', 'bisect', 'probe', 'observation', 'collision'].some(k => kinds.has(k));

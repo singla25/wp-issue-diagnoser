@@ -20,7 +20,8 @@ const ERROR_CLUES = new Set(['php-fatal', 'php-redeclare', 'php-undefined-functi
 const SYMPTOM_CHOICES = [   // plain words for the symptom ids of lib/issue-store.js
     ['white-screen', 'A blank white page, or an error message instead of the page'], ['js-error', 'A button or feature does nothing'], ['layout', 'The page looks broken or messy'],
     ['form-checkout', 'A form or the checkout does not work'], ['login-admin', 'I cannot log in, or the admin area is broken'], ['slow', 'The page is very slow'],
-    ['redirect', 'The page jumps to the wrong place, or keeps loading in circles'], ['wrong-content', 'The wrong text or email appears']
+    ['redirect', 'The page jumps to the wrong place, or keeps loading in circles'], ['wrong-content', 'The wrong text or email appears'],
+    ['connection-not-private', 'The browser says the connection is not private']   // 4i-c: before "None of these"; the numbers 1 to 8 do not change
 ];
 const PHP_CHOICES = ['7.4', '8.0', '8.1', '8.2', '8.3', '8.4'];
 const SCREEN_CHOICES = [['mobile', 'On my phone'], ['tablet', 'On a tablet'], ['laptop', 'On a computer'], ['laptop,mobile', 'On both a phone and a computer']];

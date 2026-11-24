@@ -7,6 +7,8 @@
 
 const toRef = id => String(id).replace(/^plugin:/, '');
 
+const { isOtherLike } = require('../lib/symptoms');
+
 function context(evidence, issue, families) {
     const hints = (evidence.component_hints || []).slice(0, 8).map(h => toRef(h.component));
     const clues = evidence.clues || [];
@@ -21,7 +23,7 @@ function matches(finding, cx) {
     if (named.length) return { ok: true, why: `names ${named.join(', ')}` };
     const files = (finding.evidence || []).map(e => e.file).filter(Boolean).filter(f => cx.logFiles.has(f));
     if (files.length) return { ok: true, why: `a log names ${files[0]}` };
-    if (cx.symptom !== 'other' && finding.family && cx.families[finding.family] && cx.families[finding.family].includes(cx.symptom)) return { ok: true, why: `a ${finding.family} problem normally produces "${cx.symptom}"` };
+    if (!isOtherLike(cx.symptom) && finding.family && cx.families[finding.family] && cx.families[finding.family].includes(cx.symptom)) return { ok: true, why: `a ${finding.family} problem normally produces "${cx.symptom}"` };
     if (finding.severity === 'P0') return { ok: true, why: 'P0: breaks the site by itself' };
     return { ok: false, why: 'nothing in the report points at it' };
 }

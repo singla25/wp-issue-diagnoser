@@ -14,7 +14,7 @@
 //   redirect        yes when a probed page ends in a redirect loop (ERR_TOO_MANY_REDIRECTS), follows more than N redirects in a row (default 3),
 //                   or is redirected to another host (www.x <-> x counts as the same host). The value is optional: the chain limit N.
 //   generic         yes when any of: console/page error, failing same-site request, 5xx, horizontal scroll, new PHP error in debug.log.
-//                   For the symptoms white-screen, redirect and other (callers pass the issue's symptom) it also says yes for a redirect loop,
+//                   For the symptoms white-screen, redirect, other and connection-not-private (callers pass the issue's symptom) it also says yes for a redirect loop,
 //                   a long or cross-host redirect chain, a blank page and a critical-error text, each served with a success status.
 // "no" is only said when every planned page loaded; if the site's protection stopped the probe early, the answer is "could not test".
 // Patterns are plain text unless written re:, and go through safe-pattern.js.
@@ -28,7 +28,7 @@ const LOOP_ERROR = /ERR_TOO_MANY_REDIRECTS/i;   // what probe/worker.js already 
 const CRITICAL_TEXT = /There has been a critical error on this (?:website|site)|(?:^|\n)\s*(?:PHP )?(?:Fatal error|Parse error)\s*:/i;
 const DEFAULT_MAX_HOPS = 3;
 // symptoms for which `generic` also judges redirects and blank / critical pages (a layout complaint must not be answered with "blank page")
-const NEW_GENERIC_SYMPTOMS = new Set(['white-screen', 'redirect', 'other']);
+const NEW_GENERIC_SYMPTOMS = new Set(['white-screen', 'redirect', ...require('../lib/symptoms').OTHER_LIKE]);   // "other" and the symptoms treated like it
 const hostKey = u => { try { return new URL(u).hostname.toLowerCase().replace(/^www\./, ''); } catch { return null; } };
 
 // What the visible text of a page says about it. Kept on the stored page record (text itself is dropped when a probe is saved), so the answer can be

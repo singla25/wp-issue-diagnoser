@@ -2,6 +2,7 @@
 // with its sources attached; it is never a proof. Entries that were not verified against their sources are labelled and weigh less.
 
 const fs = require('fs');
+const { isOtherLike } = require('../lib/symptoms');
 const path = require('path');
 
 const FILE = path.join(__dirname, '..', 'data', 'known-conflicts.json');
@@ -35,7 +36,7 @@ function evaluate(ctx, entries = load()) {
         const r = d(e, full);
         if (!r) continue;
         // detected, but not relevant to THIS report: listed, never turned into a hypothesis
-        if (e.symptoms && ctx.symptom && ctx.symptom !== 'other' && !e.symptoms.includes(ctx.symptom)) { not_applicable.push({ id: e.id, title: e.title, reason: `it explains ${e.symptoms.filter(x => x !== 'other').join(' / ')} problems, not "${ctx.symptom}"`, ...r }); continue; }
+        if (e.symptoms && ctx.symptom && !isOtherLike(ctx.symptom) && !e.symptoms.includes(ctx.symptom)) { not_applicable.push({ id: e.id, title: e.title, reason: `it explains ${e.symptoms.filter(x => x !== 'other').join(' / ')} problems, not "${ctx.symptom}"`, ...r }); continue; }
         if (e.requires_clue_types && !(ctx.clueTypes || []).some(t => e.requires_clue_types.includes(t))) { not_applicable.push({ id: e.id, title: e.title, reason: `the evidence has no ${e.requires_clue_types.join(' / ')} clue, and this pattern is common on healthy sites`, ...r }); continue; }
         hits.push({ id: e.id, title: e.title, family: e.family || 'cache', verified: !!e.verified, causes: e.causes, change: e.change, beyond_sources: e.beyond_sources || null, sources: e.sources, ...r });
     }

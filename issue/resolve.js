@@ -9,6 +9,7 @@
 // "needs-a-human" (a decision or protected code).
 
 const fs = require('fs');
+const { isOtherLike } = require('../lib/symptoms');
 const path = require('path');
 const patchgen = require('./patchgen');
 const shim = require('./shim');
@@ -67,7 +68,7 @@ function build(id, validation, { root, policy, dir }) {
         const symptom = (readJson(path.join(dir, 'issue.json')) || {}).symptom;
         for (const slug of (h.components || []).map(c => String(c).replace(/^plugin:/, ''))) {
             const comp = comps.find(x => (x.slug === slug || x.ref === slug) && x.kind === 'plugin');
-            for (const e of loadSettings().filter(x => x.plugin.slug === slug && (x.applies_to.symptoms.includes(symptom) || symptom === 'other'))) {
+            for (const e of loadSettings().filter(x => x.plugin.slug === slug && (x.applies_to.symptoms.includes(symptom) || isOtherLike(symptom)))) {
                 const vs = versionStatus(e, comp && comp.version);
                 options.push({ type: 'settings', who: 'you-can-do-this', title: `Setting: ${e.plugin.name} > ${e.label}`, detail: `${e.effect} Try: ${e.change}`, setting: { id: e.id, label: e.label, admin_path: e.admin_path, stored_key: e.stored_key, verified_against: e.versions.verified_against }, installed_version: comp ? comp.version || null : null, version_status: vs.status,
                     verification: [{ id: 'knowledge-verified', status: e.verified ? 'PASSED' : 'NOT_RUN', reason: e.verified ? `label${e.stored_key ? ' and stored key' : ''} found on the official page / plugin source (${e.last_checked})` : 'not yet verified by guard:verify-knowledge' }, { id: 'version', status: vs.status === 'in-range' ? 'PASSED' : vs.status === 'outside-range' ? 'FAILED' : 'NOT_RUN', reason: vs.note }],
