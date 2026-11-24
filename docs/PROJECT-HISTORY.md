@@ -120,16 +120,16 @@ Decisions 1 to 19 and 21 to 27 are recorded as "approved by the owner" without a
 
 ## 4. Current status
 
-- **Last green full run:** `p-s4`, 2026-11-23, HEAD 79ae3de (not pushed): 81 suites (71 offline and 10 Docker), 5466 PASS, 0 FAIL, 6 SKIP, 47 min 4 s; Docker 5/0/11 before and after; no restart [TESTING; ROADMAP]. Before it: `p-s0`, 2026-11-18, 76 suites, 4692 PASS, 38 min 56 s. The 6 SKIPs are loud: two git checks of the snapshot, the hints suite in standalone mode, PHP 7.4, 8.0 and 8.1 images.
+- **Last green full run:** `p-s4`, 2026-11-23, HEAD 79ae3de (the commits after it, ddff184 and a432c98, are docs only; all are pushed): 81 suites (71 offline and 10 Docker), 5466 PASS, 0 FAIL, 6 SKIP, 47 min 4 s; Docker 5/0/11 before and after; no restart [TESTING; ROADMAP]. Before it: `p-s0`, 2026-11-18, 76 suites, 4692 PASS, 38 min 56 s. The 6 SKIPs are loud: two git checks of the snapshot, the hints suite in standalone mode, PHP 7.4, 8.0 and 8.1 images.
 - **Since that run:** M1, S0d, S1, S1b-fix, S1d, S1d-fix, S2, S3 (S3a-fix, S3a, S3a2, S3a2-fix, S3b, S3c, S3c-fix), CI-2, V1 and S4 (S4ab, S4ab-fix, S4c, S4c-fix) are covered by `test:offline` only (71 offline suites; last result 5129 PASS, 0 FAIL, 2 SKIP, 2026-11-23, at 79ae3de; owner figures, not a full run) [HANDOFF 85 to 99]. The full run `p-s4` after S4 is valid: 81 suites, 5466 PASS, 0 FAIL, 6 SKIP [TESTING].
-- **Pushed:** the owner pushed up to commit b30e725 (S2 and S2-docs; the remote-tracking branch points there, as last fetched) [git]. **Committed and not pushed:** everything after b30e725: c611e59 to 55c5433, the S3-docs commits 88b3049 and a590893, V1 (2a3a189) and S4 (b44ab8a, 8818ff8, f576c7f, 79ae3de) [git].
+- **Pushed:** everything up to commit a432c98 is pushed (`origin/main` = HEAD). The commits ddff184 (S4-docs, includes the p-s4 record) and a432c98 are docs only [git].
 - **In progress:** nothing is running. S3, V1, S4 and CI-2 are finished in code and docs; the Coder waits for the owner's next prompt (next: the owner's real-site runs) [CLAUDE.md; HANDOFF 92 to 99].
 
 ## 5. What is left (roadmap rows in order) [ROADMAP]
 
 | Row | Task | Status |
 |---|---|---|
-| 3a | No-code mode, part 1: S4 report layout for modes D and E, then ONE full run | S0 to S0d, S1a to S1d, S2, S3 and S4 done in code (not pushed); the full run after S4 (`p-s4`) is valid; S4 point 7 (the "Repeated" label, `probe/safety.js:91`) still open |
+| 3a | No-code mode, part 1: S4 report layout for modes D and E, then ONE full run | S0 to S0d, S1a to S1d, S2, S3 and S4 done in code; the full run after S4 (`p-s4`) is valid; S4 point 7 (the "Repeated" label, `probe/safety.js:91`) still open |
 | 3b | No-code mode, part 2: S5 Site Health text and pasted plugin list, S6 public debug.log check, S7 error e-mail text and Plugins-page screenshot | waiting (after the owner's real-site runs) |
 | 4 | Real-site runs by the owner on 2 or 3 real sites, then review | next, the owner's step |
 | 4a | Masking of e-mail addresses, IP addresses and the website address in the reports (the address and the raw step text are unmasked now; see section 6) | own step, not started |
