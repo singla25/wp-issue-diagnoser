@@ -224,6 +224,9 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
             const lc = require('./live-conflicts').match(sg.plugin_names), cLines = plainNames.liveConflictLines(lc, { prefix: 'the page loads files of', partial: 'The page shows only plugins that load files on this page, so other plugins may exist that were not seen.' });
             if (cLines.length) { const safeC = redact.deep({ conflicts: lc.conflicts, more: lc.more, lines: cLines }); f.live_conflicts = safeC; sigLines.push(...safeC.lines); }
         } catch { /* the signals are an extra: a failure leaves them out and never stops the report */ }
+        // 4i-b: a browser error named in the description or the screenshot text: a clue line, "possible, not confirmed"; the verdict is not touched
+        const beLines = plainNames.browserErrorLines((ev && ev.clues) || []);
+        if (beLines.length) { f.browser_error_clues = { lines: beLines }; sigLines.push(...beLines); }
     }
     if (liveLine) f.live_checks = { total: liveSum.total, gave_a_result: liveSum.gave, could_not_run: liveSum.not_run, reason: liveSum.reason, sentence: liveLine };
     f.checkpoints = { counts: cpCounts, items: cpRows.map(r => ({ id: r.id, title: r.title, result: r.result, tied_to_crash: !!r.tied_to_crash, breaks_site: r.breaks_site, reason: r.reason, ...(r.same_as ? { same_as: r.same_as } : {}) })) };

@@ -6,6 +6,7 @@
 
 const schema = require('../lib/schema');
 const { componentOf } = require('../lib/ownership');
+const browserError = require('../lib/browser-error');
 
 const RANK = { certain: 0, likely: 1, possible: 2 };
 const cut = (s, n = 200) => String(s).replace(/\s+/g, ' ').trim().slice(0, n);
@@ -60,6 +61,12 @@ function extract(text, source, { confidence = 'possible' } = {}) {
             const m = re.exec(type === 'php-location' ? line.replace(/\(?previously declared in\s+\S+/i, '') : line);
             const v = m && build(m);
             if (v) add(type, v, i + 1, line);
+        }
+        // a browser error page named in the text (4i-b): a fixed label, always 'possible'; the raw words are never kept (value, detail and snippet hold only the label)
+        // only the reporter's own words: the description and the text of a screenshot. A log line (for example a cURL 'certificate has expired' of the server's own request) is NOT a browser error.
+        for (const b of (source.kind === 'description' || source.kind === 'ocr') ? browserError.find(line) : []) {
+            const key = `browser-error|${b.id}|${source.ref}`;
+            if (!seen.has(key)) { seen.add(key); out.push({ id: schema.stableId('clue', 'browser-error', b.id, source.ref, source.kind), type: 'browser-error', value: b.label, detail: { family: b.id }, source: { kind: source.kind, ref: source.ref, line: i + 1 }, confidence: 'possible', snippet: b.label }); }
         }
         // every wp-content path names a component, whatever else the line says
         for (const m of line.matchAll(/wp-content\/(plugins|themes|mu-plugins)\/([A-Za-z0-9._-]+)(\/[^\s:()'"]*)?/gi)) {
