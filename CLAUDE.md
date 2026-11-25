@@ -32,15 +32,17 @@ npm run demo [-- --sandbox] [-- --keep] # the worked example end to end on a fix
 npm run checkpoints [-- --check]        # regenerate data/checkpoints.json from the COVERAGE table (--check exits 1 if stale)
 npm run verify-knowledge                # re-fetch the official pages cited by the knowledge data files
 npm run knowledge-review                # regenerate KNOWLEDGE-REVIEW.md for a person to review; a test fails if it is stale
-npm test                                # every suite: test:offline (72 suites), then test:docker (10 suites, real containers)
-npm run test:offline                    # the offline suites only
+npm test                                # every suite: test:offline (79 suites), then test:docker (10 suites, real containers): 89 in all
+npm run test:offline                    # the offline suites only (about 14 to 17 minutes on a quiet machine)
 npm run test:docker                     # the Docker suites only (they skip loudly when Docker is unusable)
-scripts/run-full.sh <label>             # the ONE full run on a snapshot; logs in ~/pg-runs/<label>/
+scripts/run-full.sh <label> [--dry-run] # the ONE full run on a snapshot; logs in run-logs/<label>/ (git-ignored); PG_TIMED=1 puts the time before every log line; --dry-run does only the snapshot and a tiny check
+tools/measure.sh <label>                # every offline suite alone with its time, in run-logs/ci/ (nothing else may run meanwhile)
+node tools/run-case.js <status|none>    # one live-page case on a fixture server on 127.0.0.1 (works from any folder)
 npm run selftest                        # the original offline suite
 npm run selftest:<name>                 # one suite; the names are in package.json
 ```
 
-`npm test` runs every suite (`test:offline`, then `test:docker`), and `scripts/run-full.sh <label>` is the one full run (on a snapshot, with the Docker baseline check). Details: [docs/TESTING.md](docs/TESTING.md). `isolated-copy` is not in the chain until C7.
+`npm test` runs every suite (`test:offline`, then `test:docker`), and `scripts/run-full.sh <label>` is the one full run (on a snapshot, with the Docker baseline check; its logs, lock file and the optional `run-logs/env.sh` are in `run-logs/`, which the snapshot leaves out). Details: [docs/TESTING.md](docs/TESTING.md). `isolated-copy` is not in the chain until C7.
 
 The `wp-issue-diagnoser` command (`npm run diagnose`; bin entry `wp-issue-diagnoser`, `scripts/plugin-guard.js`) is an interactive plain wizard:
 
@@ -77,7 +79,10 @@ These apply to every agent in every session.
 - Real site names, client names and nicknames never go into files; write "a real site".
 - Every diff gets a review before it is committed: by the Opus reviewer (reviewer-deep), or by reviewer-light for a docs-only diff (owner decision in M1, 2026-11-18).
 - One full run per commit, with `scripts/run-full.sh <label>` (it must be valid: test exit 0 and Docker back at its baseline).
-- The history file is kept outside the repository. After each commit a dated entry is added to it and its secret scan is run.
+- There is no history file outside the repository (the old one was retired by the owner on purpose). The record of the work is `docs/HANDOFF.md` and `docs/PROJECT-HISTORY.md`; every report gives a one-line result of the secret scan (no secrets, no real site or client names in the added lines).
+- Check the exit code of `npm run test:offline` BEFORE every commit; a commit is made only after exit 0. Do not commit first and look at the result afterwards.
+- A test that cannot fail (it passes on any code) must be fixed or deleted, and the report says so plainly. Never leave one in silently.
+- When a fix is made after the last allowed review round, it needs one verification round; the owner decides whether to give it. Say in the report that the fix was not reviewed again until then.
 - The owner reviews each report before the next step starts. One commit per step.
 - Write short, simple English.
 

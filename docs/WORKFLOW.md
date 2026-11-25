@@ -47,7 +47,7 @@ Added in M1 (2026-11-18, owner approval). Every rule below says whether it is ne
 - Not supported or not known: the agent files set no token limit and no effort level, and the agent cannot see the owner's usage limit. No other `model:` value was tried, and which exact model version stands behind each name is not set in this repository.
 
 **Polling during a full run**
-- The Coder starts `scripts/run-full.sh <label>` in the background and uses ONE command that waits for `~/pg-runs/<label>/test.exit`; it looks at the run at most every 30 minutes (new: the owner's M1 rule; before, the runner only had to avoid tight polling). If the owner asks for a progress line (a task longer than 10 minutes: PASS, FAIL, SKIP so far and the expected finish), a background monitor prints it every 10 minutes; that is not polling by the Coder.
+- The Coder starts `scripts/run-full.sh <label>` in the background and uses ONE command that waits for `run-logs/<label>/test.exit`; it looks at the run at most every 30 minutes (new: the owner's M1 rule; before, the runner only had to avoid tight polling). If the owner asks for a progress line (a task longer than 10 minutes: PASS, FAIL, SKIP so far and the expected finish), a background monitor prints it every 10 minutes; that is not polling by the Coder.
 
 ## Step size and token budget
 
@@ -61,17 +61,17 @@ Added in M1 (2026-11-18). The agent cannot see the owner's 5-hour usage limit, s
 
 **b) Checkpoints** (partly as before: one commit per step, explicit staging, no push)
 - Commit after each finished part when its tests pass: one commit per part, explicit staging, no push.
-- If the tests do not pass yet, save the diff as a patch outside the repository (`~/pg-runs/<step>/...patch`) and write its name and path in the history entry, so a usage limit or a restart loses nothing. (As done for S0c and S1; new as a rule.)
+- If the tests do not pass yet, save the diff as a patch outside the tracked files (`run-logs/<step>/...patch`, git-ignored) and write its name and path in the report and in `docs/HANDOFF.md`, so a usage limit or a restart loses nothing. (As done for S0c and S1; new as a rule.)
 - One history line after each part: what is done, what is left.
 
 **c) Context rule** (new)
-- After two review rounds, or after a long investigation, finish the part, commit or save the patch, and suggest a fresh session for the rest. The docs and the history file carry the context. Do not carry on in a very long session.
+- After two review rounds, or after a long investigation, finish the part, commit or save the patch, and suggest a fresh session for the rest. The docs (`docs/HANDOFF.md`, `docs/PROJECT-HISTORY.md`) carry the context. Do not carry on in a very long session.
 
 **d) Limit rule: the resume paragraph** (used before, now written here)
 - If a usage-limit error or a restart interrupts the Coder, the owner can paste this paragraph as the next message:
 
 ```
-Resume. Check git status, the diff stat, git log and the last history entry first.
+Resume. Check git status, the diff stat, git log and the top of `docs/HANDOFF.md` first.
 Discard nothing. Tell me in 5 lines what is done and what is left. Rerun any review that
 was cut off, from the start. Do not start the next roadmap row; wait for my prompt.
 ```
@@ -83,7 +83,13 @@ was cut off, from the start. Do not start the next roadmap row; wait for my prom
 
 ## History
 
-After each commit the Coder adds a dated entry to the history file (`~/plugin-guard-history/HISTORY.md`, which stays outside this repository) and runs its secret scan. Only the owner pushes.
+There is no history file outside the repository (the owner retired it on purpose). The record of the work is `docs/HANDOFF.md` and `docs/PROJECT-HISTORY.md`, written in a docs step. Every report gives a one-line result of the secret scan of the added lines. Only the owner pushes.
+
+**Commit rules (added 2026-11-25)**
+- Check the exit code of `npm run test:offline` BEFORE every commit: a commit is made only after exit 0.
+- A test that cannot fail must be fixed or deleted, and the report says so.
+- A fix made after the last allowed review round needs one verification round; the owner decides whether to give it, and until then the report says the fix was not reviewed again.
+- `run-logs/env.sh` (the variables of the seeded-bug test on a real site) is copied there by hand by the owner and is never committed; the folder is git-ignored.
 
 ## Task brief (the only context a sub-agent gets)
 

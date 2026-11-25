@@ -2,7 +2,7 @@
 
 Every Markdown file in this repository, in one place. A test (`selftest:docs`) fails if a `.md` file is missing from this map or if a file named here does not exist. Update this map when you add, move or delete a `.md` file.
 
-The history file (the dated log of every step) is kept OUTSIDE this repository, on purpose. It is not linked here.
+There is no history file outside the repository (the owner retired it on purpose). The record of the work is [HANDOFF.md](./HANDOFF.md) and [PROJECT-HISTORY.md](./PROJECT-HISTORY.md).
 
 ## Rules (for the Coder agent and the sub-agents)
 

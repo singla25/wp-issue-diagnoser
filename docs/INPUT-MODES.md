@@ -68,7 +68,7 @@ It does not keep the page source, cookies or any other header. Nothing is clicke
 
 ### 1f. Which of the 53 known-problem checks work without code
 
-Case: a site folder with no code, a log and (second run) a live address, tested on 2026-11-17 with the current code (`~/pg-runs/s0/d4.txt`, `d5.txt`):
+Case: a site folder with no code, a log and (second run) a live address, tested on 2026-11-17 with the current code (the owner's old run files `d4.txt` and `d5.txt`, kept outside the repository):
 
 | Group | Count | Which |
 |---|---|---|
@@ -82,7 +82,7 @@ The 53 are in `data/checkpoints.json` (generated from `docs/COVERAGE.md`).
 
 ### 1g. What the report shows with no code and no database
 
-From the runs of 2026-11-17 (`~/pg-runs/s0/`):
+From the runs of 2026-11-17 (the owner's old folder `s0`, outside the repository):
 
 - (Status: this section describes the runs of 2026-11-17. Without `--no-files` and without typing `none` the refusal below is still true; the two "Found while writing this" items were fixed in S1a, `2abfccc`, and S1b, `ee782f4`.) The command **refuses** to start without a site folder: exit 2, "Missing required value: the site folder." (case e, thrown in `lib/wizard.js:116`, pinned by `selftest-plugin-guard.js:157`).
 - With an empty folder and a log: "VERDICT: No confirmed breaking cause was found. How sure we are: not very.", "Looked at: your log. Not looked at: the live page, the code, a throwaway test copy.", "NOT TESTED ON A COPY", "NOT TESTED: what this report says comes from reading your log.", "2 pass, 0 fail, 51 not checked", and the cause "defined twice (the log says so; no code file was read to show where)".

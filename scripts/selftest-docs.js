@@ -49,6 +49,7 @@ const OTHER_FLAGS = {
     [RETIRED]: ['retired: the docs say it exits 2; guard.js refuses it with KEEP_REAL_DATA_RETIRED', () => !(RETIRED in FLAGS) && typeof KEEP_REAL_DATA_RETIRED === 'string'],
     apply: ['SAFETY.md says there is NO --apply: guard.js must not know it', () => !('apply' in FLAGS)],
     // options of other tools or of single scripts, named in the HANDOFF history (C1c); none is an option of guard.js / plugin-guard.js
+    'dry-run': ['--dry-run of scripts/run-full.sh (a snapshot and a tiny check, no long run)', () => has('scripts/run-full.sh', '--dry-run')],
     db: ['setup-sandbox.js option --db mysql|mariadb', () => has('scripts/setup-sandbox.js', '--db mysql')],
     check: ['--check of scripts/gen-checkpoints.js and of scripts/setup-sandbox.js', () => has('scripts/gen-checkpoints.js', "'--check'") && has('scripts/setup-sandbox.js', "'--check'")],
     'default-authentication-plugin': ['MySQL server option set in issue/sandbox-policy.js', () => has('issue/sandbox-policy.js', '--default-authentication-plugin=mysql_native_password')],
