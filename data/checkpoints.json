@@ -429,7 +429,7 @@
       "section": "Runtime symptoms",
       "coverage": "DETECTED",
       "reached_in": "Issue",
-      "where": "issue/oracle.js http-5xx and generic. For the symptoms white-screen, redirect and other, generic also says yes for a blank page or a printed Fatal error: / critical-error text served with HTTP ...",
+      "where": "issue/oracle.js http-5xx and generic. For the symptoms white-screen, redirect, other and connection-not-private, generic also says yes for a blank page or a printed Fatal error: / critical-error text ...",
       "missing": "Only for those three symptoms (a layout complaint is not answered with \"blank page\"). A page that has text but is visibly broken is not a white screen.",
       "evaluator": "white-screen",
       "breaks_site": "yes"
@@ -451,7 +451,7 @@
       "section": "Runtime symptoms",
       "coverage": "DETECTED",
       "reached_in": "Issue",
-      "where": "issue/oracle.js generic (symptoms white-screen, redirect, other): the text \"There has been a critical error on this website\" or a printed Fatal error: / Parse error: line on a page with HTTP 200-399 ...",
+      "where": "issue/oracle.js generic (symptoms white-screen, redirect, other, connection-not-private): the text \"There has been a critical error on this website\" or a printed Fatal error: / Parse error: line on a ...",
       "missing": "A critical-error page that answers 500 is reported as a 5xx, not as this text.",
       "evaluator": "critical-error-page",
       "breaks_site": "yes"
