@@ -45,7 +45,7 @@ ok(long.includes(EM) && !long.includes('owner@') && long.includes('b'.repeat(400
 ok(text('map ::ffff:127.0.0.1 and ::ffff:203.0.113.9 end', H) === `map ::ffff:127.0.0.1 and ${IP} end`, 'an IPv4 address written as IPv6: loopback kept whole, a real one masked whole (no leftover ".0.113.9")');
 ok(text('Call to undefined method Feed::add() and a::b and cafe:: and DB::table', H) === 'Call to undefined method Feed::add() and a::b and cafe:: and DB::table', 'class and method names made of hex letters are not IP addresses');
 ok(text('fe80::a and 2001:db8::7', H) === `${IP} and ${IP}`, 'real IPv6 addresses (with a digit) are still masked');
-ok(text('Plugin 1.2.3.4 and WordPress 6.4.3.1', H) === `Plugin ${IP} and WordPress ${IP}`, 'KNOWN LIMIT, documented: a four-part version looks like an IPv4 address and is masked (over-masking, safe side)');
+ok(text('Plugin 1.2.3.4 and WordPress 6.4.3.1', H) === `Plugin ${IP} and WordPress ${IP}`, 'KNOWN LIMIT, documented: a bare four-part version in prose (no "version" word before it) looks like an IPv4 address and is masked (over-masking, safe side)');
 ok(JSON.stringify(hs({ url: 'https://shop.acme-shop.example/', pages: [] })) === JSON.stringify(['shop.acme-shop.example', 'acme-shop.example']) && JSON.stringify(hs({ url: 'https://acme.co.uk/', pages: [] })) === JSON.stringify(['acme.co.uk']) && JSON.stringify(hs({ url: 'https://shop.acme.co.uk/', pages: [] })) === JSON.stringify(['shop.acme.co.uk', 'acme.co.uk']), 'a sub-domain address also masks its parent domain, but never a public suffix such as co.uk');
 const cyc = {}; cyc.self = cyc; cyc.list = [cyc];
 const cd = M && M.deep ? M.deep(cyc, { hosts: H }) : null;
@@ -71,6 +71,16 @@ ok(text('for example. and acme-shop.example/x', hs({ url: 'https://acme-shop.exa
 const idn = hs({ url: 'https://xn--bcher-kva.example/', pages: [] });
 ok(idn.includes('xn--bcher-kva.example') && idn.includes('b\u00fccher.example') && text('Seite b\u00fccher.example/shop und xn--bcher-kva.example', idn) === `Seite ${SA}/shop und ${SA}`, 'an international name is masked in both forms (letters and xn--)');
 ok(JSON.stringify(hs({ url: 'https://localhost./', pages: [] })) === '[]' && JSON.stringify(hs({ url: 'https://intranet/', pages: [] })) === '[]', 'a one-label host is not masked (it would mask an ordinary word)');
+
+group('the tool\'s own made-up addresses');
+ok(text('one dummy administrator (login pgadmin, e-mail pgadmin@example.invalid) and user7@example.invalid', H) === 'one dummy administrator (login pgadmin, e-mail pgadmin@example.invalid) and user7@example.invalid', 'the dummy addresses of the test copy (@example.invalid) are kept: they are made up by the tool, and the report says them');
+ok(text('real owner@mail.example.invalid.test and bob@example.invalid.com', H) === `real ${EM} and ${EM}`, 'only the exact domain example.invalid is kept; a look-alike is masked');
+
+group('versions are not addresses');
+ok(text('version 8.9.1.0 and Version: 2.1.0.5 and v1.2.3.4 and ver. 3.4.5.6 and release 7.8.9.1', H) === 'version 8.9.1.0 and Version: 2.1.0.5 and v1.2.3.4 and ver. 3.4.5.6 and release 7.8.9.1', 'a four-part number right after "version", "v", "ver." or "release" is a version, not an IP address');
+const vd = M && M.deep ? M.deep({ components: [{ name: 'Shop', version: '8.9.1.0', plugin_version: '2.1.0.5', note: 'seen from 203.0.113.9' }], required_php_version: '7.4.1.2' }, { hosts: H }) : null;
+ok(vd && vd.components[0].version === '8.9.1.0' && vd.components[0].plugin_version === '2.1.0.5' && vd.required_php_version === '7.4.1.2' && vd.components[0].note === `seen from ${IP}`, 'deep: the value of a key named like a version keeps its four-part number; other keys are still masked');
+ok(text('server 203.0.113.9 and from 198.51.100.7', H) === `server ${IP} and from ${IP}`, 'a real IP address next to ordinary words is still masked');
 
 group('deep, null and speed');
 const d = M && M.deep ? M.deep({ url: 'https://acme-shop.example/p', n: 5, ok: true, nothing: null, list: ['a@b.example', { 'acme-shop.example': 'x acme-shop.example' }] }, { hosts: H }) : null;

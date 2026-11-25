@@ -5,13 +5,20 @@ const path = require('path');
 const store = require('../lib/issue-store');
 const html = require('../lib/issue-html');
 
+// 4a: the overview page looks shareable, so its titles get the same masking as the report (the issue's own host list)
+const maskedTitle = i => {
+    const mask = require('../lib/report-mask');
+    let full = i; try { full = store.load(i.id); } catch { /* keep the list entry */ }
+    return mask.text(require('../lib/plain-names').shortTitle(i.title, i.description), { hosts: mask.hostsOf(full) });
+};
+
 function collect() {
     return store.list().map(i => {
         const dir = store.dirOf(i.id), fj = path.join(dir, 'result', 'findings.json');
         let f = null; try { f = JSON.parse(fs.readFileSync(fj, 'utf8')); } catch { /* not investigated yet */ }
         const top = f && f.hypotheses.filter(h => h.status !== 'REJECTED_FALSE_POSITIVE')[0];
         const last = f && f.retests[f.retests.length - 1];
-        return { id: i.id, title: require('../lib/plain-names').shortTitle(i.title, i.description), symptom: i.symptom, environment: i.environment, created_at: i.created_at, verdict: f ? f.verdict.label : null, top_status: top ? top.status : null, retests: f ? f.retests.length : 0, last_retest: last ? last.verdict : null, has_report: !!(f && fs.existsSync(path.join(dir, 'result', 'issue.html'))) };
+        return { id: i.id, title: maskedTitle(i), symptom: i.symptom, environment: i.environment, created_at: i.created_at, verdict: f ? f.verdict.label : null, top_status: top ? top.status : null, retests: f ? f.retests.length : 0, last_retest: last ? last.verdict : null, has_report: !!(f && fs.existsSync(path.join(dir, 'result', 'issue.html'))) };
     }).sort((a, b) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : a.id < b.id ? -1 : 1));
 }
 function write() {

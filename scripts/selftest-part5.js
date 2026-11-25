@@ -43,7 +43,7 @@ async function wiz(answers, flags, extra = {}) {
     return { text, error };
 }
 const issuesIn = d => (fs.existsSync(d) ? fs.readdirSync(d).filter(x => store.ISSUE_RE.test(x)).sort() : []);
-const NOTICE = 'Saved only on this computer, in the report folder. It is never sent anywhere. Passwords, keys, tokens, email addresses and IP addresses are removed first; names and street addresses are not, so please leave them out.';
+const NOTICE = 'Saved only on this computer, in the report folder. It is never sent anywhere. Passwords, keys, tokens, email addresses and IP addresses are removed first; names and street addresses are not, so please leave them out. The report itself still names your pages; check it before you share it.';
 
 (async () => {
     group('file URL');

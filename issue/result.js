@@ -532,7 +532,11 @@ function write(id, { validation, plans, dir, root, policy, gate = false, verbose
     // with the gate on (and no --verbose) tasks are written only for what is shown: nobody is asked to patch an unconfirmed possibility
     const t = tasks(gate && !verbose ? { ...f, resolution: f.resolution.filter(r => shown(f).has(r.hypothesis)) } : f, { root, policy });
     // the last pass (lib/redact.js): findings.json, issue.html, ISSUE-REPORT.md, tasks.md and FIX-PLAN.md are written from a copy in which every string is masked (the Markdown files are masked once more as text); with no secret in them the files are byte for byte what they were
-    const safe = redact.deep(f), keepClean = redact.text;
+    // 4a: the site address, email and IP addresses are masked in the shareable files (lib/report-mask.js); issue.json, issue.md and work/ keep the real values
+    const reportMask = require('./../lib/report-mask'), mctx = { hosts: reportMask.hostsOf(store.load(id)) };
+    const asJson = JSON.stringify(f);
+    if (reportMask.text(asJson, mctx) !== asJson) { const hadText = Array.isArray(f.limits_text); f.limits = [...(f.limits || []), reportMask.NOTE]; if (hadText) f.limits_text = [...f.limits_text, reportMask.NOTE]; }
+    const safe = reportMask.deep(redact.deep(f), mctx), keepClean = s => reportMask.text(redact.text(s), mctx);
     fs.writeFileSync(R('findings.json'), JSON.stringify(safe, null, 2) + '\n', { mode: 0o600 });
     const issueHtml = require('../lib/issue-html');
     fs.writeFileSync(R('issue.html'), issueHtml.build(safe, issueHtml.embedImages(dir, store.load(id).images)), { mode: 0o600 });   // built from the masked copy; no text pass over the HTML (it would meet the JSON escapes of the embedded data)
