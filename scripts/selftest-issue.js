@@ -204,15 +204,36 @@ if (fs.existsSync(hidden) && !fs.existsSync(nm)) fs.renameSync(hidden, nm); // r
 const restore = () => { if (fs.existsSync(hidden) && !fs.existsSync(nm)) fs.renameSync(hidden, nm); };
 process.on('exit', restore); process.on('SIGINT', () => { restore(); process.exit(130); });
 fs.renameSync(nm, hidden);
+// the two child calls do not look in node_modules folders ABOVE the package (scripts/fixtures/no-ancestor-modules.js): in the snapshot of scripts/run-full.sh the package sits
+// inside the repository, whose own node_modules would otherwise be found and issue mode would not say what to install. The path is absolute (a relative one would depend on the folder)
+const PRELOAD = path.join(__dirname, 'fixtures', 'no-ancestor-modules.js');
+const cliNoAncestors = args => spawnSync(process.execPath, [path.join(__dirname, 'guard.js'), ...args], { encoding: 'utf8', env: { ...process.env, INIT_CWD: tmp, NODE_OPTIONS: `${process.env.NODE_OPTIONS || ''} --require "${PRELOAD}"`.trim() } });
 let sc, ic;
 try {
-    sc = cli(['scan', '--root', wp]);
-    ic = cli(['issue', 'new', '--no-prompt', '--title', 'x']);
+    sc = cliNoAncestors(['scan', '--root', wp]);
+    ic = cliNoAncestors(['issue', 'new', '--no-prompt', '--title', 'x']);
 } finally { restore(); }
 ok(fs.existsSync(nm) && !fs.existsSync(hidden), 'node_modules was put back');
 ok([0, 1].includes(sc.status) && /report\.html/.test(sc.stdout), `classic "scan --root" still works without node_modules (exit ${sc.status}) ${sc.stderr.slice(0, 200)}`);
 ok(ic.status === 2 && /npm ci/.test(ic.stderr), 'while issue mode says exactly what to install (exit 2)');
 ok(hashTree(wp) === wpHash, 'the WordPress tree is still byte-identical');
+
+// the fixture itself: an ancestor node_modules must not hide the missing packages (a mini package inside a project that has all of them)
+{
+    const REQUIRED = require('../lib/issue-deps').REQUIRED;
+    const outer = path.join(tmp, 'anc-outer'), pkg = path.join(outer, 'pkg');
+    fs.mkdirSync(path.join(pkg, 'scripts', 'fixtures'), { recursive: true });
+    fs.cpSync(path.join(__dirname, '..', 'lib'), path.join(pkg, 'lib'), { recursive: true });
+    fs.copyFileSync(PRELOAD, path.join(pkg, 'scripts', 'fixtures', 'no-ancestor-modules.js'));
+    const fake = (dir, n) => { fs.mkdirSync(path.join(dir, 'node_modules', n), { recursive: true }); fs.writeFileSync(path.join(dir, 'node_modules', n, 'package.json'), JSON.stringify({ name: n, main: 'index.js' })); fs.writeFileSync(path.join(dir, 'node_modules', n, 'index.js'), ''); };
+    for (const n of REQUIRED) fake(outer, n);   // the PARENT project has every package; the mini package has none
+    const probe = pre => spawnSync(process.execPath, ['-e', "try { require('./lib/issue-deps').need(); console.log('ALL FOUND'); } catch (e) { console.log('MISSING ' + e.message.split('\\n')[0]); }"], { cwd: pkg, encoding: 'utf8', env: { ...process.env, NODE_OPTIONS: pre ? `--require "${path.join(pkg, 'scripts', 'fixtures', 'no-ancestor-modules.js')}"` : '' } }).stdout.trim();
+    ok(path.isAbsolute(PRELOAD) && fs.existsSync(PRELOAD), 'the preload path given in NODE_OPTIONS is absolute and the file exists');
+    ok(/^ALL FOUND/.test(probe(false)), 'without the preload, the parent project\'s packages ARE found (this is the case that made the check above fail inside the run-full snapshot)');
+    ok(/^MISSING Issue mode needs packages that are not installed: php-parser/.test(probe(true)), 'with the preload, the parent project\'s packages are NOT found: issue mode says what is missing');
+    for (const n of REQUIRED) fake(pkg, n);   // now the mini package has its own copies
+    ok(/^ALL FOUND/.test(probe(true)), 'with the preload, the package\'s OWN node_modules is still used (only folders above the package are skipped)');
+}
 
 console.log(failures ? `\n${failures} check(s) FAILED` : '\nAll checks passed');
 fs.rmSync(tmp, { recursive: true, force: true });

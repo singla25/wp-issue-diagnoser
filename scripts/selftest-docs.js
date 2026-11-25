@@ -207,7 +207,7 @@ function readmeProblems(text) {
 
 group('8. docs/README.md maps every .md file of the repository, and every file it names exists');
 // every .md file of the package (the folders that .gitignore keeps out are not walked), as paths relative to the package root
-const MD_SKIP = new Set(['node_modules', '.git', 'issues', 'sandboxes', 'reports', 'plugin-guard-reports', 'state', 'projects', 'coverage', 'dist', 'build', 'playwright-report', 'test-results']);
+const MD_SKIP = new Set(['node_modules', '.git', 'issues', 'sandboxes', 'reports', 'plugin-guard-reports', 'state', 'projects', 'coverage', 'dist', 'build', 'playwright-report', 'test-results', 'run-logs']);
 function allMd(dir = PG, rel = '') {
     const out = [];
     for (const e of fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {

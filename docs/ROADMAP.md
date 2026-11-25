@@ -59,6 +59,8 @@ Last green full run: p-s4 on 2026-11-23 (ran at HEAD 79ae3de; the later commits 
 | H-move: run logs, lock and `env.sh` in git-ignored `run-logs/`, `tools/measure.sh`, `tools/run-case.js`, `PG_TIMED=1`, `--dry-run`, the snapshot leaves out `run-logs/`, `issues/` and `plugin-guard-reports/` | 5fd2ff1 |
 | Step 0 of the docs step: `run-full.sh` guards (tests run in the snapshot, a PASS line is needed), the hygiene scan skips `run-logs/` | 7b8723b |
 | D-a: the rules and paths (no history folder, run-logs, tools, counts, commit rules) | 2c02b6d |
+| D-b: the record of 4i, 4a, 4m, H-move and the masking limits (README, SAFETY, REPORT-SPEC, COVERAGE, HANDOFF 101 to 104, PROJECT-HISTORY) | 3155d77 |
+| p-ac fix: the check "while issue mode says exactly what to install" failed in the first full run `p-ac` because the snapshot now sits inside the repository and finds its `node_modules`; the two child calls of that suite use the preload `scripts/fixtures/no-ancestor-modules.js` (the assertion text is unchanged); 4 new checks; the three suites that walk the whole tree skip `run-logs` | the commit with the subject "selftest-issue: missing packages are tested without the parent's node_modules" (`git log`) |
 | M1: roles, models, step size and token budget (docs/WORKFLOW.md, CLAUDE.md, reviewer-light agent; docs only, no full run) | 809f1ed |
 | 3a-S0d: masking corpus test (173 secret forms, 137 benign texts), the short-value rule, the exact exception for "(using password: YES or NO)" | 3a85421, a9528dc, f0badde (round 4 fix) |
 | 3a-S1a: `--no-files` (run without a site folder) and the crash fix | 2abfccc |

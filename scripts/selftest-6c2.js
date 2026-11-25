@@ -103,7 +103,7 @@ const sub = (l, s, svc) => l.args[0] === 'compose' && l.args[5] === s && (!svc |
     {
         // the two existing suites that mentioned it were converted to the refusal message with the owner's approval; this suite names it on purpose
         const EXEMPT = new Set(['scripts/selftest-6a-fake.js', 'scripts/selftest-issue-sandbox-lifecycle.js', 'scripts/selftest-6c2.js']);
-        const SKIP_DIRS = new Set(['node_modules', 'issues', 'sandboxes', 'state', 'projects', 'reports', 'plugin-guard-reports', 'history', '.git']);
+        const SKIP_DIRS = new Set(['node_modules', 'issues', 'sandboxes', 'state', 'projects', 'reports', 'plugin-guard-reports', 'history', '.git', 'run-logs']);
         const files = [];
         (function walk(d) { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const f = path.join(d, e.name); if (e.isDirectory()) { if (!SKIP_DIRS.has(e.name)) walk(f); } else if (/\.(js|json|cjs|mjs)$/.test(e.name)) files.push(path.relative(PG, f)); } })(PG);
         const bad = re => files.filter(f => !EXEMPT.has(f) && re.test(fs.readFileSync(path.join(PG, f), 'utf8')));
