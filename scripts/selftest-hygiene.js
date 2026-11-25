@@ -23,7 +23,14 @@ rules.contentChecks(ROOT, files, ok, rules.projectNames(path.join(ROOT, 'project
 const GI_ROOT = REPO || (fs.existsSync(path.join(ROOT, '.gitignore')) ? ROOT : null);
 const PFX = REPO ? 'src/plugin-guard/' : '';   // in the package-is-the-root layout the same patterns have no prefix
 if (!GI_ROOT) console.log('SKIP  .gitignore checks: this is a copy of src/plugin-guard on its own, the repository .gitignore is not part of it');
-else for (const [pat, why] of [[PFX + 'issues/', 'issue folders (reports, screenshots, OCR text)'], [PFX + 'sandboxes/', 'sandbox copies of sites'], [PFX + 'plugin-guard-reports/', 'classic reports of a copy of this package on its own'], [PFX + 'data/ocr/*.traineddata', 'the OCR language file'], ['.env', 'environment files'], ['.env.*', 'environment files'], ['node_modules/', 'dependencies'], ['reports/*', 'run output'], [PFX + 'projects/*/history/', 'scan history']]) ok(fs.readFileSync(path.join(GI_ROOT, '.gitignore'), 'utf8').split('\n').map(l => l.trim()).includes(pat), `.gitignore covers ${pat} (${why})`);
+else for (const [pat, why] of [[PFX + 'issues/', 'issue folders (reports, screenshots, OCR text)'], [PFX + 'sandboxes/', 'sandbox copies of sites'], [PFX + 'plugin-guard-reports/', 'classic reports of a copy of this package on its own'], [PFX + 'data/ocr/*.traineddata', 'the OCR language file'], ['.env', 'environment files'], ['.env.*', 'environment files'], ['node_modules/', 'dependencies'], ['reports/*', 'run output'], [PFX + 'projects/*/history/', 'scan history'], ['run-logs/', 'run logs, the lock file and the optional env.sh of scripts/run-full.sh (a real-site path may be in env.sh)'], ['.claude/settings.local.json', 'the local settings of Claude Code']]) ok(fs.readFileSync(path.join(GI_ROOT, '.gitignore'), 'utf8').split('\n').map(l => l.trim()).includes(pat), `.gitignore covers ${pat} (${why})`);
+// run-logs/ holds the logs, whole copies of the tree and the owner's own env.sh (it may name a real site path): it is generated output and is never scanned
+{
+    const t = fs.mkdtempSync(path.join(require('os').tmpdir(), 'pg-hyg-'));
+    fs.mkdirSync(path.join(t, 'run-logs', 'x', 'tree'), { recursive: true }); fs.writeFileSync(path.join(t, 'run-logs', 'env.sh'), `export A=${['', 'var', 'www', 'html', '1', 'site'].join('/')}\n`); fs.writeFileSync(path.join(t, 'run-logs', 'x', 'tree', 'f.js'), 'x'); fs.writeFileSync(path.join(t, 'a.js'), 'x');
+    ok(rules.collect(t).map(f => path.relative(t, f)).join() === 'a.js', 'files under run-logs/ (logs, snapshots, env.sh) are not scanned; an ordinary file is');
+    fs.rmSync(t, { recursive: true, force: true });
+}
 // the OCR file really is not present as a tracked-looking file outside data/ocr, and no dump / archive is lying around
 rules.strayCheck(ROOT, files, ok);
 

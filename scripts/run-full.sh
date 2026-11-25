@@ -88,14 +88,18 @@ else
   TINY="npm test"
 fi
 # the tests run in a subshell that first reads run-logs/env.sh (the variables of the seeded-bug test on a real site; without them that test skips, loudly)
-# `command` skips any function of that name that env.sh might define (npm); the marker file proves that env.sh did not end the subshell (an "exit 0" in it) before the tests started
+# Three guards against an env.sh that does not behave (the file is the owner's own, so this is about mistakes, but the gate must not say VALID by mistake):
+#   - `cd "$SNAP"` AFTER env.sh: the tests always run in the snapshot (npm looks for package.json upwards, so another folder would run them in the real repository);
+#   - `builtin command` skips a function named npm; the marker file proves that env.sh did not end the subshell before the tests started (exit 97 if it did);
+#   - a run is accepted only if test.log holds at least one PASS line (exit 98 if not): a function that fakes `command` or exits early leaves no suite output.
 rm -f "$RUN/tests.started"
 if [ "${PG_TIMED:-}" = 1 ]; then
-  ( [ -f "$LOGS/env.sh" ] && . "$LOGS/env.sh"; touch "$RUN/tests.started"; command $TINY 2>&1 ) | awk '{ print strftime("%H:%M:%S"), $0; fflush() }' > "$RUN/test.log"; CODE=${PIPESTATUS[0]}
+  ( [ -f "$LOGS/env.sh" ] && . "$LOGS/env.sh"; cd "$SNAP" || exit 96; touch "$RUN/tests.started"; builtin command $TINY 2>&1 ) | awk '{ print strftime("%H:%M:%S"), $0; fflush() }' > "$RUN/test.log"; CODE=${PIPESTATUS[0]}
 else
-  ( [ -f "$LOGS/env.sh" ] && . "$LOGS/env.sh"; touch "$RUN/tests.started"; command $TINY ) > "$RUN/test.log" 2>&1; CODE=$?
+  ( [ -f "$LOGS/env.sh" ] && . "$LOGS/env.sh"; cd "$SNAP" || exit 96; touch "$RUN/tests.started"; builtin command $TINY ) > "$RUN/test.log" 2>&1; CODE=$?
 fi
-if [ ! -f "$RUN/tests.started" ]; then CODE=97; echo "the tests did not start: run-logs/env.sh ended the shell before them" >> "$RUN/test.log"; fi
+if [ ! -f "$RUN/tests.started" ]; then CODE=97; echo "the tests did not start: run-logs/env.sh ended the shell before them" >> "$RUN/test.log"
+elif [ "$CODE" = 0 ] && ! grep -qE '(^|[0-9:]+ )PASS' "$RUN/test.log"; then CODE=98; echo "the test output holds no PASS line: the tests did not really run" >> "$RUN/test.log"; fi
 echo "test exit $CODE" | tee -a "$RUN/test.log" > "$RUN/test.exit"
 echo "test finished $(date -Is)" >> "$RUN/progress.txt"
 

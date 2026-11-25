@@ -132,6 +132,23 @@ esac
     write(repo8, 'run-logs/env.sh', 'npm() { echo "PASS  a fake npm"; return 0; }\nexport PG_SEEDED_TEST_VAR=from-env-sh\n');   // a function that pretends to be npm
     const fn = run(repo8, 'real-npm', [], withFake({}));
     ok(/PASS  env.sh variable seen by the tests/.test(rd(path.join(repo8, 'run-logs', 'real-npm', 'test.log'))) && !/a fake npm/.test(rd(path.join(repo8, 'run-logs', 'real-npm', 'test.log'))), 'a function named npm in env.sh is not used: the real npm runs the tests (command npm)');
+    write(repo8, 'run-logs/env.sh', 'command() { :; }\nexport PG_SEEDED_TEST_VAR=from-env-sh\n');   // a function that replaces the builtin "command"
+    const fk = run(repo8, 'real-command', [], withFake({}));
+    ok(/PASS  env.sh variable seen by the tests/.test(rd(path.join(repo8, 'run-logs', 'real-command', 'test.log'))) && /^run VALID/.test(rd(path.join(repo8, 'run-logs', 'real-command', 'result.txt'))), 'a function named command in env.sh does not stop the tests from running (builtin command)');
+    write(repo8, 'run-logs/env.sh', 'touch "$(dirname "$0")/x" 2>/dev/null; builtin() { return 0; }\ncommand() { :; }\nexport PG_SEEDED_TEST_VAR=from-env-sh\n');   // even builtin faked: no test output, so no PASS line
+    const fk2 = run(repo8, 'real-faked', [], withFake({}));
+    ok(!/^run VALID/.test(rd(path.join(repo8, 'run-logs', 'real-faked', 'result.txt'))), `with both builtin and command faked (no test output at all) the run is NOT valid (${rd(path.join(repo8, 'run-logs', 'real-faked', 'result.txt')).trim().slice(0, 70)})`);
+    write(repo8, 'run-logs/env.sh', 'touch "$RUN/tests.started"; exit 0\n');   // writes the marker and ends the shell on purpose
+    const mk = run(repo8, 'real-marker', [], withFake({ RUN: path.join(repo8, 'run-logs', 'real-marker') }));
+    ok(!/^run VALID/.test(rd(path.join(repo8, 'run-logs', 'real-marker', 'result.txt'))) && /exit 98/.test(rd(path.join(repo8, 'run-logs', 'real-marker', 'result.txt'))), `an env.sh that writes the marker and exits on purpose is NOT valid: no PASS line in the output (${rd(path.join(repo8, 'run-logs', 'real-marker', 'result.txt')).trim().slice(0, 60)})`);
+    write(repo8, 'package.json', JSON.stringify({ name: 'fixture', scripts: { test: 'node -e "console.log(\'PASS  CWD=\' + process.cwd())"', 'selftest:hygiene': 'node -e ""' } }));
+    sh('git', ['-c', 'user.name=t', '-c', 'user.email=t@example.invalid', 'commit', '-qam', 'cwd test'], { cwd: repo8 });
+    write(repo8, 'run-logs/env.sh', 'cd /\n');   // an env.sh that changes the folder: npm must still run in the snapshot
+    const cdr = run(repo8, 'real-cd', [], withFake({}));
+    const cwdLine = (rd(path.join(repo8, 'run-logs', 'real-cd', 'test.log')).match(/CWD=(\/\S*)/) || [])[1] || '';
+    ok(/^run VALID/.test(rd(path.join(repo8, 'run-logs', 'real-cd', 'result.txt'))) && cwdLine === path.join(repo8, 'run-logs', 'real-cd', 'tree'), `an env.sh that changes the folder (cd /) still runs the tests in the snapshot, not in the repository (ran in ${cwdLine.slice(-30)})`);
+    write(repo8, 'package.json', JSON.stringify({ name: 'fixture', scripts: { test: 'node -e "console.log(process.env.PG_SEEDED_TEST_VAR === \'from-env-sh\' ? \'PASS  env.sh variable seen by the tests\' : \'FAIL  not seen\'); process.exit(process.env.PG_SEEDED_TEST_VAR === \'from-env-sh\' ? 0 : 1)"', 'selftest:hygiene': 'node -e ""' } }));
+    sh('git', ['-c', 'user.name=t', '-c', 'user.email=t@example.invalid', 'commit', '-qam', 'env test again'], { cwd: repo8 });
     write(repo8, 'run-logs/env.sh', 'export PG_SEEDED_TEST_VAR=from-env-sh\n');
     const seen = run(repo8, 'real-env3', [], withFake({}));
     ok(seen.status === 0 && /^run VALID/.test(rd(path.join(repo8, 'run-logs', 'real-env3', 'result.txt'))) && /PASS  env.sh variable seen by the tests/.test(rd(path.join(repo8, 'run-logs', 'real-env3', 'test.log'))), 'the variables an env.sh exports ARE seen by the tests (that is what the file is for)');

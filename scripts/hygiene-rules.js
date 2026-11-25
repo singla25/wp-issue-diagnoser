@@ -6,7 +6,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const SKIP_DIR = new Set(['node_modules', '.git', 'reports', 'plugin-guard-reports', 'issues', 'sandboxes', 'playwright-report', 'test-results', 'coverage', 'dist', 'build']);
+const SKIP_DIR = new Set(['node_modules', '.git', 'reports', 'plugin-guard-reports', 'issues', 'sandboxes', 'run-logs', 'playwright-report', 'test-results', 'coverage', 'dist', 'build']);
 const SKIP_FILE = /(^package-lock\.json$|\.(png|jpe?g|webp|pdf|traineddata|ico|woff2?)$|^knowledge-verification\.json$|^KNOWLEDGE-REVIEW\.md$)/;
 
 // -> the files to scan under root; skipRel: folders (relative to root, "/" separated) that are not walked
