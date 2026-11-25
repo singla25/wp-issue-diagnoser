@@ -197,6 +197,18 @@ const wiz = async (answers, flags) => {
     ok(!show.stdout.includes(ESC) && !list.stdout.includes(ESC), 'neither command prints a raw ESC character from the saved address (it would move the cursor in a terminal)');
     S3.sv.close();
 
+    group('the classic scan --url (4c): the same rule');
+    const S5 = await server();
+    const site5 = path.join(tmp, 'site5'); fs.mkdirSync(path.join(site5, 'wp-content'), { recursive: true });
+    const cfg = require('../lib/config');
+    const rBad = cfg.resolve({ root: site5, url: `http://127.0.0.1:${S5.port}/p/${ESC}[D${ESC}[D`, env: 'local' }), rEnc = cfg.resolve({ root: site5, url: `http://127.0.0.1:${S5.port}/p/%1B[D`, env: 'local' });
+    ok(rBad.errors.some(e => e === `--url: ${SENTENCE}`) && rEnc.errors.some(e => e === `--url: ${SENTENCE}`) && rBad.config.url === null, 'config.resolve: raw arrow-key codes and a percent-encoded ESC in --url are refused with the one sentence (the address is not repeated)');
+    const rOk = cfg.resolve({ root: site5, url: `  http://127.0.0.1:${S5.port}/a%20b  `, env: 'local' });
+    ok(rOk.errors.length === 0 && rOk.config.url === `http://127.0.0.1:${S5.port}/a%20b`, 'guard: an address with a typed %20 and spaces at the two ends is accepted (the ends are trimmed)');
+    const cs = await runAsync(GUARD, ['scan', '--root', site5, '--url', `http://127.0.0.1:${S5.port}/p/%1B[D`, '--env', 'local'], ENVX);
+    ok(cs.status === 2 && (cs.stdout + cs.stderr).includes(SENTENCE) && !(cs.stdout + cs.stderr).includes('%1B') && S5.hits.length === 0, `scan --url with hidden characters: exit 2, the sentence, no request (exit ${cs.status}, ${S5.hits.length} requests)`);
+    S5.sv.close();
+
     fs.rmSync(tmp, { recursive: true, force: true });
     console.log(failures ? `\n${failures} check(s) FAILED` : '\nAll address checks passed');
     process.exit(failures ? 1 : 0);
