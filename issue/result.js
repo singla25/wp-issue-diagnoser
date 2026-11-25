@@ -535,8 +535,9 @@ function write(id, { validation, plans, dir, root, policy, gate = false, verbose
     // 4a: the site address, email and IP addresses are masked in the shareable files (lib/report-mask.js); issue.json, issue.md and work/ keep the real values
     const reportMask = require('./../lib/report-mask'), mctx = { hosts: reportMask.hostsOf(store.load(id)) };
     const asJson = JSON.stringify(f);
-    if (reportMask.text(asJson, mctx) !== asJson) { const hadText = Array.isArray(f.limits_text); f.limits = [...(f.limits || []), reportMask.NOTE]; if (hadText) f.limits_text = [...f.limits_text, reportMask.NOTE]; }
-    const safe = reportMask.deep(redact.deep(f), mctx), keepClean = s => reportMask.text(redact.text(s), mctx);
+    if (reportMask.text(asJson, mctx) !== asJson || JSON.stringify(reportMask.maskOcrFields(f, mctx)) !== asJson) { const hadText = Array.isArray(f.limits_text); f.limits = [...(f.limits || []), reportMask.NOTE]; if (hadText) f.limits_text = [...f.limits_text, reportMask.NOTE]; }
+    const safe = reportMask.deep(redact.deep(reportMask.maskOcrFields(f, mctx)), mctx),   // the OCR text fields first: they also get the site-name and domain-like rules (4a-3)
+         keepClean = s => reportMask.text(redact.text(s), mctx);
     fs.writeFileSync(R('findings.json'), JSON.stringify(safe, null, 2) + '\n', { mode: 0o600 });
     const issueHtml = require('../lib/issue-html');
     fs.writeFileSync(R('issue.html'), issueHtml.build(safe, issueHtml.embedImages(dir, store.load(id).images)), { mode: 0o600 });   // built from the masked copy; no text pass over the HTML (it would meet the JSON escapes of the embedded data)

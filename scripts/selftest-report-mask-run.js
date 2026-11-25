@@ -40,6 +40,18 @@ const rd = (id, ...p) => { try { return fs.readFileSync(path.join(tmp, 'issues',
     ok(shareable['ISSUE-REPORT.md'].includes(NOTE) && shareable['issue.html'].includes(NOTE) && shareable['findings.json'].includes(NOTE), 'the report says "Masking is best effort and pattern based; names can remain." (md, html, json)');
     ok(!/all (secrets|private|personal)[^.]*removed|everything (was )?removed/i.test(Object.values(shareable).join('\n')), 'the report never claims that everything was removed');
 
+    group('the text read from a screenshot (OCR)');
+    const ij = path.join(tmp, 'issues', id, 'issue.json'), ijd = JSON.parse(fs.readFileSync(ij, 'utf8'));
+    ijd.images = [{ name: 'shot.png', kind: 'png', width: 100, height: 50 }]; fs.writeFileSync(ij, JSON.stringify(ijd));
+    fs.mkdirSync(path.join(tmp, 'issues', id, 'work', 'ocr'), { recursive: true });
+    fs.writeFileSync(path.join(tmp, 'issues', id, 'work', 'ocr', 'shot.png.txt'), 'Address bar: ACME - SHOP | acmeshop.com/cart\nYour connection is not private\nwp-content/plugins/foo/bar.php\n');
+    const inv = await runAsync(GUARD, ['issue', 'investigate', id, '--no-prompt', '--gate', '--no-probe']);
+    const oc = { 'findings.json': rd(id, 'result', 'findings.json'), 'issue.html': rd(id, 'result', 'issue.html'), 'ISSUE-REPORT.md': rd(id, 'result', 'ISSUE-REPORT.md') };
+    ok(inv.status === 0 && oc['findings.json'].includes('ocr_text'), `a screenshot text was stored and the report was written again (exit ${inv.status})`);
+    for (const [name, text] of Object.entries(oc)) ok(!/ACME - SHOP|acmeshop/i.test(text) && !/acme-shop/i.test(text), `${name}: the site name read from the screenshot (damaged: "ACME - SHOP", "acmeshop.com") is not in it`);
+    ok(oc['findings.json'].includes('Your connection is not private') && oc['findings.json'].includes('wp-content/plugins/foo/bar.php'), 'the rest of the screenshot text stays (benign lines are not masked)');
+    ok(rd(id, 'work', 'ocr', 'shot.png.txt').includes('ACME - SHOP'), 'work/ocr keeps the text as it was read (working data)');
+
     group('working data keeps the real address (retest and issue show need it)');
     const issueJson = rd(id, 'issue.json') ? JSON.parse(rd(id, 'issue.json')) : {};
     ok(issueJson.url === URL_ || String(issueJson.url).includes(HOST), 'issue.json keeps the real address');
