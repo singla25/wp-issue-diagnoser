@@ -95,7 +95,7 @@ async function apply(p, { confirm, sandboxOptions = {} } = {}) {
         if (!c || !c.ok || c.path !== i.path) { res.failed.push({ path: i.path, reason: `refused: ${c && c.reason || 'the issues folder is gone'}` }); continue; }
         try { fs.rmSync(c.path, { recursive: true, force: true }); res.removed.push({ path: c.path, kind: 'issue' }); } catch (e) { res.failed.push({ path: c.path, reason: String(e.message).split('\n')[0] }); }
     }
-    try { require('./index-page').write(); } catch { /* convenience only */ }
+    try { require('./index-page').write(); } catch (e) { console.error(`Warning: the overview page issues/index.html could not be written (${e && e.code ? e.code : 'an error'}).`); }   // a convenience: not hidden, never fatal
     return res;
 }
 

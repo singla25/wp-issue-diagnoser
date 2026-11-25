@@ -179,16 +179,25 @@ function whereLine(ctx) {
     return w.length ? `Where: ${w.join('; ')}.`.replace(/\.\.$/, '.') : ctx.components && ctx.components.length ? `Involved: ${ctx.components.join('; ')}.` : 'Where: see the report.';
 }
 
+// the evidence line is read from the site's own files (a changelog or readme line, up to 160 characters), so it can hold the site's address, an email or an IP address:
+// it gets the same masking as the report (lib/report-mask.js). The file name and the version stay.
+function evidenceFor(issue, ctx) {
+    const ev = compatEvidence(issue && issue.root, ctx);
+    if (!ev) return null;
+    const mask = require('../lib/report-mask');
+    return { ...ev, text: mask.text(ev.text, { hosts: mask.hostsOf(issue) }) };
+}
+
 // writes result/FIX-PLAN.md for this issue from its findings and saved answers, or removes a stale one when there is nothing to plan for. -> the path, or null
 function writeFor(id, dir, f) {
     const store = require('../lib/issue-store');
     const file = path.join(dir, 'result', 'FIX-PLAN.md');
     let issue = null; try { issue = store.load(id); } catch { /* no issue file: no answers */ }
     const ctx = context(f);
-    const text = ctx ? build(f, issue && issue.plan_answers ? issue.plan_answers : null, compatEvidence(issue && issue.root, ctx)) : null;
+    const text = ctx ? build(f, issue && issue.plan_answers ? issue.plan_answers : null, evidenceFor(issue, ctx)) : null;
     if (!text) { try { if (fs.lstatSync(file).isFile()) fs.rmSync(file); } catch { /* none */ } return null; }
     fs.writeFileSync(file, text, { mode: 0o600 });
     return file;
 }
 
-module.exports = { build, context, options, compatEvidence, writeFor, involvesTheme, HEAD, DONT, DONE_CAUSE, NOT_YET, NOT_REPRODUCED };
+module.exports = { build, context, options, compatEvidence, evidenceFor, writeFor, involvesTheme, HEAD, DONT, DONE_CAUSE, NOT_YET, NOT_REPRODUCED };

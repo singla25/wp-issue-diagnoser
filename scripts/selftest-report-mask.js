@@ -105,6 +105,13 @@ ok(ocr('\u00fcnacme-shop.example and https://b\u00fccher-laden.de/x') === `${SA}
 const start = Date.now(); ocr('a.'.repeat(2000) + 'b-'.repeat(2000) + 'acme shop'); ocr('x'.repeat(4000));
 ok(Date.now() - start < 1500, `long OCR text stays fast (${Date.now() - start} ms)`);
 
+group('4m verification round: aligned log lines and non-ASCII sub-domains');
+ok(text('server:        10.1.2.3 and observer 10.1.2.4 and Server 10.1.2.5', H) === `server:        ${IP} and observer ${IP} and Server ${IP}`, 'a real IP address after a word that only ENDS in "ver" (server, observer), also after many spaces (aligned log lines), is masked');
+ok(text('version 8.9.1.0 and Version:     2.1.0.5 and release 7.8.9.1', H) === 'version 8.9.1.0 and Version:     2.1.0.5 and release 7.8.9.1' && text('ver 1.2.3.4 at the start', H) === 'ver 1.2.3.4 at the start', 'a version number after the real word (also at the very start of the text) is still kept');
+ok(text('m\u00fcnchen.acme-shop.example and \u00fcber.www.acme-shop.example/x', H) === `${SA} and ${SA}/x`, 'a sub-domain with a non-ASCII letter is masked whole (no fragment is left)');
+
+ok(text('\u8bbf\u95eeacme-shop.example/x and \u00e9acme-shop.example and acme-shop.example\u7684', H) === `\u8bbf\u95ee${SA}/x and \u00e9${SA} and ${SA}\u7684`, 'a host glued to a non-ASCII letter (Chinese text, an accented letter) is still masked, before and after it');
+
 group('deep, null and speed');
 const d = M && M.deep ? M.deep({ url: 'https://acme-shop.example/p', n: 5, ok: true, nothing: null, list: ['a@b.example', { 'acme-shop.example': 'x acme-shop.example' }] }, { hosts: H }) : null;
 ok(d && d.url === `${SA}/p` && d.n === 5 && d.ok === true && d.nothing === null && d.list[0] === EM && d.list[1]['acme-shop.example'] === `x ${SA}`, 'deep masks every string, leaves numbers, booleans, null and the KEYS');

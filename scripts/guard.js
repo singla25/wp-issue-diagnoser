@@ -116,6 +116,12 @@ async function runScan(name, o, type) {
 async function main() {
     const o = parse(process.argv.slice(2));
     const [cmd, name, arg] = o._;
+    // the same address rule as everywhere else (lib/address-check.js): hidden characters or spaces inside are REFUSED (exit 2, the address is not repeated); the two ends are trimmed
+    if (['scan', 'retest', 'init', 'set'].includes(cmd) && typeof o.url === 'string') {
+        const addr = require('../lib/address-check'), bad = addr.addressProblem(o.url);
+        if (bad) throw usageError(`--url: ${bad}`);
+        o.url = addr.trimEnds(o.url);
+    }
     if (!cmd) { console.error(require('../lib/hints').current().usage(fs.readFileSync(__filename, 'utf8').split('\n').slice(1).filter((l, i, a) => a.slice(0, i + 1).every(x => x.startsWith('//'))).map(l => l.replace(/^\/\/ ?/, '')).join('\n'))); return 2; }
 
     if (cmd === 'init') {

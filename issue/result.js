@@ -541,7 +541,7 @@ function write(id, { validation, plans, dir, root, policy, gate = false, verbose
     fs.writeFileSync(R('findings.json'), JSON.stringify(safe, null, 2) + '\n', { mode: 0o600 });
     const issueHtml = require('../lib/issue-html');
     fs.writeFileSync(R('issue.html'), issueHtml.build(safe, issueHtml.embedImages(dir, store.load(id).images)), { mode: 0o600 });   // built from the masked copy; no text pass over the HTML (it would meet the JSON escapes of the embedded data)
-    try { require('./index-page').write(); } catch { /* the index is a convenience; the issue's own files are written */ }
+    try { require('./index-page').write(); } catch (e) { console.error(`Warning: the overview page issues/index.html could not be written (${e && e.code ? e.code : 'an error'}); the report of this issue is written.`); }   // a convenience: it never stops the report, but it is not hidden
     fs.writeFileSync(R('ISSUE-REPORT.md'), keepClean(gate ? gateMarkdown(safe) : markdown(safe)), { mode: 0o600 });
     fs.writeFileSync(R('tasks.md'), keepClean(t.markdown), { mode: 0o600 });
     // FIX-PLAN.md (gate on only; issue/fix-plan.js): written when there is a cause or a sign to plan for, from findings.json and the saved plan answers; no file otherwise
