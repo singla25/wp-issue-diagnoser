@@ -26,3 +26,7 @@ dist/
 build/
 .DS_Store
 .nyc_output/
+
+# run logs, the lock file and the optional env.sh of scripts/run-full.sh (never committed); the local settings of Claude Code
+run-logs/
+.claude/settings.local.json
