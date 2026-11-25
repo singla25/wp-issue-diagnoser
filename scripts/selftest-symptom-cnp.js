@@ -7,7 +7,8 @@
 //   - every comparison with 'other' in the issue code goes through isOtherLike (a source scan: a future raw comparison fails here);
 //   - clue-match and kb treat the new id like "other" (and "layout" differently: the control that proves the check can fail);
 //   - two real runs (no site files, with a site folder): the verdict, the confidence text, the symptom text and the counts are IDENTICAL to a run with "other";
-//   - the generic oracle on a page that loads fine says what "other" says; retest never gives FIXED_VERIFIED for it.
+//   - the generic oracle on a page that loads fine says what "other" says; retest cannot give FIXED_VERIFIED for it (a saved failing page, then a page that loads fine: the comparison says "Fixed", and the conditions still refuse FIXED_VERIFIED);
+//   - the interactive "Symptom type (number)" default is "Other" (it had moved to the last symptom of the list).
 // Fixture servers on 127.0.0.1 only. Never touches a real site.
 const fs = require('fs');
 const os = require('os');
@@ -127,11 +128,34 @@ const write = (root, rel, text) => { const f = path.join(root, rel); fs.mkdirSyn
         if (withSite) console.log(`INFO  with a site folder, page loads fine, symptom ${CNP}: symptom_reproduced "${b.f && b.f.verdict.symptom_reproduced}", text "${b.f && b.f.symptom_text}" (the same for "other": "${a.f && a.f.symptom_text}")`);
         if (!withSite) {
             console.log(`INFO  generic oracle on a page that loads fine, symptom ${CNP}: symptom_reproduced "${b.f && b.f.verdict.symptom_reproduced}", text "${b.f && b.f.symptom_text}", oracle line "${b.f && b.f.oracle_text || ''}"`);
-            const retest = require('../issue/retest');
-            const rr = await retest.run(b.id, { root: null, options: {}, env: { ...process.env, ...ENVX }, now: () => 'T' });
-            ok(rr && rr.entry && rr.entry.fixed_verified === false, 'retest on the new-symptom issue never gives FIXED_VERIFIED');
         }
     }
+    group('retest: a "Fixed" comparison for the new symptom still cannot become FIXED_VERIFIED');
+    const retestMod = require('../issue/retest');
+    const rt = store.create({ title: 'rt', description: 'The browser says the connection is not private', symptom: CNP, environment: 'local', url, pages: [] });
+    fs.mkdirSync(path.join(store.dirOf(rt.id), 'work'), { recursive: true });
+    // the saved state of the ORIGINAL run: the symptom was seen on this page at this screen size (a live probe; no sandbox result was ever saved)
+    fs.writeFileSync(path.join(store.dirOf(rt.id), 'work', 'probe.initial.json'), JSON.stringify({ oracle: { result: 'yes', matches: [{ page: url, viewport: 'laptop' }] }, pages: [] }));
+    const rr = await retestMod.run(rt.id, { root: null, options: { viewports: 'laptop' }, env: { ...process.env, ...ENVX }, now: () => 'T' });
+    const cond = id => ((rr.entry || {}).conditions || []).find(x => x.id === id) || {};
+    ok(rr.entry && rr.entry.verdict === 'Fixed' && cond('same-page-and-size').status === 'PASSED', `the comparison itself says "Fixed" (verdict "${rr.entry && rr.entry.verdict}"), so the check below is not vacuous`);
+    ok(rr.entry && rr.entry.fixed_verified === false && cond('sandbox-retest').status === 'FAILED' && cond('original-reproduced').status === 'FAILED' && /NOT marked FIXED_VERIFIED/.test(rr.entry.reason), 'but it is NOT FIXED_VERIFIED: a live probe is no sandbox retest, and the original run never reproduced the symptom in a sandbox');
+    const allGood = { cmp: { verdict: 'Fixed', reason: 'x' }, where: 'sandbox', original: { result: 'yes', reproduced_in_sandbox: 'yes', active_plugins: ['a'] }, now: { active_plugins: ['a'] }, target: 'hyp-1' };
+    ok(retestMod.canVerify(allGood).ok === true && retestMod.canVerify({ ...allGood, original: { ...allGood.original, reproduced_in_sandbox: 'could-not-test' } }).ok === false && retestMod.canVerify({ ...allGood, where: 'live probe' }).ok === false, 'canVerify can say yes (all conditions met) and says no when the original did not reproduce in the sandbox or the retest was a live probe');
+
+    group('the interactive "Symptom type (number)" default');
+    const { PassThrough } = require('stream');
+    const cli = require('../lib/issue-cli');
+    const input = new PassThrough(), output = new PassThrough(); let shown = ''; output.on('data', d => { shown += d; });
+    const before = new Set(store.list().map(i => i.id));
+    input.end('\n'.repeat(12));   // every question after the flags is answered with Enter
+    const realLog = console.log; console.log = () => {};
+    let code = null; try { code = await cli.run({ _: ['issue', 'new'], title: 'default test', description: 'd', pages: '/', env: 'local', 'no-files': true, 'no-questions': true }, { input, output }); } finally { console.log = realLog; }
+    const made2 = store.list().map(i => store.load(i.id)).find(i => !before.has(i.id) && i.title === 'default test');
+    ok(code === 0 && !!made2, 'issue new asked its questions through the reader and made the issue');
+    const otherNo = store.SYMPTOMS.findIndex(x => x[0] === 'other') + 1;
+    ok(made2 && made2.symptom === 'other' && new RegExp(`Symptom type \\(number\\)[^\\n]*\\[${otherNo}\\]`).test(shown), `pressing Enter at "Symptom type (number)" gives "Other" (number ${otherNo}), not the last symptom of the list (${made2 && made2.symptom})`);
+
     sv.close();
     fs.rmSync(tmp, { recursive: true, force: true });
     console.log(failures ? `\n${failures} check(s) FAILED` : '\nAll symptom checks passed');
