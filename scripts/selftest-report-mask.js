@@ -57,13 +57,13 @@ const pj = M && M.deep ? M.deep(JSON.parse('{"__proto__":"a@b.example","k":"v"}'
 ok(pj && Object.keys(pj).join() === '__proto__,k' && Object.getOwnPropertyDescriptor(pj, '__proto__').value === EM, 'deep: a "__proto__" key is kept as a plain key and its text is masked');
 
 group('review round 2: window edge, NUL in the text, parent chain, platforms');
-const edge = text(`${'a'.repeat(400)}@${'b'.repeat(250)}xxjohnsmith@mail.org`, []);
-ok(edge.endsWith(EM) && !edge.includes('johnsmi') && !edge.includes('mail.org'), 'an email that crosses the edge of a search window is masked whole (windows are merged)');
+const edge = text(`${'a'.repeat(400)}@${'b'.repeat(250)}xxjohnsmith@mail.example`, []);
+ok(edge.endsWith(EM) && !edge.includes('johnsmi') && !edge.includes('mail.example'), 'an email that crosses the edge of a search window is masked whole (windows are merged)');
 ok(text('a\u00000\u0000b ::1 \u00001\u0000', []) === 'a0b ::1 1', 'a NUL character in the text cannot break the placeholders (it is dropped; nothing becomes "undefined")');
 ok(JSON.stringify(hs({ url: 'https://a.b.c.example.com/', pages: [] })) === JSON.stringify(['a.b.c.example.com', 'b.c.example.com', 'c.example.com', 'example.com']), 'every parent down to two labels is masked');
 ok(JSON.stringify(hs({ url: 'https://blog.wordpress.com/', pages: [] })) === JSON.stringify(['blog.wordpress.com']) && JSON.stringify(hs({ url: 'https://x.github.io/', pages: [] })) === JSON.stringify(['x.github.io']) && JSON.stringify(hs({ url: 'https://x.pantheonsite.io/', pages: [] })) === JSON.stringify(['x.pantheonsite.io']), 'a shared platform (wordpress.com, github.io ...) is never masked as a parent; the site\'s own host still is');
 ok(text('see wordpress.com and github.io', hs({ url: 'https://blog.wordpress.com/', pages: [] })) === 'see wordpress.com and github.io', 'so ordinary advice that names the platform stays readable');
-// KNOWN LIMITS (shared with lib/feedback.js, which owns the email and IP rules): "10.0.0.1::" and "a@b.comjoe@corp.org" are cut at the rule edge. Recorded here, not fixed.
+// KNOWN LIMITS (shared with lib/feedback.js, which owns the email and IP rules): "10.0.0.1::" and "a@b.example joined to a second address" are cut at the rule edge. Recorded here, not fixed.
 
 group('review round 3: trailing dot, internationalised names');
 ok(JSON.stringify(hs({ url: 'https://acme-shop.example./', pages: [] })) === JSON.stringify(['acme-shop.example']) && JSON.stringify(hs({ url: 'https://shop.acme.com./', pages: [] })) === JSON.stringify(['shop.acme.com', 'acme.com']), 'a host written with a trailing dot is the same host (no leak, no bare "example." parent)');
