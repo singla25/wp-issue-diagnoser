@@ -52,14 +52,14 @@ const rd = (id, ...p) => { try { return fs.readFileSync(path.join(tmp, 'issues',
     ok(oc['findings.json'].includes('Your connection is not private') && oc['findings.json'].includes('wp-content/plugins/foo/bar.php'), 'the rest of the screenshot text stays (benign lines are not masked)');
     ok(rd(id, 'work', 'ocr', 'shot.png.txt').includes('ACME - SHOP'), 'work/ocr keeps the text as it was read (working data)');
 
-    group('working data keeps the real address (retest and issue show need it)');
+    group('working data keeps the real address (retest needs it)');
     const issueJson = rd(id, 'issue.json') ? JSON.parse(rd(id, 'issue.json')) : {};
     ok(issueJson.url === URL_ || String(issueJson.url).includes(HOST), 'issue.json keeps the real address');
     const store = require('../lib/issue-store');
     ok(store.load(id).url.includes(HOST), 'store.load (what retest reads) returns the real address');
     const show = await runAsync(GUARD, ['issue', 'show', id]), list = await runAsync(GUARD, ['issue', 'list']);
-    console.log(`INFO  issue show prints issue.md: host in it ${show.stdout.includes(HOST)}, email ${show.stdout.includes('owner-test')}; issue list prints id, status, symptom and title: host in it ${list.stdout.includes(HOST)}`);
-    ok(show.status === 0 && show.stdout.includes(HOST) && list.status === 0, 'issue show still prints the real issue file and issue list still works (reported, not changed)');
+    ok(show.status === 0 && list.status === 0 && !/acme-shop|owner-test/i.test(show.stdout + list.stdout) && !(show.stdout + list.stdout).includes(IP) && show.stdout.includes('[site address]') && show.stdout.includes('[email removed]') && list.stdout.includes('[email removed]'), 'issue show and issue list print the masked address, email and IP (display only)');
+    ok(rd(id, 'issue.md').includes(HOST) && rd(id, 'issue.json').includes(HOST), 'the saved issue.md and issue.json on disk keep the real address (retest needs it)');
 
     group('nothing masked: no note; a loopback address is not masked');
     const b2 = new Set(dirs());
