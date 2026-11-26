@@ -31,4 +31,27 @@ function caseA(pages) {
     }
     return n ? { signs, pages: n } : null;
 }
-module.exports = { caseA, signsOf, isErrorPage };
+
+// Case B (4p-1b): the live page loaded FINE here, with no failed live check, but the reporter's description or screenshot text shows a browser error (a clue of lib/browser-error.js,
+// the one table; certificate and SSL families are left out). Possible reasons only: an old answer kept by the browser, a problem that comes and goes, a login or a place. It never
+// names one cause and asks for no request: the tool does not bypass a cache. pages: probe.json pages; clues: evidence clues; failedLive: the number of failed live check rows.
+// -> { families: [id] } or null
+const browserError = require('../lib/browser-error');
+// probe: the probe.json object ({ pages, protection, unreachable, planned }). A probe that was STOPPED (protection, unreachable) or that completed fewer loads than planned is not
+// "the page loaded fine": the other planned loads were never made, so the pages that were recorded say nothing about the rest.
+function caseB({ pages, clues, failedLive = 0, probe = null } = {}) {
+    const list = Array.isArray(pages) ? pages : [];
+    if (probe && typeof probe === 'object') {
+        if (probe.protection || probe.unreachable) return null;
+        const planned = require('./probe-plan').plannedLoads(probe.planned);
+        if (planned === null || list.filter(p => p && p.loaded === true).length < planned) return null;
+    }
+    if (!list.length || failedLive > 0 || !list.every(p => p && p.loaded === true && !isErrorPage(p))) return null;
+    const families = [];
+    for (const c of Array.isArray(clues) ? clues : []) {
+        const fam = c && c.type === 'browser-error' && c.detail && typeof c.detail.family === 'string' ? c.detail.family : null;
+        if (fam && !browserError.CERTIFICATE_OR_SSL.has(fam) && !families.includes(fam)) families.push(fam);
+    }
+    return families.length ? { families } : null;
+}
+module.exports = { caseA, caseB, signsOf, isErrorPage };

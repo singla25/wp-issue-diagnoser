@@ -7,6 +7,9 @@
 //   - lib/plain-names.js cacheClueLines: the exact sentence, "possible, not confirmed", "one load, from one computer, at one time", never "no cache";
 //   - a real no-files run against a fixture server on 127.0.0.1: the line is in the report files and the terminal, no raw header value and no canary host is stored in
 //     probe.json, probe/result.json or any report file; a MISS or BYPASS answer gives no line and no cache_signs field; a fine page with a HIT gives no line.
+// Case B (4p-1b): the live page loaded FINE with no failed live check, but the description or screenshot text shows a browser error from lib/browser-error.js (the one table;
+// certificate and SSL families are left out): one sentence, possible reasons only. Tests: the decision (also table driven), the exact sentence, and real runs: it fires; not on a
+// healthy page with no clue, a certificate or SSL clue, a failed page, a page that cannot be loaded, or a run with a site folder.
 // Never touches a real site; the fixture server is on 127.0.0.1 only.
 const fs = require('fs');
 const os = require('os');
@@ -35,12 +38,14 @@ const SENT = signs => `The page showed an error, and the answer shows signs of a
 const run = args => new Promise(resolve => { const c = spawn(process.execPath, [CMD, ...args], { cwd: tmp, env: { ...process.env } }); let so = '', se = ''; c.stdout.on('data', d => { so += d; }); c.stderr.on('data', d => { se += d; }); c.on('close', code => resolve({ status: code, out: so + se })); });
 const dirs = () => { try { return fs.readdirSync(path.join(tmp, 'issues')).filter(n => /^iss-/.test(n)); } catch { return []; } };
 const walk = (d, out = []) => { for (const n of fs.readdirSync(d)) { const p = path.join(d, n), st = fs.lstatSync(p); if (st.isDirectory()) walk(p, out); else out.push(p); } return out; };
-async function scenario(status, headers, body = PAGE) {
-    const sv = http.createServer((q, res) => { res.writeHead(status, { 'Content-Type': 'text/html', ...headers }); res.end(body); });
+async function scenario(status, headers, body = PAGE, description = 'The page shows an error', extraArgs = [], noServer = false, handler = null) {
+    const sv = http.createServer(handler || ((q, res) => { res.writeHead(status, { 'Content-Type': 'text/html', ...headers }); res.end(body); }));
     await new Promise(r => sv.listen(0, '127.0.0.1', r));
     const before = new Set(dirs());
-    const r = await run(['--description', 'The page shows an error', '--no-files', '--yes', '--url', `http://127.0.0.1:${sv.address().port}/`, '--env', 'local']);
-    sv.close();
+    const port = sv.address().port;
+    if (noServer) sv.close();   // a page that cannot be loaded: nothing listens on the port
+    const r = await run(['--description', description, ...(extraArgs.length ? extraArgs : ['--no-files']), '--yes', '--url', `http://127.0.0.1:${port}/`, '--env', 'local']);
+    if (!noServer) sv.close();
     const id = dirs().find(n => !before.has(n)), dir = path.join(tmp, 'issues', id || 'none');
     const files = fs.existsSync(dir) ? walk(dir) : [];
     const text = files.map(f => { try { return fs.readFileSync(f, 'utf8'); } catch { return ''; } }).join('\n');
@@ -110,6 +115,53 @@ async function scenario(status, headers, body = PAGE) {
     ok(exp.r.status === 0 && !/signs of a cache/.test(exp.text + exp.r.out) && exp.probe.pages.every(p => !('cache_signs' in p)) && !exp.f.cache_clues, 'an EXPIRED answer (500): no line and no cache_signs field');
     const lsc = await scenario(404, { 'X-LiteSpeed-Cache': 'hit' });
     ok(lsc.r.status === 0 && lsc.md.includes(SENT('X-LiteSpeed-Cache says hit')), 'a 404 with X-LiteSpeed-Cache: hit: the line names that header');
+
+    group('Case B (4p-1b): the page loaded fine, the person shows an error');
+    const BE = require('../lib/browser-error');
+    const SENT_B = 'The live page loaded without an error here, but your description or screenshot shows one. Possible reasons: your browser kept an old answer (try a private window), the problem comes and goes, or it only shows when you are logged in or in your place. This was one load, from one computer, at one time. This tool loads the page fresh, without your cookies, so it does not show what your browser has saved.';
+    const Bf = (pages, fams, failedLive = 0, type = 'browser-error') => (C && typeof C.caseB === 'function' ? C.caseB({ pages, clues: fams.map(f => ({ type, detail: { family: f } })), failedLive }) : 'N/A');
+    const FINE = [{ loaded: true, status: 200 }];
+    ok(J(Bf(FINE, ['redirects'])) === J({ families: ['redirects'] }), 'a fine page and a "too many redirects" clue: Case B');
+    ok(BE.RULES.map(r => r[0]).filter(id => !BE.CERTIFICATE_OR_SSL.has(id)).every(id => Bf(FINE, [id]) !== null && Bf(FINE, [id]) !== 'N/A') && BE.RULES.map(r => r[0]).filter(id => BE.CERTIFICATE_OR_SSL.has(id)).every(id => Bf(FINE, [id]) === null), 'table driven: every family of lib/browser-error.js fires except the certificate and SSL ones (no second table)');
+    ok(['cert-date', 'cert-other', 'not-private', 'ssl'].every(id => Bf(FINE, [id]) === null) && Bf(FINE, ['cert-date', 'redirects']).families.join() === 'redirects', 'a certificate or SSL clue never fires; with another clue next to it only the other counts');
+    ok(Bf(FINE, []) === null && Bf(FINE, ['redirects'], 0, 'php-fatal') === null && Bf([], ['redirects']) === null && Bf(null, ['redirects']) === null, 'no clue, a clue of another type, no pages, null: nothing');
+    ok(Bf([{ loaded: true, status: 500 }], ['redirects']) === null && Bf([{ loaded: true, status: 404 }], ['redirects']) === null && Bf([{ loaded: true, status: 200, text_flags: { critical: true } }], ['redirects']) === null, 'a page that showed an error (status 400 to 599, or the critical-error text): not Case B (that is Case A\'s ground)');
+    ok(Bf([{ loaded: true, status: 200 }, { loaded: false, status: 0, error: 'x' }], ['redirects']) === null && Bf([{ loaded: true, status: 200 }, { loaded: false, status: 0, skipped: 'answered HTTP 500 at another screen size', reused_status: 500 }], ['redirects']) === null, 'a page that did not load: not Case B');
+    ok(Bf(FINE, ['redirects'], 1) === null, 'a failed live check: not Case B');
+    const PR = (extra = {}) => ({ planned: { pages: ['/'], viewports: ['laptop', 'mobile'], loads: 2 }, protection: null, unreachable: null, ...extra });
+    const Bp = (pages, probe) => (C && typeof C.caseB === 'function' ? C.caseB({ pages, clues: [{ type: 'browser-error', detail: { family: 'redirects' } }], failedLive: 0, probe }) : 'N/A');
+    const TWO = [{ loaded: true, status: 200 }, { loaded: true, status: 200 }];
+    ok(J(Bp(TWO, PR())) === J({ families: ['redirects'] }) && Bp(FINE, PR()) === null, 'a COMPLETE probe (all planned loads made) can give Case B; one load of two planned: no');
+    ok(Bp(TWO, PR({ protection: { kind: 'ProtectionStop', reason: 'x' } })) === null && Bp(TWO, PR({ unreachable: 'x' })) === null && Bp(TWO, PR({ planned: null })) === null && Bp(TWO, PR({ planned: 0 })) === null, 'a probe stopped by protection, unreachable, or with no usable plan: no Case B');
+    ok(J(Bp(TWO, PR({ planned: 2 }))) === J({ families: ['redirects'] }) && Bp(FINE, PR({ planned: 2 })) === null, 'a plain number as the plan (older data) works the same');
+    ok(plainNames.cacheClueBLines && plainNames.cacheClueBLines({ families: ['redirects'] }).length === 1 && plainNames.cacheClueBLines({ families: ['redirects'] })[0] === SENT_B && plainNames.cacheClueBLines(null).length === 0 && plainNames.cacheClueBLines({ families: [] }).length === 0, 'the exact sentence (and nothing for null or no family)');
+    ok(!/because|is the cause|caused by|the cache is|no cache|not cached/i.test(SENT_B) && /Possible reasons/.test(SENT_B) && /one load, from one computer, at one time/.test(SENT_B), 'the sentence names no single cause and never says "no cache"');
+    const REDIR = 'In my browser I see ERR_TOO_MANY_REDIRECTS when I open this page';
+    const bFire = await scenario(200, {}, PAGE, REDIR);
+    ok(bFire.r.status === 0 && bFire.md.includes(SENT_B) && bFire.html.includes(SENT_B) && bFire.r.out.includes(SENT_B) && !!bFire.f && bFire.f.cache_clues && bFire.f.cache_clues.case === 'B' && bFire.f.cache_clues.lines[0] === SENT_B, `a fine page and a "too many redirects" description: the sentence is in ISSUE-REPORT.md, issue.html, the terminal and findings.json (exit ${bFire.r.status})`);
+    const bNone = await scenario(200, {}, PAGE, 'The page looks a little odd on my phone');
+    ok(bNone.r.status === 0 && !bNone.text.includes('Possible reasons: your browser kept an old answer') && !bNone.r.out.includes('Possible reasons: your browser') && !bNone.f.cache_clues, 'a healthy page and no clue in the text: no sentence');
+    for (const [name, text] of [['a certificate date clue', 'I get NET::ERR_CERT_DATE_INVALID on this page'], ['the "connection is not private" page', 'My browser says: Your connection is not private'], ['an SSL protocol clue', 'The browser shows ERR_SSL_PROTOCOL_ERROR']]) {
+        const bc = await scenario(200, {}, PAGE, text);
+        ok(bc.r.status === 0 && !bc.text.includes('Possible reasons: your browser kept an old answer') && !bc.f.cache_clues, `${name}: no Case B sentence (certificate and SSL errors are left out)`);
+    }
+    const bProt = await scenario(200, {}, PAGE, REDIR, [], false, (q, res) => {
+        if (q.url === '/') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end('<!doctype html><html><head><title>Fixture</title><script src="/a.js"></script></head><body><h1>Fixture</h1><p>Some text so the page does not look blank to the probe.</p></body></html>'); }
+        res.writeHead(429, { 'Content-Type': 'text/plain', 'Retry-After': '1' }); res.end('slow down');   // a protection answer on a page asset: the probe stops
+    });
+    ok(bProt.r.status === 0 && !!bProt.probe && !!bProt.probe.protection && !bProt.text.includes('Possible reasons: your browser kept an old answer') && !bProt.f.cache_clues, 'a probe STOPPED by protection (a 429 on a page asset after a fine main page): no Case B sentence');
+    const bFailed = await scenario(200, {}, '<!doctype html><html><head><title>x</title></head><body></body></html>', REDIR);   // a blank 200 page: the white-screen live check fails, the page is not an "error page" by status or text
+    const failedRows = bFailed.f && bFailed.f.checkpoints ? bFailed.f.checkpoints.items.filter(i => i.result === 'FAIL').length : -1;
+    ok(bFailed.r.status === 0 && failedRows > 0 && !bFailed.text.includes('Possible reasons: your browser kept an old answer'), `a fine page whose live check FAILED (a blank 200 page; ${failedRows} failed check row(s)): no Case B sentence`);
+    const bErr = await scenario(500, {}, PAGE, REDIR);
+    ok(bErr.r.status === 0 && !bErr.text.includes('Possible reasons: your browser kept an old answer'), 'a failed page (500) and the same clue: no Case B sentence');
+    const bDown = await scenario(200, {}, PAGE, REDIR, [], true);
+    ok(!bDown.text.includes('Possible reasons: your browser kept an old answer') && !bDown.r.out.includes('Possible reasons: your browser'), 'a page that cannot be loaded (nothing listens) and the same clue: no Case B sentence');
+    const siteDir = path.join(tmp, 'site');
+    fs.mkdirSync(path.join(siteDir, 'wp-content', 'plugins'), { recursive: true }); fs.mkdirSync(path.join(siteDir, 'wp-content', 'themes'), { recursive: true }); fs.mkdirSync(path.join(siteDir, 'wp-includes'), { recursive: true });
+    fs.writeFileSync(path.join(siteDir, 'wp-config.php'), '<?php // fixture'); fs.writeFileSync(path.join(siteDir, 'wp-includes', 'version.php'), "<?php $wp_version = '6.6';");
+    const bRoot = await scenario(200, {}, PAGE, REDIR, ['--root', siteDir]);
+    ok(bRoot.r.status === 0 && !!bRoot.probe && bRoot.probe.pages.some(p => p.loaded && p.status === 200) && /too many redirects/.test(bRoot.text) && !bRoot.text.includes('Possible reasons: your browser kept an old answer') && !(bRoot.f && bRoot.f.cache_clues), 'a run WITH a site folder, a fine page (the probe ran) and the same clue (it was read): no Case B sentence (no site files only, like Case A)');
 
     fs.rmSync(tmp, { recursive: true, force: true });
     console.log(failures ? `\n${failures} check(s) FAILED` : '\nAll cache-clue checks passed');

@@ -232,6 +232,11 @@ function applyGate(f, { validation, planOf, ev, sbx, probe, W, verbose, lastFixe
             const ca = require('./cache-clues').caseA((cpWork.probe || {}).pages), caLines = plainNames.cacheClueLines(ca);
             if (caLines.length) { f.cache_clues = { case: 'A', signs: ca.signs, lines: caLines }; sigLines.push(...caLines); }
         } catch { /* the clue is an extra: a failure leaves it out and never stops the report */ }
+        // 4p-1b: Case B: the live page loaded fine, no live check failed, and the description or screenshot shows a browser error (not a certificate or SSL one): possible reasons, one sentence
+        try {
+            const cb = require('./cache-clues').caseB({ pages: (cpWork.probe || {}).pages, probe: cpWork.probe || null, clues: (ev && ev.clues) || [], failedLive: cpRows.filter(r => r.live && r.result === 'FAIL').length }), cbLines = plainNames.cacheClueBLines(cb);
+            if (cbLines.length) { f.cache_clues = { case: 'B', families: cb.families, lines: cbLines }; sigLines.push(...cbLines); }
+        } catch { /* the clue is an extra: a failure leaves it out and never stops the report */ }
     }
     if (liveLine) f.live_checks = { total: liveSum.total, gave_a_result: liveSum.gave, could_not_run: liveSum.not_run, reason: liveSum.reason, sentence: liveLine };
     f.checkpoints = { counts: cpCounts, items: cpRows.map(r => ({ id: r.id, title: r.title, result: r.result, tied_to_crash: !!r.tied_to_crash, breaks_site: r.breaks_site, reason: r.reason, ...(r.same_as ? { same_as: r.same_as } : {}) })) };
