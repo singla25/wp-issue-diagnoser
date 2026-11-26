@@ -85,4 +85,25 @@ function pickHeaders(headers) {
     }
     return out;
 }
-module.exports = { NetworkRecorder, installReadOnlyGuard, installSandboxGuard, applyDenyList, BENIGN_FAILURE, RESPONSE_HEADER_ALLOW, HEADER_VALUE_MAX, pickHeaders };
+// Signs that a CACHE served this answer (4p-1a), read from the response the probe already received (no second request). Only a FIXED vocabulary leaves this function; the raw
+// header value (it can hold a host name, a number or a token) is never stored. Only "served from a cache" counts: Age above 0, and the words hit, stale or expired in X-Cache,
+// CF-Cache-Status and X-LiteSpeed-Cache, and two request numbers in X-Varnish. MISS, BYPASS, DYNAMIC and every other value give nothing. -> {} when there is no sign.
+const CACHE_WORD = /(?:^|[^a-z])(hit|stale|expired)(?![a-z])/;
+function cacheSigns(headers) {
+    const out = {};
+    if (!headers || typeof headers !== 'object') return out;
+    const get = name => { for (const [k, v] of Object.entries(headers)) if (String(k).toLowerCase() === name) return String(Array.isArray(v) ? v[0] : v ?? '').slice(0, 300).toLowerCase(); return ''; };
+    // "hit-for-pass" / "hit-for-miss" (Varnish: the cache decided NOT to cache; the answer came from the server), "not hit" and "uncacheable hit" are not hits
+    const word = text => { const m = CACHE_WORD.exec(text.replace(/hit[-_ ]?for[-_ ]?(?:pass|miss)|not[-_ ]?hit|uncacheable[-_ ]?hit/g, ' ')); return m ? m[1] : null; };
+    const age = /^\s*(\d{1,10})\s*$/.exec(get('age')); if (age && Number(age[1]) > 0) out.age_over_zero = true;
+    const xc = word(get('x-cache')); if (xc) out.x_cache = xc;
+    const cf = get('cf-cache-status').trim(); if (cf === 'hit' || cf === 'stale' || cf === 'expired') out.cf_cache_status = cf;
+    const ls = word(get('x-litespeed-cache')); if (ls) out.litespeed = ls;
+    if (/^ *\d{1,20} +\d{1,20} *$/.test(get('x-varnish'))) out.varnish = 'hit';   // space only: two headers joined by a newline (two layers, one number each) are two misses
+    return out;
+}
+// the same signs from the navigation response the worker already has (the headers are read here, not in worker.js, where exactly ONE place reads headers: selftest-6b.js)
+function cacheSignsOf(response) {
+    try { return cacheSigns(response && typeof response.headers === 'function' ? response.headers() : {}); } catch { return {}; }
+}
+module.exports = { NetworkRecorder, installReadOnlyGuard, installSandboxGuard, applyDenyList, BENIGN_FAILURE, RESPONSE_HEADER_ALLOW, HEADER_VALUE_MAX, pickHeaders, cacheSigns, cacheSignsOf };
