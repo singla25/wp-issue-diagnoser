@@ -300,6 +300,18 @@ const all = () => true;
     const wsrc = fs.readFileSync(path.join(__dirname, '..', 'probe', 'worker.js'), 'utf8');
     const hdrLines = wsrc.split('\n').filter(l => /headers\(\)/.test(l));
     ok(hdrLines.length === 1 && /rec\.response_headers = pickHeaders\(nav\.response\.headers\(\)\)/.test(hdrLines[0]) && !/set-cookie/i.test(wsrc), 'worker.js reads response headers in exactly one place, through pickHeaders, from the navigation response it already has (no new request)');
+    // 4p-1a-fix (a NEW check; the one above is unchanged): in probe/recorder.js the `.headers()` calls are exactly two: the page listener (it keeps ONE boolean, "mitigated by site
+    // protection", never a header) and cacheSignsOf; pickHeaders only takes the object it is given. cacheSignsOf hands back only fixed words, never a raw value (a host name, a number,
+    // a token, a cookie). A second raw read anywhere else in the file makes this fail.
+    const rsrc = fs.readFileSync(path.join(__dirname, '..', 'probe', 'recorder.js'), 'utf8');
+    const rHeaderCalls = rsrc.split('\n').filter(l => /\.headers\(\)/.test(l));
+    const csBody = (/function cacheSignsOf\(response\) \{[\s\S]*?\n\}/.exec(rsrc) || [''])[0], pkBody = (/function pickHeaders\(headers\) \{[\s\S]*?\n\}/.exec(rsrc) || [''])[0];
+    const FIXED_KEYS = new Set(['age_over_zero', 'x_cache', 'cf_cache_status', 'litespeed', 'varnish']), FIXED_VALUES = new Set([true, 'hit', 'stale']);
+    const hostile = recorder.cacheSignsOf({ headers: () => ({ age: '9 canary.example', 'x-cache': 'HIT from canary.example', 'cf-cache-status': 'HIT', 'x-litespeed-cache': 'stale canary.example', 'x-varnish': '1 2', 'set-cookie': 'wordpress_logged_in=abc', cookie: 'c=1', authorization: 'Bearer abc' }) });
+    const listenerLine = rHeaderCalls.find(l => /mitigated|cf-mitigated|response\.request\(\)/.test(l) || /this\.onResponse|const request = response\.request\(\)/.test(l)) || '';
+    ok(rHeaderCalls.length === 2 && csBody.includes('.headers()') && !pkBody.includes('.headers()') && /const request = response\.request\(\)/.test(listenerLine) && typeof recorder.cacheSignsOf === 'function'
+        && Object.keys(hostile).length > 0 && Object.keys(hostile).every(k => FIXED_KEYS.has(k)) && Object.values(hostile).every(v => FIXED_VALUES.has(v)) && !/canary|wordpress_logged_in|Bearer|c=1/.test(JSON.stringify(hostile)),
+        'recorder.js has exactly two .headers() calls (the page listener, which keeps one boolean, and cacheSignsOf; pickHeaders reads none), and cacheSignsOf returns only fixed words');
     ok(vm.poweredByFrom({ pages: [{ loaded: true }, { response_headers: { 'x-powered-by': 'PHP/8.2.30', server: 'nginx' } }] }) === 'PHP/8.2.30', 'version-match reads X-Powered-By from probe.json');
 
     group('no network, no process, no browser in the version code');

@@ -86,9 +86,10 @@ function pickHeaders(headers) {
     return out;
 }
 // Signs that a CACHE served this answer (4p-1a), read from the response the probe already received (no second request). Only a FIXED vocabulary leaves this function; the raw
-// header value (it can hold a host name, a number or a token) is never stored. Only "served from a cache" counts: Age above 0, and the words hit, stale or expired in X-Cache,
-// CF-Cache-Status and X-LiteSpeed-Cache, and two request numbers in X-Varnish. MISS, BYPASS, DYNAMIC and every other value give nothing. -> {} when there is no sign.
-const CACHE_WORD = /(?:^|[^a-z])(hit|stale|expired)(?![a-z])/;
+// header value (it can hold a host name, a number or a token) is never stored. Only "served from a cache" counts: Age above 0, and the words hit or stale in X-Cache,
+// CF-Cache-Status and X-LiteSpeed-Cache, and two request numbers in X-Varnish. MISS, BYPASS, DYNAMIC, EXPIRED (the stored copy was out of date and the origin answered again, so the
+// answer was not a cached one) and every other value give nothing. -> {} when there is no sign.
+const CACHE_WORD = /(?:^|[^a-z])(hit|stale)(?![a-z])/;
 function cacheSigns(headers) {
     const out = {};
     if (!headers || typeof headers !== 'object') return out;
@@ -97,7 +98,7 @@ function cacheSigns(headers) {
     const word = text => { const m = CACHE_WORD.exec(text.replace(/hit[-_ ]?for[-_ ]?(?:pass|miss)|not[-_ ]?hit|uncacheable[-_ ]?hit/g, ' ')); return m ? m[1] : null; };
     const age = /^\s*(\d{1,10})\s*$/.exec(get('age')); if (age && Number(age[1]) > 0) out.age_over_zero = true;
     const xc = word(get('x-cache')); if (xc) out.x_cache = xc;
-    const cf = get('cf-cache-status').trim(); if (cf === 'hit' || cf === 'stale' || cf === 'expired') out.cf_cache_status = cf;
+    const cf = get('cf-cache-status').trim(); if (cf === 'hit' || cf === 'stale') out.cf_cache_status = cf;
     const ls = word(get('x-litespeed-cache')); if (ls) out.litespeed = ls;
     if (/^ *\d{1,20} +\d{1,20} *$/.test(get('x-varnish'))) out.varnish = 'hit';   // space only: two headers joined by a newline (two layers, one number each) are two misses
     return out;

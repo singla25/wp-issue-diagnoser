@@ -2,7 +2,7 @@
 // never a hypothesis, never a status. It reads only what the probe already stored (page.status, page.text_flags, page.cache_signs: a fixed vocabulary, see probe/recorder.js
 // cacheSigns). Nothing is requested. A page that was fine, or that has no sign, gives nothing; the report never says "no cache".
 const ORDER = [['age_over_zero', () => 'the Age header is above 0'], ['x_cache', v => `X-Cache says ${v}`], ['cf_cache_status', v => `CF-Cache-Status says ${v}`], ['litespeed', v => `X-LiteSpeed-Cache says ${v}`], ['varnish', () => 'X-Varnish shows a hit']];
-const SERVED = new Set(['hit', 'stale', 'expired']);
+const SERVED = new Set(['hit', 'stale']);   // not 'expired': that copy was out of date and the origin answered again
 
 // an error page: a status 400 to 599, or a page that carries the critical-error text: the SAME detector the rest of the report uses (issue/oracle.js flagsOf, the one behind the
 // white-screen and critical-error-page checks); no new text check here

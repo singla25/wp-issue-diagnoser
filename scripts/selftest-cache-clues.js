@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Self-test of the cache clue, Case A (step 4p-1a): when the live page showed an ERROR (a status 400 to 599, or a 200 page with the WordPress critical-error text, found by the report's own detector issue/oracle.js flagsOf) and the answer shows signs that a cache served it, the report says so as
 // "possible, not confirmed". Covered here:
-//   - probe/recorder.js cacheSigns: only served-from-cache signs (Age above 0; hit, stale or expired in X-Cache, CF-Cache-Status, X-LiteSpeed-Cache; two request numbers in
+//   - probe/recorder.js cacheSigns: only served-from-cache signs (Age above 0; hit or stale in X-Cache, CF-Cache-Status, X-LiteSpeed-Cache (EXPIRED gives nothing: the origin answered again); two request numbers in
 //     X-Varnish) and only a fixed vocabulary; a MISS, BYPASS or DYNAMIC value gives nothing; a hostile value (a host name, markup, a huge text) never comes out;
 //   - issue/cache-clues.js caseA: an error page with a sign; not a fine page, not an error page without a sign, not a miss or bypass sign (also when a record holds one);
 //   - lib/plain-names.js cacheClueLines: the exact sentence, "possible, not confirmed", "one load, from one computer, at one time", never "no cache";
@@ -53,7 +53,8 @@ async function scenario(status, headers, body = PAGE) {
 (async () => {
     group('cacheSigns: only served-from-cache signs, only a fixed vocabulary');
     ok(J(sign({ age: '120', 'X-Cache': 'HIT from cloudfront', 'CF-Cache-Status': 'HIT', 'X-LiteSpeed-Cache': 'hit', 'x-varnish': '123 456' })) === J({ age_over_zero: true, x_cache: 'hit', cf_cache_status: 'hit', litespeed: 'hit', varnish: 'hit' }), 'every served-from-cache sign is found (header names in any case)');
-    ok(J(sign({ 'CF-Cache-Status': 'STALE', 'X-Cache': 'TCP_MISS, TCP_EXPIRED' })) === J({ x_cache: 'expired', cf_cache_status: 'stale' }) || J(sign({ 'CF-Cache-Status': 'STALE', 'X-Cache': 'TCP_MISS, TCP_EXPIRED' })) === J({ cf_cache_status: 'stale', x_cache: 'expired' }), 'stale and expired count (a MISS next to them is ignored)');
+    ok(J(sign({ 'CF-Cache-Status': 'STALE', 'X-Cache': 'TCP_MISS, TCP_STALE' })) === J({ x_cache: 'stale', cf_cache_status: 'stale' }) || J(sign({ 'CF-Cache-Status': 'STALE', 'X-Cache': 'TCP_MISS, TCP_STALE' })) === J({ cf_cache_status: 'stale', x_cache: 'stale' }), 'stale counts (a MISS next to it is ignored)');
+    ok(J(sign({ 'CF-Cache-Status': 'EXPIRED' })) === '{}' && J(sign({ 'X-Cache': 'TCP_EXPIRED' })) === '{}' && J(sign({ 'x-litespeed-cache': 'expired' })) === '{}' && J(sign({ 'CF-Cache-Status': 'EXPIRED', 'X-Cache': 'EXPIRED, MISS', age: '0' })) === '{}' && J(sign({ 'CF-Cache-Status': 'EXPIRED', 'X-Cache': 'TCP_HIT' })) === J({ x_cache: 'hit' }), 'EXPIRED gives nothing in any header (the stored copy was out of date and the origin answered again); a real hit next to it still counts');
     ok(J(sign({ age: '0', 'x-cache': 'MISS', 'cf-cache-status': 'MISS', 'x-litespeed-cache': 'miss', 'x-varnish': '123' })) === '{}', 'MISS, Age 0 and ONE Varnish number give nothing');
     ok(J(sign({ 'cf-cache-status': 'BYPASS', 'x-cache': 'BYPASS', 'x-litespeed-cache': 'DYNAMIC' })) === '{}' && J(sign({ 'cf-cache-status': 'DYNAMIC' })) === '{}' && J(sign({ 'cf-cache-status': 'REVALIDATED' })) === '{}' && J(sign({ 'cf-cache-status': 'UPDATING' })) === '{}', 'BYPASS and DYNAMIC (and REVALIDATED, UPDATING, which are not in the list) give nothing');
     ok(J(sign({ 'x-cache': 'Hit from cloudfront' })) === J({ x_cache: 'hit' }) && J(sign({ 'x-cache': 'TCP_MEM_HIT' })) === J({ x_cache: 'hit' }) && J(sign({ 'x-cache': 'HITCH' })) === '{}' && J(sign({ 'x-cache': 'whitelist' })) === '{}', 'the word hit is a word: "Hit from ...", "TCP_MEM_HIT" count; "HITCH" and "whitelist" do not');
@@ -78,7 +79,7 @@ async function scenario(status, headers, body = PAGE) {
     ok(A([P(200, { cf_cache_status: 'hit' }, { text: 'A normal page about error handling and critical thinking.' })]) === null && A([P(200, { cf_cache_status: 'hit' }, { text_flags: { blank: false, critical: false } })]) === null && A([P(200, { cf_cache_status: 'hit' }, { text: '' })]) === null, 'a 200 page WITHOUT the critical-error text (also a blank one) with a sign: no line');
     ok(A([P(200, { age_over_zero: true, cf_cache_status: 'hit' })]) === null && A([P(301, { age_over_zero: true })]) === null, 'a fine page (200, 301) with signs gives nothing');
     ok(A([P(500, undefined)]) === null && A([P(500, {})]) === null && A([]) === null && A(null) === null && A([null, {}])  === null, 'an error page with no sign, no pages, null: nothing, no crash');
-    ok(A([P(500, { x_cache: 'miss', cf_cache_status: 'bypass', litespeed: 'dynamic', age_over_zero: false, varnish: 'miss' })]) === null, 'even when a stored record holds MISS, BYPASS, DYNAMIC, false or "miss", the line is not made (served-from-cache only)');
+    ok(A([P(500, { x_cache: 'miss', cf_cache_status: 'bypass', litespeed: 'dynamic', age_over_zero: false, varnish: 'miss' })]) === null && A([P(500, { x_cache: 'expired', cf_cache_status: 'expired', litespeed: 'expired' })]) === null, 'even when a stored record holds MISS, BYPASS, DYNAMIC, EXPIRED, false or "miss", the line is not made (served-from-cache only)');
     ok(A([{ loaded: false, status: 500, cache_signs: { age_over_zero: true } }]) === null, 'a page that did not load gives nothing');
     ok(J(A([P(200, { age_over_zero: true }), P(500, { cf_cache_status: 'hit' }), P(503, { cf_cache_status: 'hit', litespeed: 'hit' })]).signs) === J(['CF-Cache-Status says hit', 'X-LiteSpeed-Cache says hit']) && A([P(500, { x_cache: 'hit' }), P(503, { x_cache: 'hit' })]).pages === 2, 'several pages: the signs of the ERROR pages only, each once');
     ok(J(A([P(500, { age_over_zero: true, junk: 'HIT canary-cdn-host.example', x_cache: 'hit from canary-cdn-host.example' })]).signs) === J(['the Age header is above 0']), 'an unknown field and a free-text value in a stored record are ignored');
@@ -105,6 +106,8 @@ async function scenario(status, headers, body = PAGE) {
     ok(fine.r.status === 0 && !/signs of a cache/.test(fine.text + fine.r.out) && !fine.f.cache_clues && fine.probe.pages.some(p => p.cache_signs), 'a fine page (200, no error text) with a HIT: no line (the sign is stored, the line is for a page that showed an error only)');
     const plain = await scenario(404, {});
     ok(plain.r.status === 0 && !/signs of a cache/.test(plain.text + plain.r.out) && !/no cache|not cached/i.test(plain.md), 'an error page with no cache header: no line, and the report never says "no cache"');
+    const exp = await scenario(500, { 'CF-Cache-Status': 'EXPIRED', 'X-LiteSpeed-Cache': 'expired' });
+    ok(exp.r.status === 0 && !/signs of a cache/.test(exp.text + exp.r.out) && exp.probe.pages.every(p => !('cache_signs' in p)) && !exp.f.cache_clues, 'an EXPIRED answer (500): no line and no cache_signs field');
     const lsc = await scenario(404, { 'X-LiteSpeed-Cache': 'hit' });
     ok(lsc.r.status === 0 && lsc.md.includes(SENT('X-LiteSpeed-Cache says hit')), 'a 404 with X-LiteSpeed-Cache: hit: the line names that header');
 
