@@ -423,7 +423,7 @@ function gateMarkdown(f) {
     const cf = f.case_file;
     L.push(`# ${esc(cf.title)}`, '', `Issue ${code(f.issue.id)} · symptom ${code(f.issue.symptom)} · environment ${code(f.issue.environment)}`, '');
     L.push(...caseFileMod.markdown(cf, esc));
-    L.push('## What was checked', '', esc(cf.checked.line), '', esc(cf.checked.legend), '');
+    L.push('## What was checked', '', esc(cf.checked.line), '', ...(cf.checked.legend ? [esc(cf.checked.legend), ''] : []));
     for (const n of cf.checked.notes || []) L.push(esc(n), '');
     L.push(...stepLines(f, esc));
     if (!f.gate.verbose) L.push('_Run with --verbose to list every check._', '');

@@ -100,7 +100,7 @@ const NO_LOG_HELP = ['No error log was found on this site.',
     'This does not mean nothing went wrong.'];
 // no site folder was given (--no-files, or no --root): nothing was searched, so nothing is said about "this site"; the advice that fits is to give the folder
 const NO_FILES_LOG_HELP = ['No log was read, because no site files were given.',
-    'To let this tool read the error log of your site, run it again with the site folder (--root).',
+    'To let this tool read the error log of your site, run it again with the site folder (--root), or without it but with your log file (--no-files --log, then the file path).',
     'This does not mean nothing went wrong.'];
 const cap = s => String(s).replace(/^./, c => c.toUpperCase());
 const plural = (n, one, many) => (n === 1 ? one : many);
@@ -278,7 +278,8 @@ function build(f, ctx) {
     const cp = f.checkpoints ? f.checkpoints.counts : null;
     // the counts are ONE dot line (the old "We looked at N things" sentence is gone); the full list only with --verbose
     const checked = cp ? { line: `${cp.pass} pass · ${cp.fail} fail · ${cp.not_checked} not checked · ${cp.also_noticed || 0} also noticed`,
-        legend: noCrash ? 'Also noticed: a check found something, but nothing ties it to this problem.' : 'Also noticed, probably not the crash: a check found something, but nothing ties it to this problem.', items: f.checkpoint_text.lines,
+        // the explanation of the fourth state is shown only when something WAS noticed (a count of 0 needs no explanation)
+        legend: !(cp.also_noticed > 0) ? '' : noCrash ? 'Also noticed: a check found something, but nothing ties it to this problem.' : 'Also noticed, probably not the crash: a check found something, but nothing ties it to this problem.', items: f.checkpoint_text.lines,
         ...((ctx.vendorLines || []).length ? { notes: ctx.vendorLines.slice() } : {}) } : null;
     // FOR A DEVELOPER: the cause detail (issue/cause-detail.js) instead of the lines Case 1 already shows; the versions line and the large-log note stay
     const dev = [];
@@ -515,7 +516,7 @@ function cli(cf) {
         L.push('', c.n ? `CASE ${c.n}  ${c.heading.toUpperCase()}` : c.heading.toUpperCase());
         for (const [k, v] of c.rows) { if (v.length === 1) L.push(`  ${k}: ${v[0]}`); else { L.push(`  ${k}:`); for (const x of v) L.push(`    - ${x}`); } }
     }
-    if (cf.checked) L.push('', 'WHAT WAS CHECKED', `  ${cf.checked.line}`, `  ${cf.checked.legend}`, ...(cf.checked.notes || []).map(n => `  ${n}`));
+    if (cf.checked) L.push('', 'WHAT WAS CHECKED', `  ${cf.checked.line}`, ...(cf.checked.legend ? [`  ${cf.checked.legend}`] : []), ...(cf.checked.notes || []).map(n => `  ${n}`));
     if (cf.developer && cf.developer.length) {
         L.push('', 'FOR A DEVELOPER', ...cf.developer.map(l => `  ${l}`));
         if (cf.excerpt) L.push(`  ${cf.excerpt.title}`, ...cf.excerpt.lines.map(l => `    ${l}`));
