@@ -32,7 +32,7 @@ npm run demo [-- --sandbox] [-- --keep] # the worked example end to end on a fix
 npm run checkpoints [-- --check]        # regenerate data/checkpoints.json from the COVERAGE table (--check exits 1 if stale)
 npm run verify-knowledge                # re-fetch the official pages cited by the knowledge data files
 npm run knowledge-review                # regenerate KNOWLEDGE-REVIEW.md for a person to review; a test fails if it is stale
-npm test                                # every suite: test:offline (80 suites), then test:docker (10 suites, real containers): 90 in all
+npm test                                # every suite: test:offline (81 suites), then test:docker (10 suites, real containers): 91 in all
 npm run test:offline                    # the offline suites only (about 14 to 17 minutes on a quiet machine)
 npm run test:docker                     # the Docker suites only (they skip loudly when Docker is unusable)
 scripts/run-full.sh <label> [--dry-run] # the ONE full run on a snapshot; logs in run-logs/<label>/ (git-ignored); PG_TIMED=1 puts the time before every log line; --dry-run does only the snapshot and a tiny check
