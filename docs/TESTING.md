@@ -35,7 +35,7 @@ A run is **valid** only if `test.exit` says `test exit 0` AND the Docker state a
 
 ## The baseline (the last valid full run with written numbers: p-s4)
 
-The latest valid full run is `p-ad` (HEAD `6fba210`; `result.txt`: "run VALID: test exit 0, docker back at baseline (5 0 11)"); its suite, PASS, SKIP and time figures are not written here. The run before it, `p-ac`, was NOT valid: one check failed (the snapshot is inside the repository and found its `node_modules`) and was fixed in `6fba210` (HANDOFF rows 105 and 106). The numbers below are those of `p-s4`, the last valid run whose numbers are written; they stay as the history of that run.
+The latest valid full run is `p-af` (HEAD `3ceda08`, 2026-11-27; `result.txt`: "run VALID: test exit 0, docker back at baseline (5 0 11)"; counted from its `test.log`: 91 suites, 5837 PASS, 0 FAIL, 4 SKIP, 47 min 19 s; the SKIPs are the repository-text comparison and PHP 7.4, 8.0 and 8.1). `p-ad` (HEAD `6fba210`) was valid too. The run `p-ac` was NOT valid: one check failed (the snapshot is inside the repository and found its `node_modules`) and was fixed in `6fba210` (HANDOFF rows 105 and 106). The numbers below are those of `p-s4`, the last valid run whose numbers are written; they stay as the history of that run.
 
 Run `p-s4`, 2026-11-23, on the working tree at HEAD `79ae3de` (S4c-fix; snapshot tree `e9e9c9e`; the docs of S4-docs were edited only after the snapshot was made), valid: `test exit 0` and Docker back at 5/0/11 (5 containers, 0 labelled, 11 volumes, before and after). The machine was not restarted during the run (up since 2026-11-23 10:35, before the run started 18:30:31).
 

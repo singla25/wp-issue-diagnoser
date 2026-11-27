@@ -281,7 +281,7 @@ A test copy uses one PHP version. Images are pinned for 8.2, 8.3 and 8.4. If the
 
 The checks are plain scripts, run with `npm test` (the offline suites, then the Docker suites), or one at a time with `npm run selftest:docs` and so on. The details, the full-run script and every skipped check are in [docs/TESTING.md](./docs/TESTING.md).
 
-Latest valid full run: `p-ad`, at the commit 6fba210 (`result.txt`: "run VALID: test exit 0, docker back at baseline (5 0 11)"); its suite, PASS and SKIP numbers are not written here. The run before it, `p-ac`, was not valid: one check failed and was fixed in 6fba210. The last valid run whose numbers are written is `p-s4`: 81 suites, 5466 PASS, 0 FAIL, 6 SKIP, on one machine, on 2026-11-23, at the commit 79ae3de. The skips of that run are listed with their reasons in the testing document; they include PHP 7.4, 8.0 and 8.1 (no pinned image) and the git checks that cannot run in a snapshot.
+Latest valid full run: `p-af`, at the commit 3ceda08 (`result.txt`: "run VALID: test exit 0, docker back at baseline (5 0 11)"): 91 suites, 5837 PASS, 0 FAIL, 4 SKIP. `p-ad` (6fba210) was valid too. The run `p-ac` was not valid: one check failed and was fixed in 6fba210. The last valid run whose numbers are written is `p-s4`: 81 suites, 5466 PASS, 0 FAIL, 6 SKIP, on one machine, on 2026-11-23, at the commit 79ae3de. The skips of that run are listed with their reasons in the testing document; they include PHP 7.4, 8.0 and 8.1 (no pinned image) and the git checks that cannot run in a snapshot.
 
 ## Project structure
 
